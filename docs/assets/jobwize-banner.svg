@@ -1,0 +1,41 @@
+<svg width="1200" height="320" viewBox="0 0 1200 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="320" rx="28" fill="#0B1F4D"/>
+  <circle cx="1040" cy="80" r="180" fill="#123B8C" opacity="0.45"/>
+  <circle cx="120" cy="260" r="160" fill="#2563EB" opacity="0.25"/>
+
+  <rect x="80" y="82" width="92" height="74" rx="14" fill="#FFFFFF" opacity="0.95"/>
+  <rect x="105" y="58" width="42" height="28" rx="8" stroke="#FFFFFF" stroke-width="10"/>
+  <rect x="92" y="112" width="68" height="12" rx="6" fill="#2563EB"/>
+
+  <text x="210" y="128" font-family="Arial, Helvetica, sans-serif" font-size="62" font-weight="800" fill="#FFFFFF">
+    JobWize
+  </text>
+
+  <text x="214" y="176" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="500" fill="#DBEAFE">
+    Open Source Career Management Platform
+  </text>
+
+  <text x="214" y="225" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="600" fill="#93C5FD">
+    Organize • Track • Optimize • Succeed
+  </text>
+
+  <rect x="214" y="248" width="138" height="34" rx="17" fill="#2563EB"/>
+  <text x="238" y="271" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#FFFFFF">
+    Blazor
+  </text>
+
+  <rect x="370" y="248" width="150" height="34" rx="17" fill="#16A34A"/>
+  <text x="397" y="271" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#FFFFFF">
+    .NET API
+  </text>
+
+  <rect x="538" y="248" width="180" height="34" rx="17" fill="#7C3AED"/>
+  <text x="565" y="271" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#FFFFFF">
+    PostgreSQL
+  </text>
+
+  <rect x="736" y="248" width="140" height="34" rx="17" fill="#F97316"/>
+  <text x="766" y="271" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#FFFFFF">
+    DevOps
+  </text>
+</svg>
