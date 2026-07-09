@@ -124,16 +124,20 @@ Application code should not contain persistence details.
 
 ## Domain
 
-Contains the business model.
+Contains the business model of the module.
+
+The Domain Model encapsulates business state and behavior. All business rules, validations, and invariant enforcement are implemented inside the Domain Model rather than in application handlers.
 
 Examples include:
 
--   Entities
+-   Domain Models
 -   Value Objects
 -   Domain Events
 -   Business Rules
 
-The domain layer contains no HTTP concerns.
+Command handlers orchestrate use cases by loading Domain Models, invoking business behavior, and coordinating persistence, but they do not contain business logic.
+
+The domain layer contains no HTTP concerns and remains independent from application flow.
 
 ---
 
