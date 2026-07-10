@@ -29,11 +29,11 @@ The communication architecture follows these principles.
 
 Modules communicate in three different ways.
 
-| Type                     | Purpose                                          | Transport         |
-| ------------------------ | ------------------------------------------------ | ----------------- |
-| Local Commands / Queries | Execute business logic inside the current module | MediatR           |
-| Module Queries           | Read information from another module             | Module Dispatcher |
-| Integration Events       | Notify other modules about business events       | Message Broker    |
+| Type                     | Purpose                                          | Execution pipeline                             |
+| ------------------------ | ------------------------------------------------ | ---------------------------------------------- |
+| Local Commands / Queries | Execute business logic inside the current module | Dispatcher → MediatR                           |
+| Module Queries           | Read information from another module             | Dispatcher → Module Dispatcher                 |
+| Integration Events       | Notify other modules about business events       | Dispatcher → MediatR → Outbox → Message Broker |
 
 ```mermaid
 flowchart TD
@@ -65,18 +65,20 @@ flowchart TD
 
 # Dispatcher
 
-The Application layer never communicates directly with MediatR, the message broker, or another module.
-
-Instead, every feature depends on a shared dispatcher abstraction.
+The Application layer never communicates directly with MediatR, notification handlers, the message broker, or another module. All communication is performed through the shared `IDispatcher` abstraction.
 
 ```csharp
 public interface IDispatcher
 {
     Task<TResponse> SendAsync<TResponse>(
-        IRequest<TResponse> request,
+        ICommand<TResponse> command,
         CancellationToken cancellationToken = default);
 
     Task<TResponse> SendAsync<TResponse>(
+        IQuery<TResponse> query,
+        CancellationToken cancellationToken = default);
+
+    Task<TResponse> SendModuleQueryAsync<TResponse>(
         IModuleQuery<TResponse> query,
         CancellationToken cancellationToken = default);
 
@@ -113,6 +115,16 @@ flowchart LR
 ```
 
 The Application layer remains unaware of MediatR.
+
+## Result Convention
+
+All Commands, Queries and Module Queries return either `Result` or `Result<T>`.
+
+Expected business failures are represented by a failed `Result` and never by exceptions.
+
+Exceptions are reserved for unexpected failures such as infrastructure problems or programming errors.
+
+The Presentation layer is responsible for translating a `Result` into an HTTP response (Problem Details), keeping the Application layer independent of HTTP concerns.
 
 ---
 
@@ -331,3 +343,4 @@ The communication architecture follows these rules.
 -   Application features communicate only through the shared dispatcher.
 -   Communication infrastructure remains hidden from business logic.
 -   Public and module queries may evolve independently when their responsibilities differ.
+-   Commands, Queries and Module Queries always return `Result` or `Result<T>`.
