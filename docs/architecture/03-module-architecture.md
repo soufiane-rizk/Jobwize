@@ -120,6 +120,8 @@ Application code is responsible for:
 
 Application code should not contain persistence details.
 
+Request and Response contracts are defined in the module's Contracts project. The endpoint is responsible for mapping the request contract to the application command and returning the response contract.
+
 ---
 
 ## Domain
@@ -209,12 +211,9 @@ Example:
 ```text
 CreateUser.cs
 
-├── Request
 ├── Command
-├── Response
 ├── Validator
 ├── Handler
-├── Mapping
 └── Endpoint
 ```
 

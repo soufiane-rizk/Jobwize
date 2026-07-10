@@ -106,14 +106,16 @@ This document provides a high-level overview of the system.
 
 The following documents describe the backend architecture in greater detail.
 
-| Document                      | Description                                                              |
-| ----------------------------- | ------------------------------------------------------------------------ |
-| **01 - Backend Overview**     | Backend architecture principles and design philosophy.                   |
-| **02 - Solution Structure**   | Solution and project organization.                                       |
-| **03 - Module Architecture**  | Internal organization of each business module.                           |
-| **04 - Contracts**            | Public APIs, module contracts, and integration events.                   |
-| **05 - API Layer**            | HTTP API design and request lifecycle.                                   |
-| **06 - Module Communication** | Synchronous and asynchronous communication between modules.              |
-| **07 - Event Processing**     | Outbox, Inbox, retries, and event lifecycle.                             |
-| **08 - Database**             | Persistence strategy and database ownership.                             |
-| **09 - Runtime**              | Runtime architecture, application components, and external dependencies. |
+| Document                      | Description                                                                                 |
+| ----------------------------- | ------------------------------------------------------------------------------------------- |
+| **01 - Backend Overview**     | Backend architecture principles and design philosophy.                                      |
+| **02 - Solution Structure**   | Solution and project organization.                                                          |
+| **03 - Module Architecture**  | Internal organization and conventions followed by each business module.                     |
+| **04 - Contracts**            | Public APIs, module contracts, and integration events.                                      |
+| **05 - API Layer**            | HTTP API design, endpoint responsibilities, and request handling.                           |
+| **06 - Module Communication** | Synchronous and asynchronous communication between modules.                                 |
+| **07 - Event Processing**     | Outbox, Inbox, retries, and integration event lifecycle.                                    |
+| **08 - Database**             | Persistence strategy, database ownership, and transactional boundaries.                     |
+| **09 - Runtime**              | Runtime architecture, application components, and external dependencies.                    |
+| **10 - Domain Model**         | Domain modeling principles, entities, value objects, business rules, and aggregate design.  |
+| **11 - Application Layer**    | Application use cases, handlers, validation, transactions, results, and execution pipeline. |
