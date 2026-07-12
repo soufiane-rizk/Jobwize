@@ -1,1 +1,11 @@
-<Solution />
+<Solution>
+  <Folder Name="/Modules/" />
+  <Folder Name="/Modules/Identity/">
+    <Project Path="Modules/Identity/JobWize.Modules.Identity.Contracts/JobWize.Modules.Identity.Contracts.csproj" Id="8e72762c-45e9-4d9b-8047-220095dc445b" />
+    <Project Path="Modules/Identity/JobWize.Modules.Identity/JobWize.Modules.Identity.csproj" Id="55cfede1-3fb6-4f2d-8d02-b0c25d1b1daa" />
+  </Folder>
+  <Folder Name="/Shared/">
+    <Project Path="Shared/JobWize.Shared.Contracts/JobWize.Shared.Contracts.csproj" />
+    <Project Path="Shared/JobWize.Shared/JobWize.Shared.csproj" />
+  </Folder>
+</Solution>
