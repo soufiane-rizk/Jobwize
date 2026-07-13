@@ -21,6 +21,14 @@ namespace JobWize.Shared
 
         private static IServiceCollection AddDispatching(this IServiceCollection services)
         {
+            services.AddMediatR(cfg =>
+            {
+                cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly);
+
+                // Future global configuration
+                // cfg.AddOpenBehavior(...)
+            });
+
             services.AddScoped<IDispatcher, Dispatcher>();
             services.AddScoped<IModuleDispatcher, InProcessModuleDispatcher>();
 

@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Api/">
+    <Project Path="Api/JobWize.Api/JobWize.Api.csproj" Id="defa1a52-fdf0-4209-9c86-ed217ad712c0" />
+  </Folder>
   <Folder Name="/Modules/" />
   <Folder Name="/Modules/Identity/">
     <Project Path="Modules/Identity/JobWize.Modules.Identity.Contracts/JobWize.Modules.Identity.Contracts.csproj" Id="8e72762c-45e9-4d9b-8047-220095dc445b" />

@@ -17,6 +17,11 @@ namespace JobWize.Modules.Identity
 
             services.AddInfrastructure(configuration);
 
+            services.AddMediatR(cfg =>
+            {
+                cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly);
+            });
+
             services.AddEndpoints(typeof(DependencyInjection).Assembly);
 
             return services;
