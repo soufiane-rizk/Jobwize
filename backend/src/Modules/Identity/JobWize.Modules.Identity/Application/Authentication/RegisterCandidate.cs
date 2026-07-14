@@ -4,11 +4,12 @@ using JobWize.Modules.Identity.Contracts.Public.Authentication;
 using JobWize.Modules.Identity.Infrastructure.Authentication;
 using JobWize.Modules.Identity.Persistence;
 using JobWize.Shared.Application.Dispatching;
-using JobWize.Shared.Endpoints;
 using JobWize.Shared.Application.Results;
 using JobWize.Shared.Contracts.Application.Dispatching;
+using JobWize.Shared.Endpoints;
 using JobWize.Shared.Infrastructure.Time;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Options;
 using System;
@@ -70,7 +71,9 @@ namespace JobWize.Modules.Identity.Application.User
                         var result = await dispatcher.SendAsync(command, cancellationToken);
 
                         return result.ToApiResult();
-                    });
+                    })
+                    .WithName("RegisterCandidate")
+                    .WithTags("Authentication"); ;
             }
         }
 

@@ -31,6 +31,7 @@ namespace JobWize.Shared
 
             services.AddScoped<IDispatcher, Dispatcher>();
             services.AddScoped<IModuleDispatcher, InProcessModuleDispatcher>();
+            services.AddScoped<IIntegrationEventContext, IntegrationEventContext>();
 
             return services;
         }
