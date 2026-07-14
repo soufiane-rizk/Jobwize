@@ -8,7 +8,7 @@ JobWize follows a modular monolith architecture where each module owns its busin
 
 Modules never reference another module's implementation directly.
 
-Instead, communication occurs through well-defined contracts and a shared dispatcher abstraction.
+Instead, communication occurs through well-defined contracts and a runtime-aware dispatching infrastructure that preserves module ownership and architectural boundaries.
 
 ---
 
@@ -21,51 +21,54 @@ The communication architecture follows these principles.
 -   Commands never cross module boundaries.
 -   Queries may retrieve data from another module.
 -   Integration events notify modules that something has happened.
--   Communication infrastructure is hidden behind a shared dispatcher abstraction.
+-   Communication infrastructure is hidden behind shared dispatcher abstractions that route requests according to module ownership.
 
 ---
 
 # Communication Types
 
 Modules communicate in three different ways.
-
-| Type                     | Purpose                                          | Execution pipeline                             |
-| ------------------------ | ------------------------------------------------ | ---------------------------------------------- |
-| Local Commands / Queries | Execute business logic inside the current module | Dispatcher → MediatR                           |
-| Module Queries           | Read information from another module             | Dispatcher → Module Dispatcher                 |
-| Integration Events       | Notify other modules about business events       | Dispatcher → MediatR → Outbox → Message Broker |
+| Type | Purpose | Execution pipeline |
+| ------------------------ | ----------------------------------------------- | ----------------------------------------------------- |
+| Local Commands / Queries | Execute business logic inside the owning module | Dispatcher → Module Registry → Module Runtime |
+| Module Queries | Read information from another module | Dispatcher → Module Dispatcher |
+| Integration Events | Notify other modules about business events | Dispatcher → Module Runtime → Outbox → Message Broker |
 
 ```mermaid
 flowchart TD
 
-    A["Application Handler"]
+    Handler["Application Handler"]
 
-    D["IDispatcher"]
+    Dispatcher["IDispatcher"]
 
-    M["MediatR"]
+    Registry["Module Registry"]
 
-    Q["Module Dispatcher"]
+    Runtime["Module Runtime"]
 
-    B["Message Broker"]
+    ModuleDispatcher["IModuleDispatcher"]
 
-    A --> D
+    Broker["Message Broker"]
 
-    D --> M
-    D --> Q
-    D --> B
+    Handler --> Dispatcher
+
+    Dispatcher --> Registry
+    Dispatcher --> ModuleDispatcher
+    Dispatcher --> Broker
+
+    Registry --> Runtime
 
     classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
     classDef infrastructure fill:#dbeafe,stroke:#2563eb,color:#000;
 
-    class A application;
-    class D,M,Q,B infrastructure;
+    class Handler application;
+    class Dispatcher,Registry,Runtime,ModuleDispatcher,Broker infrastructure;
 ```
 
 ---
 
 # Dispatcher
 
-The Application layer never communicates directly with MediatR, notification handlers, the message broker, or another module. All communication is performed through the shared `IDispatcher` abstraction.
+The Application layer never communicates directly with the module runtime, integration event handlers, the message broker, or another module. All application communication is performed exclusively through the shared `IDispatcher` abstraction.
 
 ```csharp
 public interface IDispatcher
@@ -88,33 +91,39 @@ public interface IDispatcher
 }
 ```
 
-The dispatcher hides the communication mechanism from the business logic.
+`IDispatcher` serves as the single entry point for every communication pattern supported by the application. Depending on the request type, it delegates execution to the appropriate runtime component:
 
-This allows the communication infrastructure to evolve without affecting application features.
+-   Local Commands and Queries are routed to the owning Module Runtime through the Module Registry.
+-   Module Queries are delegated to the Module Dispatcher.
+-   Integration Events are published through the owning Module Runtime, which executes local integration event handlers before coordinating the Outbox publishing workflow.
+
+This design keeps business logic completely independent from the underlying communication infrastructure while allowing the runtime implementation to evolve without affecting application features.
 
 ---
 
 # Local Communication
 
-Commands and Queries executed inside the current module are processed through MediatR.
+Commands and Queries executed inside the current module are processed through the custom module runtime. The dispatcher resolves the owning module through the module registry before delegating execution to that module's runtime.
 
 ```mermaid
 flowchart LR
 
-    Endpoint --> Command
+    Endpoint --> Request
 
-    Command --> Dispatcher
+    Request --> Dispatcher
 
-    Dispatcher --> MediatR
+    Dispatcher --> Registry["Module Registry"]
 
-    MediatR --> Handler
+    Registry --> Runtime["Module Runtime"]
+
+    Runtime --> Handler
 
     classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
 
-    class Endpoint,Command,Dispatcher,MediatR,Handler application;
+    class Endpoint,Request,Dispatcher,Registry,Runtime,Handler application;
 ```
 
-The Application layer remains unaware of MediatR.
+The Application layer remains unaware of the underlying runtime implementation. It communicates exclusively through `IDispatcher`.
 
 ## Result Convention
 
@@ -153,23 +162,31 @@ flowchart LR
 
     A["Applications"]
 
-    D["IDispatcher"]
+    Dispatcher["IDispatcher"]
 
-    Q["GetUserById.ModuleQuery"]
+    ModuleDispatcher["IModuleDispatcher"]
 
-    I["Identity"]
+    Registry["Module Registry"]
 
-    A --> D
+    Runtime["Identity Module Runtime"]
 
-    D --> Q
+    Handler["Module Query Handler"]
 
-    Q --> I
+    A --> Dispatcher
+
+    Dispatcher --> ModuleDispatcher
+
+    ModuleDispatcher --> Registry
+
+    Registry --> Runtime
+
+    Runtime --> Handler
 
     classDef module fill:#dcfce7,stroke:#16a34a,color:#000;
     classDef infrastructure fill:#dbeafe,stroke:#2563eb,color:#000;
 
-    class A,I module;
-    class D,Q infrastructure;
+    class A,Runtime,Handler module;
+    class Dispatcher,ModuleDispatcher,Registry infrastructure;
 ```
 
 Only contracts are shared between modules.
@@ -216,7 +233,7 @@ Integration Events represent business events that have occurred within a module.
 
 They serve two purposes:
 
--   Notify handlers inside the current module to complete local business orchestration.
+-   Notify handlers inside the owning module runtime to complete local business orchestration.
 -   Notify other modules that a business event has occurred.
 
 Integration Events are never used to request information from another module.
@@ -249,9 +266,9 @@ flowchart LR
 
     Handler --> Dispatcher
 
-    Dispatcher --> MediatR
+    Dispatcher --> Runtime["Module Runtime"]
 
-    MediatR --> LocalHandlers["Local Notification Handlers"]
+    Runtime --> LocalHandlers["Local Integration Event Handlers"]
 
     LocalHandlers --> Outbox
 
@@ -266,8 +283,8 @@ flowchart LR
     classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
     classDef infrastructure fill:#dbeafe,stroke:#2563eb,color:#000;
 
-    class Handler,LocalHandlers,Notifications,Applications,Companies application;
-    class Dispatcher,MediatR,Outbox,MessageBroker infrastructure;
+    class Handler,Runtime,LocalHandlers,Notifications,Applications,Companies application;
+    class Dispatcher,Outbox,MessageBroker infrastructure;
 ```
 
 ---
@@ -284,7 +301,7 @@ await dispatcher.PublishAsync(
 
 The dispatcher is responsible for the complete publishing workflow:
 
-1. Publishing the event inside the current module using MediatR.
+1. Publishing the event inside the owning module runtime.
 2. Waiting for all local notification handlers (including nested notifications) to complete.
 3. Recording the event in the Outbox.
 4. Allowing the Outbox Processor to publish the event to the message broker after the surrounding transaction has been committed.

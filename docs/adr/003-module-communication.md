@@ -4,6 +4,11 @@
 
 Accepted
 
+> **Superseded in part by ADR-010 – Introduce a Custom Module Runtime.**
+>
+> This ADR remains the source of truth for JobWize's communication strategy.
+> ADR-010 replaces the MediatR-based request execution mechanism described here with the custom module runtime while preserving the communication model and dispatcher abstractions defined in this document.
+
 ---
 
 # Context
@@ -33,30 +38,32 @@ flowchart LR
 
     Dispatcher --> Send["SendAsync()"]
 
-    Dispatcher --> Query["QueryModuleAsync()"]
+    Dispatcher --> Query["SendModuleQueryAsync()"]
 
     Dispatcher --> Publish["PublishAsync()"]
 
-    Send --> MediatR["MediatR"]
+    Send --> Runtime["Module Runtime"]
 
-    Query --> ModuleDispatcher["Module Query Dispatcher"]
+    Query --> ModuleDispatcher["Module Dispatcher"]
 
-    Publish --> Broker["Message Broker"]
+    Publish --> Runtime
+
+    Runtime --> Broker["Message Broker"]
 
     classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
     classDef infrastructure fill:#dbeafe,stroke:#2563eb,color:#000;
 
     class Feature application;
-    class Dispatcher,MediatR,ModuleDispatcher,Broker infrastructure;
+    class Dispatcher,Runtime,ModuleDispatcher,Broker infrastructure;
 ```
 
 Each dispatcher method represents a different communication pattern.
 
-| Method               | Purpose                                              |
-| -------------------- | ---------------------------------------------------- |
-| `SendAsync()`        | Execute application logic inside the current module. |
-| `QueryModuleAsync()` | Retrieve authoritative data from another module.     |
-| `PublishAsync()`     | Notify other modules that something has happened.    |
+| Method                   | Purpose                                              |
+| ------------------------ | ---------------------------------------------------- |
+| `SendAsync()`            | Execute application logic inside the current module. |
+| `SendModuleQueryAsync()` | Retrieve authoritative data from another module.     |
+| `PublishAsync()`         | Notify other modules that something has happened.    |
 
 Each mechanism exists because it represents a different architectural responsibility.
 
@@ -107,9 +114,9 @@ Using dedicated methods makes the architectural intent immediately visible in th
 
 ---
 
-## MediatR for All Communication
+## Single Request Execution Engine
 
-Another option would be to use MediatR for every interaction, including cross-module communication.
+Another option would have been to route every communication pattern through the same execution mechanism.
 
 ### Advantages
 

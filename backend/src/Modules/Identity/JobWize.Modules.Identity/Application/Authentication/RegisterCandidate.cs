@@ -3,11 +3,12 @@ using JobWize.Modules.Identity.Contracts.Events.Authentication;
 using JobWize.Modules.Identity.Contracts.Public.Authentication;
 using JobWize.Modules.Identity.Infrastructure.Authentication;
 using JobWize.Modules.Identity.Persistence;
-using JobWize.Shared.Application.Dispatching;
 using JobWize.Shared.Application.Results;
 using JobWize.Shared.Contracts.Application.Dispatching;
 using JobWize.Shared.Endpoints;
+using JobWize.Shared.Infrastructure.Dispatching;
 using JobWize.Shared.Infrastructure.Time;
+using JobWize.Shared.Runtime.Handlers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -98,7 +99,7 @@ namespace JobWize.Modules.Identity.Application.User
                 _jwtOptions = jwtOptions.Value;
             }
 
-            public async Task<Result<AuthenticationResponse>> Handle(Command command, CancellationToken cancellationToken)
+            public async Task<Result<AuthenticationResponse>> HandleAsync(Command command, CancellationToken cancellationToken)
             {
                 var existingUser = await _userRepository.GetByEmailAsync(command.Email, cancellationToken);
 

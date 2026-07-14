@@ -30,11 +30,28 @@ flowchart TD
 
     Api["ASP.NET Core API"]
 
+    Dispatcher["Dispatcher"]
+
+    Registry["Module Registry"]
+
     subgraph Modules["Business Modules"]
-        Identity
-        Companies
-        Applications
-        Notifications
+
+        subgraph Identity["Identity Module"]
+            IdentityRuntime["Module Runtime"]
+        end
+
+        subgraph Companies["Companies Module"]
+            CompaniesRuntime["Module Runtime"]
+        end
+
+        subgraph Applications["Applications Module"]
+            ApplicationsRuntime["Module Runtime"]
+        end
+
+        subgraph Notifications["Notifications Module"]
+            NotificationsRuntime["Module Runtime"]
+        end
+
     end
 
     Database[(PostgreSQL)]
@@ -44,17 +61,30 @@ flowchart TD
     Browser --> Frontend
     Frontend --> Api
 
-    Api --> Modules
+    Api --> Dispatcher
+    Dispatcher --> Registry
 
-    Modules --> Database
-    Modules --> Broker
+    Registry --> IdentityRuntime
+    Registry --> CompaniesRuntime
+    Registry --> ApplicationsRuntime
+    Registry --> NotificationsRuntime
+
+    IdentityRuntime --> Database
+    CompaniesRuntime --> Database
+    ApplicationsRuntime --> Database
+    NotificationsRuntime --> Database
+
+    IdentityRuntime --> Broker
+    CompaniesRuntime --> Broker
+    ApplicationsRuntime --> Broker
+    NotificationsRuntime --> Broker
 
     classDef client fill:#dbeafe,stroke:#2563eb,color:#000;
     classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
     classDef infrastructure fill:#fde68a,stroke:#ca8a04,color:#000;
 
     class Browser,Frontend client;
-    class Api,Modules,Identity,Companies,Applications,Notifications application;
+    class Api,Dispatcher,Registry,IdentityRuntime,CompaniesRuntime,ApplicationsRuntime,NotificationsRuntime application;
     class Database,Broker infrastructure;
 ```
 
@@ -133,6 +163,9 @@ The runtime consists of the following primary components.
 | **PostgreSQL**         | Stores module data, projections, Inbox, and Outbox tables.                                      |
 | **Message Broker**     | Delivers integration events asynchronously between modules.                                     |
 | **Hosted Services**    | Process Inbox, Outbox, and other asynchronous background tasks.                                 |
+| **Dispatcher**         | Entry point for application requests.                                                           |
+| **Module Registry**    | Resolves which module owns a request.                                                           |
+| **Module Runtime**     | Executes requests belonging to a module.                                                        |
 
 ---
 
@@ -147,23 +180,29 @@ flowchart TD
 
     Configuration["Load Configuration"]
 
-    DI["Configure Dependency Injection"]
+    Shared["Configure Shared Services"]
 
-    Modules["Register Business Modules"]
+    Modules["Initialize Business Modules"]
+
+    Runtime["Build Module Runtime"]
+
+    Registry["Register Module Registry"]
 
     Hosted["Start Hosted Services"]
 
     Ready["Application Ready"]
 
     Start --> Configuration
-    Configuration --> DI
-    DI --> Modules
-    Modules --> Hosted
+    Configuration --> Shared
+    Shared --> Modules
+    Modules --> Runtime
+    Runtime --> Registry
+    Registry --> Hosted
     Hosted --> Ready
 
     classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
 
-    class Start,Configuration,DI,Modules,Hosted,Ready application;
+    class Start,Configuration,Shared,Modules,Runtime,Registry,Hosted,Ready application;
 ```
 
 During startup the application:
@@ -178,6 +217,62 @@ The startup sequence is coordinated through the application's composition root.
 
 ---
 
+# Runtime Dispatch Pipeline
+
+After the application has started, every synchronous request follows the same execution pipeline.
+
+The Dispatcher acts as the single entry point for application requests. It first asks the Module Registry which business module owns the request type. The registry returns the corresponding Module Runtime, which resolves the appropriate handler from its Handler Catalog, creates the handler through the dependency injection container, and finally executes the request.
+
+Because every module owns its own runtime, request execution remains fully encapsulated within the owning module while request routing remains centralized.
+
+```mermaid
+sequenceDiagram
+
+    participant Endpoint
+    participant Dispatcher
+    participant Registry as Module Registry
+    participant Runtime as Module Runtime
+    participant Catalog as Handler Catalog
+    participant DI as Dependency Injection
+    participant Handler
+
+    Endpoint->>Dispatcher: SendAsync(request)
+
+    Dispatcher->>Registry: Resolve(requestType)
+    Registry-->>Dispatcher: ModuleRuntime
+
+    Dispatcher->>Runtime: SendAsync(request)
+
+    Runtime->>Catalog: GetRequestHandler(requestType)
+    Catalog-->>Runtime: HandlerDescriptor
+
+    Runtime->>DI: Resolve(handlerType)
+    DI-->>Runtime: Handler
+
+    Runtime->>Handler: HandleAsync(request)
+    Handler-->>Runtime: Result
+
+    Runtime-->>Dispatcher: Result
+    Dispatcher-->>Endpoint: Result
+
+    box rgb(220,252,231) Application
+        participant Endpoint
+        participant Dispatcher
+        participant Runtime
+        participant Catalog
+        participant Handler
+    end
+
+    box rgb(253,230,138) Infrastructure
+        participant Registry
+        participant DI
+    end
+```
+
+The Handler Catalog is created once during application startup from the module descriptor produced by the Handler Scanner. As a result, request execution requires no reflection or assembly scanning, relying only on dictionary lookups and dependency injection to locate and execute the correct handler.
+
+---
+
 # Request Lifecycle
 
 A synchronous request follows the execution flow below.
@@ -185,36 +280,42 @@ A synchronous request follows the execution flow below.
 ```mermaid
 flowchart LR
 
-    Client["Client"]
+Client["Client"]
 
-    Endpoint["Endpoint"]
+Endpoint["Endpoint"]
 
-    Dispatcher["Application Dispatcher"]
+Dispatcher["Dispatcher"]
 
-    Handler["Application Handler"]
+Registry["Module Registry"]
 
-    Database[(Module Schema)]
+Runtime["Module Runtime"]
 
-    Client --> Endpoint
-    Endpoint --> Dispatcher
-    Dispatcher --> Handler
-    Handler --> Database
-    Database --> Handler
-    Handler --> Endpoint
-    Endpoint --> Client
+Handler["Application Handler"]
 
-    classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
-    classDef infrastructure fill:#fde68a,stroke:#ca8a04,color:#000;
+Database[(Module Schema)]
 
-    class Client,Endpoint,Dispatcher,Handler application;
-    class Database infrastructure;
+Client --> Endpoint
+Endpoint --> Dispatcher
+Dispatcher --> Registry
+Registry --> Runtime
+Runtime --> Handler
+Handler --> Database
+Database --> Handler
+Handler --> Endpoint
+Endpoint --> Client
+
+classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
+classDef infrastructure fill:#fde68a,stroke:#ca8a04,color:#000;
+
+class Client,Endpoint,Dispatcher,Registry,Runtime,Handler application;
+class Database infrastructure;
 ```
 
 HTTP endpoints remain intentionally lightweight.
 
 Their responsibility is limited to receiving the request, invoking the application dispatcher, and returning the response.
 
-Business logic is executed exclusively inside application handlers.
+The dispatcher resolves the owning module through the Module Registry, which forwards execution to the corresponding Module Runtime. The runtime resolves the appropriate handler and executes it within the module boundary. Business logic therefore remains encapsulated inside the owning module while request routing is coordinated centrally.
 
 ---
 
@@ -425,6 +526,7 @@ The runtime architecture follows these principles:
 -   The frontend and backend execute as independent applications.
 -   The backend is deployed as a single executable.
 -   Business modules remain logically independent.
+-   Request execution is module-aware and always routed through the owning module runtime.
 -   Each module owns its own data and background processing.
 -   Integration events always traverse the messaging infrastructure.
 -   Background processing is encapsulated within individual modules.
@@ -438,6 +540,6 @@ The runtime architecture follows these principles:
 
 The runtime architecture brings together every architectural concept introduced throughout this documentation.
 
-The frontend and backend remain independently evolvable, business modules execute within a shared runtime while preserving strict boundaries, synchronous operations are handled through the application dispatcher, and asynchronous communication is performed through reliable messaging using the Outbox and Inbox patterns.
+The frontend and backend remain independently evolvable, business modules execute within a shared runtime while preserving strict boundaries, synchronous operations are routed through the application dispatcher, module registry, and module runtime before reaching the owning application handler, and asynchronous communication is performed through reliable messaging using the Outbox and Inbox patterns.
 
 This separation of concerns allows the application to remain simple to develop and deploy today while providing a clear and incremental path toward independently scalable services as the platform grows.

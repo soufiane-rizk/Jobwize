@@ -4,6 +4,11 @@
 
 Accepted
 
+> **Implementation updated by ADR-010 – Introduce a Custom Module Runtime.**
+>
+> This ADR remains the source of truth for JobWize's transaction boundaries.
+> ADR-010 replaces the MediatR execution pipeline referenced here with the custom module runtime while preserving the transactional guarantees described in this document.
+
 ---
 
 # Context
@@ -27,7 +32,7 @@ The architecture therefore requires clearly defined transaction boundaries that 
 
 The **Application Handler** defines the transactional boundary.
 
-Each application request executes inside a single database transaction managed by the MediatR pipeline.
+Each application request executes inside a single database transaction coordinated by the application execution pipeline provided by the module runtime.
 
 Within that transaction, a handler may:
 
@@ -227,7 +232,7 @@ Writing Integration Events to the Outbox inside the transaction guarantees that 
 
 # Rationale
 
-JobWize defines the **Application Handler** as the unit of work.
+JobWize defines the execution of an **Application Handler** as the unit of work.
 
 Within a module, business operations execute atomically inside a single transaction.
 

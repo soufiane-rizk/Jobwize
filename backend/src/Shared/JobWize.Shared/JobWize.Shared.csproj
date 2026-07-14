@@ -8,11 +8,13 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="MediatR" Version="14.2.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.9" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JobWize.Shared.Contracts\JobWize.Shared.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Infrastructure\Dispatching\" />
   </ItemGroup>
 </Project>
 

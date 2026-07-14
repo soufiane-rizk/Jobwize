@@ -34,8 +34,8 @@ The Contracts project contains only the objects that other projects are allowed 
 A Contracts project may contain:
 
 -   Public API DTOs
--   Internal Queries
--   Internal Query Responses
+-   Module Queries
+-   Module Query Responses
 -   Integration Events
 
 A Contracts project must **never** contain:
@@ -46,7 +46,7 @@ A Contracts project must **never** contain:
 -   Infrastructure
 -   Services
 -   Validation
--   MediatR handlers
+-   Request handlers
 
 Contracts should remain lightweight and dependency-free.
 
@@ -93,7 +93,7 @@ JobWize.Modules.Identity.Contracts
 │       ├── UpdateUser.cs
 │       └── DeleteUser.cs
 │
-├── Internal
+├── Module
 │   └── Users
 │       ├── GetUserById.cs
 │       └── GetUsers.cs
@@ -137,9 +137,9 @@ This guarantees that both projects use the same request and response models.
 
 ---
 
-# Internal Contracts
+# Module Contracts
 
-Internal contracts define synchronous communication between modules.
+Module contracts define synchronous communication between business modules.
 
 They are not intended to be used by the frontend.
 
@@ -148,7 +148,7 @@ Example:
 ```csharp
 public static class GetUserById
 {
-    public sealed record Query(Guid UserId);
+    public sealed record ModuleQuery(Guid UserId);
 
     public sealed record Response(
         Guid Id,

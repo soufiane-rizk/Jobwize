@@ -4,7 +4,11 @@ using System.Text;
 
 namespace JobWize.Shared.Contracts.Application.Dispatching
 {
-    public interface ICommand<T> : IRequest<T>
+    public interface IRequest
+    {
+    }
+
+    public interface IRequest<T> : IRequest
     {
     }
 }

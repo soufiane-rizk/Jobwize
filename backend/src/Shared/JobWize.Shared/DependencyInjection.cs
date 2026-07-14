@@ -1,6 +1,6 @@
-﻿using JobWize.Shared.Application.Dispatching;
-using JobWize.Shared.Infrastructure.Dispatching;
+﻿using JobWize.Shared.Infrastructure.Dispatching;
 using JobWize.Shared.Infrastructure.Time;
+using JobWize.Shared.Runtime.Dispatching;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -21,14 +21,6 @@ namespace JobWize.Shared
 
         private static IServiceCollection AddDispatching(this IServiceCollection services)
         {
-            services.AddMediatR(cfg =>
-            {
-                cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly);
-
-                // Future global configuration
-                // cfg.AddOpenBehavior(...)
-            });
-
             services.AddScoped<IDispatcher, Dispatcher>();
             services.AddScoped<IModuleDispatcher, InProcessModuleDispatcher>();
             services.AddScoped<IIntegrationEventContext, IntegrationEventContext>();

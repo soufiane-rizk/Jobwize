@@ -1,30 +1,27 @@
 ﻿using JobWize.Modules.Identity.Infrastructure;
 using JobWize.Modules.Identity.Persistence;
+using JobWize.Shared.Application.Modules;
 using JobWize.Shared.Endpoints;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text;
 
 namespace JobWize.Modules.Identity
 {
-    public static class DependencyInjection
+    public sealed class IdentityModule : ModuleBase
     {
-        public static IServiceCollection AddIdentityModule(this IServiceCollection services, IConfiguration configuration)
+        public override string Name => "Identity";
+
+        protected override void Configure(IServiceCollection services, IConfiguration configuration)
         {
             services.AddPersistence(configuration);
 
             services.AddInfrastructure(configuration);
 
-            services.AddMediatR(cfg =>
-            {
-                cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly);
-            });
-
-            services.AddEndpoints(typeof(DependencyInjection).Assembly);
-
-            return services;
+            services.AddEndpoints(Assembly);
         }
     }
 }

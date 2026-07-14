@@ -14,14 +14,14 @@ JobWize is developed as if it were a production software product.
 
 We believe great software is built through:
 
-- Clean and maintainable code
-- Clear documentation
-- Professional Git workflows
-- Code reviews
-- Continuous Integration & Continuous Deployment (CI/CD)
-- Infrastructure as Code (IaC)
-- Automated testing
-- Continuous improvement
+-   Clean and maintainable code
+-   Clear documentation
+-   Professional Git workflows
+-   Code reviews
+-   Continuous Integration & Continuous Deployment (CI/CD)
+-   Infrastructure as Code (IaC)
+-   Automated testing
+-   Continuous improvement
 
 > **Quality is always more important than speed.**
 
@@ -41,69 +41,69 @@ Responsible for:
 
 ### Project & Repository
 
-- Project governance
-- Repository management
-- Development workflow
-- Engineering standards
-- Open Source management
-- Documentation management
-- Release management
+-   Project governance
+-   Repository management
+-   Development workflow
+-   Engineering standards
+-   Open Source management
+-   Documentation management
+-   Release management
 
 ### DevOps
 
-- GitHub & GitLab administration
-- Git workflow
-- CI/CD pipelines
-- GitHub Actions
-- GitLab CI/CD
+-   GitHub & GitLab administration
+-   Git workflow
+-   CI/CD pipelines
+-   GitHub Actions
+-   GitLab CI/CD
 
 ### Infrastructure
 
-- Docker
-- Docker Compose
-- Kubernetes (K3s)
-- Terraform
-- Ansible
-- Infrastructure as Code (IaC)
-- Azure Cloud
-- Server administration
-- Container Registry
+-   Docker
+-   Docker Compose
+-   Kubernetes (K3s)
+-   Terraform
+-   Ansible
+-   Infrastructure as Code (IaC)
+-   Azure Cloud
+-   Server administration
+-   Container Registry
 
 ### Database Operations
 
-- Database administration
-- Database deployment
-- Database backup & restore
-- Database monitoring
-- Database maintenance
-- Performance monitoring
-- High availability strategy
+-   Database administration
+-   Database deployment
+-   Database backup & restore
+-   Database monitoring
+-   Database maintenance
+-   Performance monitoring
+-   High availability strategy
 
 ### Monitoring & Observability
 
-- Prometheus
-- Grafana
-- Loki
-- AlertManager
-- Logging
-- Metrics
-- Alerting
+-   Prometheus
+-   Grafana
+-   Loki
+-   AlertManager
+-   Logging
+-   Metrics
+-   Alerting
 
 ### Security
 
-- Secrets management
-- Infrastructure security
-- DevSecOps
-- Backup strategy
-- Disaster Recovery
-- SSL/TLS management
+-   Secrets management
+-   Infrastructure security
+-   DevSecOps
+-   Backup strategy
+-   Disaster Recovery
+-   SSL/TLS management
 
 ### Automation
 
-- Python Workers infrastructure
-- Development environment
-- Deployment automation
-- Environment configuration
+-   Python Workers infrastructure
+-   Development environment
+-   Deployment automation
+-   Environment configuration
 
 ---
 
@@ -115,64 +115,64 @@ Responsible for:
 
 ### Software Architecture
 
-- Solution Architecture
-- Software Architecture
-- Clean Architecture
-- Domain-Driven Design (DDD)
-- Modular Monolith architecture
-- System design
+-   Solution Architecture
+-   Software Architecture
+-   Clean Architecture
+-   Domain-Driven Design (DDD)
+-   Modular Monolith architecture
+-   System design
 
 ### Backend Development
 
-- ASP.NET Core Web API
-- Business Logic
-- Domain layer
-- Application layer
-- Infrastructure layer
-- Dependency Injection
-- MediatR
-- FluentValidation
+-   ASP.NET Core Web API
+-   Business Logic
+-   Domain layer
+-   Application layer
+-   Infrastructure layer
+-   Dependency Injection
+-   Custom Module Runtime
+-   FluentValidation
 
 ### Frontend Development
 
-- Blazor WebAssembly
-- MudBlazor
-- UI Components
-- State Management
-- User Experience
+-   Blazor WebAssembly
+-   MudBlazor
+-   UI Components
+-   State Management
+-   User Experience
 
 ### Database Engineering
 
-- Database Architecture
-- PostgreSQL
-- Entity Framework Core
-- Database modeling
-- Database migrations
-- Query optimization
-- Performance tuning
+-   Database Architecture
+-   PostgreSQL
+-   Entity Framework Core
+-   Database modeling
+-   Database migrations
+-   Query optimization
+-   Performance tuning
 
 ### API
 
-- REST API Design
-- Authentication
-- Authorization
-- Identity
-- API Versioning
-- API Documentation
+-   REST API Design
+-   Authentication
+-   Authorization
+-   Identity
+-   API Versioning
+-   API Documentation
 
 ### Quality
 
-- Unit Testing
-- Integration Testing
-- Performance Optimization
-- Code Refactoring
-- Code Quality
+-   Unit Testing
+-   Integration Testing
+-   Performance Optimization
+-   Code Refactoring
+-   Code Quality
 
 ### Automation
 
-- Python Workers development
-- AI Integration
-- Background Services
+-   Python Workers development
+-   AI Integration
+-   Background Services
 
 ---
 
@@ -213,16 +213,16 @@ Direct pushes to protected branches are not allowed.
 
 We follow a Git Flow-inspired branching strategy.
 
-| Branch | Purpose |
-|---------|---------|
-| `main` | Production-ready code |
-| `develop` | Active development |
-| `feature/*` | New features |
-| `bugfix/*` | Bug fixes |
-| `hotfix/*` | Critical production fixes |
-| `docs/*` | Documentation |
-| `infra/*` | Infrastructure & DevOps |
-| `ci/*` | CI/CD improvements |
+| Branch      | Purpose                   |
+| ----------- | ------------------------- |
+| `main`      | Production-ready code     |
+| `develop`   | Active development        |
+| `feature/*` | New features              |
+| `bugfix/*`  | Bug fixes                 |
+| `hotfix/*`  | Critical production fixes |
+| `docs/*`    | Documentation             |
+| `infra/*`   | Infrastructure & DevOps   |
+| `ci/*`      | CI/CD improvements        |
 
 ## Examples
 
@@ -278,17 +278,17 @@ chore: update dependencies
 
 ## Commit Types
 
-| Type | Description |
-|------|-------------|
-| feat | New feature |
-| fix | Bug fix |
-| docs | Documentation |
-| refactor | Code improvement |
-| test | Tests |
-| ci | Continuous Integration |
-| infra | Infrastructure |
-| perf | Performance |
-| chore | Maintenance |
+| Type     | Description            |
+| -------- | ---------------------- |
+| feat     | New feature            |
+| fix      | Bug fix                |
+| docs     | Documentation          |
+| refactor | Code improvement       |
+| test     | Tests                  |
+| ci       | Continuous Integration |
+| infra    | Infrastructure         |
+| perf     | Performance            |
+| chore    | Maintenance            |
 
 ---
 
@@ -298,12 +298,12 @@ Every change must be submitted through a Pull Request.
 
 A Pull Request should:
 
-- Focus on a single topic
-- Have a meaningful title
-- Include a clear description
-- Reference related Issues (when applicable)
-- Pass CI checks
-- Be reviewed before merging
+-   Focus on a single topic
+-   Have a meaningful title
+-   Include a clear description
+-   Reference related Issues (when applicable)
+-   Pass CI checks
+-   Be reviewed before merging
 
 Small Pull Requests are easier to review and maintain.
 
@@ -315,18 +315,18 @@ Code reviews improve software quality and knowledge sharing.
 
 General rules:
 
-- Authors do not approve their own Pull Requests.
-- Reviews should be constructive and respectful.
-- Discussions should focus on improving the project.
-- Every Pull Request must be reviewed before merging.
+-   Authors do not approve their own Pull Requests.
+-   Reviews should be constructive and respectful.
+-   Discussions should focus on improving the project.
+-   Every Pull Request must be reviewed before merging.
 
 Current review ownership:
 
-| Area | Primary Reviewer |
-|------|------------------|
-| Backend & Frontend | Ahmed Amine Abahmane |
-| Infrastructure & DevOps | Soufiane Rizk |
-| Documentation | Both maintainers |
+| Area                    | Primary Reviewer     |
+| ----------------------- | -------------------- |
+| Backend & Frontend      | Ahmed Amine Abahmane |
+| Infrastructure & DevOps | Soufiane Rizk        |
+| Documentation           | Both maintainers     |
 
 ---
 
@@ -336,10 +336,10 @@ JobWize uses **Squash and Merge**.
 
 Benefits:
 
-- Clean Git history
-- Easier release management
-- Better changelog generation
-- One commit per Pull Request
+-   Clean Git history
+-   Easier release management
+-   Better changelog generation
+-   One commit per Pull Request
 
 ---
 
@@ -347,12 +347,12 @@ Benefits:
 
 Before opening a Pull Request:
 
-- Follow the existing project conventions.
-- Write clean and readable code.
-- Use meaningful names.
-- Remove unused code.
-- Update documentation when necessary.
-- Test your changes whenever possible.
+-   Follow the existing project conventions.
+-   Write clean and readable code.
+-   Use meaningful names.
+-   Remove unused code.
+-   Update documentation when necessary.
+-   Test your changes whenever possible.
 
 ---
 
@@ -360,22 +360,22 @@ Before opening a Pull Request:
 
 Never commit:
 
-- Passwords
-- API Keys
-- Secrets
-- Tokens
-- Certificates
-- Private SSH Keys
-- Production configuration
-- Real `.env` files
+-   Passwords
+-   API Keys
+-   Secrets
+-   Tokens
+-   Certificates
+-   Private SSH Keys
+-   Production configuration
+-   Real `.env` files
 
 Use:
 
-- Environment Variables
-- GitHub Secrets
-- GitLab CI/CD Variables
-- Kubernetes Secrets
-- Azure Key Vault (future)
+-   Environment Variables
+-   GitHub Secrets
+-   GitLab CI/CD Variables
+-   Kubernetes Secrets
+-   Azure Key Vault (future)
 
 ---
 
@@ -383,13 +383,13 @@ Use:
 
 Please include:
 
-- Operating System
-- Browser (if applicable)
-- Steps to reproduce
-- Expected behavior
-- Actual behavior
-- Screenshots
-- Logs (if applicable)
+-   Operating System
+-   Browser (if applicable)
+-   Steps to reproduce
+-   Expected behavior
+-   Actual behavior
+-   Screenshots
+-   Logs (if applicable)
 
 ---
 
@@ -397,10 +397,10 @@ Please include:
 
 Feature requests should explain:
 
-- The problem
-- The proposed solution
-- Possible alternatives
-- Additional context
+-   The problem
+-   The proposed solution
+-   Possible alternatives
+-   Additional context
 
 ---
 
@@ -408,18 +408,18 @@ Feature requests should explain:
 
 If you have questions or suggestions:
 
-- Open a GitHub Discussion
-- Create an Issue
-- Contact one of the maintainers
+-   Open a GitHub Discussion
+-   Create an Issue
+-   Contact one of the maintainers
 
 ---
 
 # Project Leadership
 
-| Name | Role |
-|------|------|
-| **Soufiane Rizk** | DevOps Engineer • Open Source Maintainer • Project Governance |
-| **Ahmed Amine Abahmane** | Software Architect • Full Stack Developer |
+| Name                     | Role                                                          |
+| ------------------------ | ------------------------------------------------------------- |
+| **Soufiane Rizk**        | DevOps Engineer • Open Source Maintainer • Project Governance |
+| **Ahmed Amine Abahmane** | Software Architect • Full Stack Developer                     |
 
 Together, we are building JobWize as a production-grade open-source platform while applying modern Software Engineering, DevOps, Cloud Native, and Infrastructure as Code practices.
 
