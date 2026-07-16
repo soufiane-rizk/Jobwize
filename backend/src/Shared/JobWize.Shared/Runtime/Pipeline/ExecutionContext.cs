@@ -10,14 +10,11 @@ namespace JobWize.Shared.Runtime.Pipeline
     {
         public TRequest Request { get; }
 
-        public IServiceProvider ServiceProvider { get; }
-
         public CancellationToken CancellationToken { get; }
 
-        public ExecutionContext(TRequest request, IServiceProvider serviceProvider, CancellationToken cancellationToken)
+        public ExecutionContext(TRequest request, CancellationToken cancellationToken)
         {
             Request = request;
-            ServiceProvider = serviceProvider;
             CancellationToken = cancellationToken;
         }
     }

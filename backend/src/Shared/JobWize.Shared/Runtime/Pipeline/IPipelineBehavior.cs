@@ -6,7 +6,7 @@ using System.Text;
 namespace JobWize.Shared.Runtime.Pipeline
 {
     public interface IPipelineBehavior<TRequest, TResponse>
-        where TRequest : IRequest<TResponse>
+    where TRequest : IRequest<TResponse>
     {
         Task<TResponse> HandleAsync(ExecutionContext<TRequest, TResponse> context, RequestExecutionDelegate<TResponse> next);
     }
