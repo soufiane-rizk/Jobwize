@@ -4,7 +4,6 @@ using System.Text;
 
 namespace JobWize.Shared.Application.Results
 {
-
     public static class SharedErrors
     {
         public static readonly Error None = new(

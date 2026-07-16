@@ -8,7 +8,9 @@
     <Project Path="Modules/Identity/JobWize.Modules.Identity/JobWize.Modules.Identity.csproj" Id="55cfede1-3fb6-4f2d-8d02-b0c25d1b1daa" />
   </Folder>
   <Folder Name="/Shared/">
+    <Project Path="../tests/JobWize.Shared.UnitTests/JobWize.Shared.UnitTests.csproj" Id="f05f58ed-568d-42bd-99a0-6089718b739b" />
     <Project Path="Shared/JobWize.Shared.Contracts/JobWize.Shared.Contracts.csproj" />
     <Project Path="Shared/JobWize.Shared/JobWize.Shared.csproj" />
   </Folder>
+  <Folder Name="/Tests/" />
 </Solution>
