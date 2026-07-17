@@ -1,4 +1,5 @@
-﻿using System;
+﻿using JobWize.Runtime.Contracts.Requests;
+using System;
 using System.Collections.Generic;
 using System.Text;
 

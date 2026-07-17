@@ -1,11 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
   <ItemGroup>
-    <ProjectReference Include="..\..\Runtime\JobWize.Runtime.Contracts\JobWize.Runtime.Contracts.csproj" />
-    <ProjectReference Include="..\JobWize.Runtime.Contracts\JobWize.Runtime.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Shared\JobWize.Shared\JobWize.Shared.csproj" />
   </ItemGroup>
+
 </Project>

@@ -1,6 +1,4 @@
-﻿using JobWize.Shared.Infrastructure.Dispatching;
-using JobWize.Shared.Infrastructure.Time;
-using JobWize.Shared.Runtime.Dispatching;
+﻿using JobWize.Shared.Infrastructure.Time;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -12,18 +10,7 @@ namespace JobWize.Shared
     {
         public static IServiceCollection AddShared(this IServiceCollection services)
         {
-            services.AddDispatching();
-
             services.AddTime();
-
-            return services;
-        }
-
-        private static IServiceCollection AddDispatching(this IServiceCollection services)
-        {
-            services.AddScoped<IDispatcher, Dispatcher>();
-            services.AddScoped<IModuleDispatcher, InProcessModuleDispatcher>();
-            services.AddScoped<IIntegrationEventContext, IntegrationEventContext>();
 
             return services;
         }
