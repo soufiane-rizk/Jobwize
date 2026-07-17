@@ -1,6 +1,6 @@
 ﻿using JobWize.Modules.Identity.Infrastructure;
 using JobWize.Modules.Identity.Persistence;
-using JobWize.Shared.Application.Modules;
+using JobWize.Runtime.Registration;
 using JobWize.Shared.Endpoints;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

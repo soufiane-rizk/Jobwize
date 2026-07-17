@@ -6,6 +6,5 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Runtime\JobWize.Runtime.Contracts\JobWize.Runtime.Contracts.csproj" />
-    <ProjectReference Include="..\JobWize.Runtime.Contracts\JobWize.Runtime.Contracts.csproj" />
   </ItemGroup>
 </Project>

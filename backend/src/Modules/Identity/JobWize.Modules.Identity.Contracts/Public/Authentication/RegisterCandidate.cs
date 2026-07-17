@@ -1,5 +1,4 @@
-﻿using JobWize.Shared.Contracts.Application.Dispatching;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows.Input;

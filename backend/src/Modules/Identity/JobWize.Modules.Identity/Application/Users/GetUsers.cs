@@ -19,7 +19,7 @@ namespace JobWize.Modules.Identity.Application.Users
 {
     public static class GetUsers
     {
-        public sealed record Query : IQuery<Result<Response>>;
+        public sealed record Query : IQuery<Response>;
 
         internal sealed class Endpoint : IEndpoint
         {
@@ -43,7 +43,7 @@ namespace JobWize.Modules.Identity.Application.Users
             }
         }
 
-        internal sealed class Handler : IQueryHandler<Query, Result<Response>>
+        internal sealed class Handler : IQueryHandler<Query, Response>
         {
             private readonly IdentityDbContext _dbContext;
             public Handler(IdentityDbContext dbContext)

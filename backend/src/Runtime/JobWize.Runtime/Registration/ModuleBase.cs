@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 
-namespace JobWize.Shared.Application.Modules
+namespace JobWize.Runtime.Registration
 {
     public abstract class ModuleBase : IModule
     {

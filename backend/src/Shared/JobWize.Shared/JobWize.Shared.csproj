@@ -12,8 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Runtime\JobWize.Runtime.Contracts\JobWize.Runtime.Contracts.csproj" />
-    <ProjectReference Include="..\JobWize.Runtime.Contracts\JobWize.Runtime.Contracts.csproj" />
-    <ProjectReference Include="..\JobWize.Runtime\JobWize.Runtime.csproj" />
+    <ProjectReference Include="..\..\Runtime\JobWize.Runtime\JobWize.Runtime.csproj" />
     <ProjectReference Include="..\JobWize.Shared.Contracts\JobWize.Shared.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>

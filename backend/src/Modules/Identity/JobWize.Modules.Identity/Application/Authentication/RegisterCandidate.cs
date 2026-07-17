@@ -4,6 +4,7 @@ using JobWize.Modules.Identity.Contracts.Public.Authentication;
 using JobWize.Modules.Identity.Infrastructure.Authentication;
 using JobWize.Modules.Identity.Persistence;
 using JobWize.Runtime.Contracts.Dispatching;
+using JobWize.Shared.Application.Dispatching;
 using JobWize.Shared.Application.Results;
 using JobWize.Shared.Contracts.Application.Dispatching;
 using JobWize.Shared.Endpoints;
@@ -26,7 +27,7 @@ namespace JobWize.Modules.Identity.Application.User
             string Email,
             string Password,
             string FirstName,
-            string LastName) : ICommand<Result<AuthenticationResponse>>;
+            string LastName) : ICommand<AuthenticationResponse>;
 
         internal sealed class Validator : AbstractValidator<Command>
         {
@@ -78,7 +79,7 @@ namespace JobWize.Modules.Identity.Application.User
             }
         }
 
-        internal sealed class Handler : ICommandHandler<Command, Result<AuthenticationResponse>>
+        internal sealed class Handler : ICommandHandler<Command, AuthenticationResponse>
         {
             private readonly IUserRepository _userRepository;
             private readonly IPasswordHasher _passwordHasher;

@@ -7,9 +7,9 @@ using System.Text;
 
 namespace JobWize.Shared.Runtime.Handlers
 {
-    public interface IQueryHandler<TQuery, TResponse> : IRequestHandler<TQuery, TResponse>
+    public interface IQueryHandler<TQuery, TResponse> : IRequestHandler<TQuery, Result<TResponse>>
         where TQuery : IQuery<TResponse>
-        where TResponse: Result
     {
+
     }
 }
