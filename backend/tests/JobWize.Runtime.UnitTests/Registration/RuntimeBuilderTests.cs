@@ -4,7 +4,7 @@ using JobWize.ModuleOne;
 using JobWize.ModuleOne.Features;
 using JobWize.Runtime.Execution;
 using JobWize.Runtime.Registration;
-
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace JobWize.Runtime.UnitTests.Registration;
@@ -77,14 +77,16 @@ public sealed class RuntimeBuilderTests
 
         ServiceCollection services = [];
 
+        IConfiguration configuration = new ConfigurationBuilder().Build();
+
+        module.ConfigureServices(services, configuration);
+
         // Act
         builder.Build(module, services);
 
         ServiceProvider provider = services.BuildServiceProvider();
 
         // Assert
-        provider.GetService<CreateItem.Handler>()
-            .Should()
-            .NotBeNull();
+        provider.GetRequiredService<CreateItem.Handler>().Should().NotBeNull();
     }
 }
