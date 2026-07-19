@@ -30,6 +30,11 @@ namespace JobWize.Runtime.Registration
                 services.AddScoped(handler.HandlerType);
             }
 
+            foreach (HandlerDescriptor handler in descriptor.ModuleQueryHandlers)
+            {
+                services.AddScoped(handler.HandlerType);
+            }
+
             foreach (HandlerDescriptor handler in descriptor.NotificationHandlers)
             {
                 services.AddScoped(handler.HandlerType);

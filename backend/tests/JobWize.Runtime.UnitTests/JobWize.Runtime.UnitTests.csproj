@@ -21,6 +21,7 @@
     <ProjectReference Include="..\JobWize.ModuleOne.Contracts\JobWize.ModuleOne.Contracts.csproj" />
     <ProjectReference Include="..\JobWize.ModuleOne\JobWize.ModuleOne.csproj" />
     <ProjectReference Include="..\JobWize.ModuleTwo.Contracts\JobWize.ModuleTwo.Contracts.csproj" />
+    <ProjectReference Include="..\JobWize.ModuleTwo\JobWize.ModuleTwo.csproj" />
   </ItemGroup>
 
   <ItemGroup>

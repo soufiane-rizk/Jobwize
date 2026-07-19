@@ -12,7 +12,7 @@ namespace JobWize.Runtime.Dispatching
         Task<TResponse> SendAsync<TResponse>(IModuleQuery<TResponse> query, CancellationToken cancellationToken = default);
     }
 
-    public class InProcessModuleDispatcher : IModuleDispatcher
+    public sealed class InProcessModuleDispatcher : IModuleDispatcher
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly IModuleRegistry _registry;

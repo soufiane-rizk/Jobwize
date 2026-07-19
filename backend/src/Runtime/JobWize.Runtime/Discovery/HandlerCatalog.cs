@@ -19,7 +19,18 @@ namespace JobWize.Runtime.Discovery
 
         public HandlerCatalog(ModuleDescriptor moduleDescriptor)
         {
-            var requestHandlers = moduleDescriptor.Handlers.ToDictionary(x => x.RequestType);
+            Dictionary<Type, HandlerDescriptor> requestHandlers = [];
+
+            foreach (HandlerDescriptor handler in moduleDescriptor.Handlers)
+            {
+                requestHandlers.Add(handler.RequestType, handler);
+            }
+
+            foreach (HandlerDescriptor handler in moduleDescriptor.ModuleQueryHandlers)
+            {
+                requestHandlers.Add(handler.RequestType, handler);
+            }
+
             var notificationHandlers = moduleDescriptor.NotificationHandlers
                 .GroupBy(x => x.RequestType)
                 .ToDictionary(x => x.Key, x => (IReadOnlyCollection<HandlerDescriptor>)x.ToList());
