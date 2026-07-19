@@ -9,6 +9,6 @@ namespace JobWize.Runtime.Contracts.Requests
     public interface IModuleQueryHandler<TModuleQuery, TResponse> 
         where TModuleQuery : IModuleQuery<TResponse>
     {
-        public Task<TResponse> Handle(TModuleQuery query, CancellationToken cancellationToken);
+        public Task<TResponse> HandleAsync(TModuleQuery query, CancellationToken cancellationToken);
     }
 }

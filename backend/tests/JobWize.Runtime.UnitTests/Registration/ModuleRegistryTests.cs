@@ -1,10 +1,10 @@
 ﻿using FluentAssertions;
-
+using JobWize.ModuleOne.Contracts;
 using JobWize.ModuleOne.Features;
 using JobWize.Runtime.Execution;
 using JobWize.Runtime.Registration;
 using JobWize.Runtime.UnitTests.Helpers;
-using JobWize.Shared.Application.Dispatching;
+using JobWize.Shared.Runtime.Contracts;
 
 namespace JobWize.Runtime.UnitTests.Registration;
 
@@ -23,7 +23,7 @@ public sealed class ModuleRegistryTests
     public void Resolve_Should_Return_Runtime_For_Request()
     {
         // Act
-        ModuleRuntime runtime = _registry.Resolve(typeof(CreateItem.Command));
+        IModuleRuntime runtime = _registry.Resolve(typeof(CreateItem.Command));
 
         // Assert
         runtime.Should().BeSameAs(_runtime);

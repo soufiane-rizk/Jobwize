@@ -33,8 +33,9 @@ namespace JobWize.Runtime.DependencyInjection
                 runtimes.Add(runtimeBuilder.Build(module, services));
             }
 
-            services.AddSingleton<IModuleRegistry>(
-                new ModuleRegistry(runtimes));
+            services.AddSingleton<IModuleRegistry>(new ModuleRegistry(runtimes));
+
+            services.AddSingleton(options);
 
             return services;
         }

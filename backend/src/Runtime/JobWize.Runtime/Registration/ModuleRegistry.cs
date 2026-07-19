@@ -7,20 +7,20 @@ namespace JobWize.Runtime.Registration
 {
     public interface IModuleRegistry
     {
-        ModuleRuntime Resolve(Type requestType);
+        IModuleRuntime Resolve(Type requestType);
     }
 
     public sealed class ModuleRegistry : IModuleRegistry
     {
-        private readonly IReadOnlyDictionary<Type, ModuleRuntime> _runtimes;
+        private readonly IReadOnlyDictionary<Type, IModuleRuntime> _runtimes;
 
-        public ModuleRegistry(IEnumerable<ModuleRuntime> runtimes)
+        public ModuleRegistry(IEnumerable<IModuleRuntime> runtimes)
         {
-            Dictionary<Type, ModuleRuntime> dictionary = [];
+            Dictionary<Type, IModuleRuntime> dictionary = [];
 
-            foreach (ModuleRuntime runtime in runtimes)
+            foreach (IModuleRuntime runtime in runtimes)
             {
-                foreach (Type requestType in runtime.RequestTypes)
+                foreach (Type requestType in runtime.DispatchableTypes)
                 {
                     if (!dictionary.TryAdd(requestType, runtime))
                     {
@@ -33,9 +33,9 @@ namespace JobWize.Runtime.Registration
             _runtimes = dictionary;
         }
 
-        public ModuleRuntime Resolve(Type requestType)
+        public IModuleRuntime Resolve(Type requestType)
         {
-            if (!_runtimes.TryGetValue(requestType, out ModuleRuntime? runtime))
+            if (!_runtimes.TryGetValue(requestType, out IModuleRuntime? runtime))
             {
                 throw new InvalidOperationException(
                     $"No runtime found for request '{requestType.FullName}'.");

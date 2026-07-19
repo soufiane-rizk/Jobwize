@@ -1,6 +1,7 @@
 ﻿using FluentAssertions;
 
 using JobWize.ModuleOne;
+using JobWize.ModuleOne.Contracts;
 using JobWize.ModuleOne.Features;
 using JobWize.Runtime.Execution;
 using JobWize.Runtime.Registration;
@@ -44,8 +45,7 @@ public sealed class RuntimeBuilderTests
         ModuleRuntime runtime = builder.Build(module, services);
 
         // Assert
-        runtime.RequestTypes.Should()
-            .Contain(typeof(CreateItem.Command));
+        runtime.DispatchableTypes.Should().Contain(typeof(CreateItem.Command));
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public sealed class RuntimeBuilderTests
         // Assert
         runtime.Descriptor.Handlers.Should()
             .ContainSingle(handler =>
-                handler.HandlerType == typeof(CreateItem.Handler));
+                handler.HandlerType == typeof(ModuleOne.Features.CreateItem.Handler));
     }
 
     [Fact]
@@ -87,6 +87,6 @@ public sealed class RuntimeBuilderTests
         ServiceProvider provider = services.BuildServiceProvider();
 
         // Assert
-        provider.GetRequiredService<CreateItem.Handler>().Should().NotBeNull();
+        provider.GetRequiredService<ModuleOne.Features.CreateItem.Handler>().Should().NotBeNull();
     }
 }

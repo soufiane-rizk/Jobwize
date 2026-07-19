@@ -1,9 +1,8 @@
 ﻿using JobWize.Modules.Identity.Persistence;
 using JobWize.Runtime.Contracts.Dispatching;
 using JobWize.Shared.Application.Results;
-using JobWize.Shared.Contracts.Application.Dispatching;
 using JobWize.Shared.Endpoints;
-using JobWize.Shared.Runtime.Handlers;
+using JobWize.Shared.Runtime.Contracts;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

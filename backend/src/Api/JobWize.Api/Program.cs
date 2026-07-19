@@ -1,10 +1,11 @@
 using JobWize.Modules.Identity;
+using JobWize.Runtime.Contracts.DependencyInjection;
+using JobWize.Runtime.Contracts.Modules;
 using JobWize.Runtime.DependencyInjection;
 using JobWize.Runtime.Execution;
 using JobWize.Runtime.Registration;
 using JobWize.Shared;
 using JobWize.Shared.Endpoints;
-using JobWize.Runtime.Contracts.DependencyInjection;
 
 namespace JobWize.Api
 {
@@ -23,6 +24,8 @@ namespace JobWize.Api
                 {
                     options
                         .AddModule(new IdentityModule());
+
+                    options.NotificationDispatchMode = NotificationDispatchMode.Disabled;
 
                     // options.AddModule(new ProfileModule());
 

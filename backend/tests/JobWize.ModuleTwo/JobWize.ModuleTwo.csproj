@@ -7,8 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Runtime\JobWize.Runtime\JobWize.Runtime.csproj" />
     <ProjectReference Include="..\..\src\Shared\JobWize.Shared\JobWize.Shared.csproj" />
     <ProjectReference Include="..\JobWize.ModuleOne.Contracts\JobWize.ModuleOne.Contracts.csproj" />
+    <ProjectReference Include="..\JobWize.ModuleTwo.Contracts\JobWize.ModuleTwo.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

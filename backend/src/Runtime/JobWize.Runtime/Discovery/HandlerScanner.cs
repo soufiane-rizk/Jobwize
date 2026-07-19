@@ -22,6 +22,7 @@ namespace JobWize.Runtime.Discovery
         {
             List<Type> requests = [];
             List<HandlerDescriptor> handlers = [];
+            List<HandlerDescriptor> moduleQueryHandlers = [];
             List<HandlerDescriptor> notificationHandlers = [];
 
             foreach (Type type in assembly.GetTypes())
@@ -38,6 +39,11 @@ namespace JobWize.Runtime.Discovery
                     requests.Add(type);
                 }
 
+                if (ImplementsModuleQuery(type))
+                {
+                    requests.Add(type);
+                }
+
                 foreach (Type implementedInterface in type.GetInterfaces())
                 {
                     if (!implementedInterface.IsGenericType)
@@ -45,46 +51,19 @@ namespace JobWize.Runtime.Discovery
                         continue;
                     }
 
-                    if (implementedInterface.GetGenericTypeDefinition() == typeof(IRequestHandler<,>))
+                    Type genericDefinition = implementedInterface.GetGenericTypeDefinition();
+
+                    if (genericDefinition == typeof(IRequestHandler<,>))
                     {
-                        Type[] genericArguments = implementedInterface.GetGenericArguments();
-
-                        Type requestType = genericArguments[0];
-                        Type responseType = genericArguments[1];
-
-                        Type invokerType =
-                            typeof(HandlerInvoker<,,>).MakeGenericType(
-                                type,
-                                requestType,
-                                responseType);
-
-                        object invoker = Activator.CreateInstance(invokerType)!;
-
-                        handlers.Add(
-                            new HandlerDescriptor(
-                                requestType,
-                                type,
-                                invoker));
+                        RegisterRequestHandler(type, implementedInterface, handlers);
                     }
-
-                    else if (implementedInterface.GetGenericTypeDefinition() == typeof(INotificationHandler<>))
+                    else if (genericDefinition == typeof(IModuleQueryHandler<,>))
                     {
-                        Type[] genericArguments = implementedInterface.GetGenericArguments();
-
-                        Type requestType = genericArguments[0];
-
-                        Type invokerType =
-                            typeof(IntegrationEventHandlerInvoker<,>).MakeGenericType(
-                                type,
-                                requestType);   
-
-                        object invoker = Activator.CreateInstance(invokerType)!;
-
-                        notificationHandlers.Add(
-                            new HandlerDescriptor(
-                                requestType,
-                                type,
-                                invoker));
+                        RegisterModuleQueryHandler(type, implementedInterface, moduleQueryHandlers);
+                    }
+                    else if (genericDefinition == typeof(INotificationHandler<>))
+                    {
+                        RegisterNotificationHandler(type, implementedInterface, notificationHandlers);
                     }
                 }
             }
@@ -92,6 +71,7 @@ namespace JobWize.Runtime.Discovery
             return new ModuleDescriptor
             {
                 Requests = requests
+                    .Distinct()
                     .OrderBy(x => x.FullName)
                     .ToImmutableArray(),
 
@@ -99,10 +79,84 @@ namespace JobWize.Runtime.Discovery
                     .OrderBy(x => x.RequestType.FullName)
                     .ToImmutableArray(),
 
+                ModuleQueryHandlers = moduleQueryHandlers
+                    .OrderBy(x => x.RequestType.FullName)
+                    .ToImmutableArray(),
+
                 NotificationHandlers = notificationHandlers
                     .OrderBy(x => x.RequestType.FullName)
                     .ToImmutableArray(),
             };
+        }
+
+        private static bool ImplementsModuleQuery(Type type)
+        {
+            return type.GetInterfaces()
+                .Any(i =>
+                    i.IsGenericType &&
+                    i.GetGenericTypeDefinition() == typeof(IModuleQuery<>));
+        }
+
+        private static void RegisterRequestHandler(Type handlerType, Type implementedInterface, List<HandlerDescriptor> handlers)
+        {
+            Type[] genericArguments = implementedInterface.GetGenericArguments();
+
+            Type requestType = genericArguments[0];
+            Type responseType = genericArguments[1];
+
+            Type invokerType =
+                typeof(HandlerInvoker<,,>).MakeGenericType(
+                    handlerType,
+                    requestType,
+                    responseType);
+
+            object invoker = Activator.CreateInstance(invokerType)!;
+
+            handlers.Add(
+                new HandlerDescriptor(
+                    requestType,
+                    handlerType,
+                    invoker));
+        }
+
+        private static void RegisterModuleQueryHandler(Type handlerType, Type implementedInterface, List<HandlerDescriptor> handlers)
+        {
+            Type[] genericArguments = implementedInterface.GetGenericArguments();
+
+            Type requestType = genericArguments[0];
+            Type responseType = genericArguments[1];
+
+            Type invokerType =
+                typeof(ModuleQueryHandlerInvoker<,,>).MakeGenericType(
+                    handlerType,
+                    requestType,
+                    responseType);
+
+            object invoker = Activator.CreateInstance(invokerType)!;
+
+            handlers.Add(
+                new HandlerDescriptor(
+                    requestType,
+                    handlerType,
+                    invoker));
+        }
+
+        private static void RegisterNotificationHandler(Type handlerType, Type implementedInterface, List<HandlerDescriptor> notificationHandlers)
+        {
+            Type requestType = implementedInterface.GetGenericArguments()[0];
+
+            Type invokerType =
+                typeof(IntegrationEventHandlerInvoker<,>).MakeGenericType(
+                    handlerType,
+                    requestType);
+
+            object invoker = Activator.CreateInstance(invokerType)!;
+
+            notificationHandlers.Add(
+                new HandlerDescriptor(
+                    requestType,
+                    handlerType,
+                    invoker));
         }
     }
 }

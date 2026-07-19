@@ -12,7 +12,6 @@ namespace JobWize.Runtime.Dispatching
 {
     public sealed class Dispatcher : IDispatcher
     {
-        //private readonly IMediator _mediator;
         private readonly IModuleDispatcher _moduleDispatcher;
         private readonly INotificationContext _notificationContext;
         private readonly IServiceProvider _serviceProvider;
@@ -27,18 +26,19 @@ namespace JobWize.Runtime.Dispatching
             _registry = registry;
         }
 
-        public async Task PublishAsync(INotification notificationb, CancellationToken cancellationToken = default)
+        public async Task PublishAsync(INotification notification, CancellationToken cancellationToken = default)
         {
             bool isRootPublication = _notificationContext.Begin();
 
-            _notificationContext.Collect(notificationb);
+            _notificationContext.Collect(notification);
 
-            //await _mediator.Publish(integrationEvent, cancellationToken);
+            IModuleRuntime runtime = _registry.Resolve(notification.GetType());
+
+            await runtime.PublishAsync(_serviceProvider, notification, cancellationToken);
 
             if (isRootPublication)
             {
-                IReadOnlyCollection<INotification> notifications =
-                    _notificationContext.Complete();
+                IReadOnlyCollection<INotification> notifications = _notificationContext.Complete();
 
                 // TODO:
                 // Persist integrationEvents to the Outbox.
@@ -47,7 +47,7 @@ namespace JobWize.Runtime.Dispatching
 
         public Task<TResponse> SendAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
         {
-            ModuleRuntime runtime = _registry.Resolve(request.GetType());
+            IModuleRuntime runtime = _registry.Resolve(request.GetType());
 
             return runtime.SendAsync(_serviceProvider, request, cancellationToken);
         }   

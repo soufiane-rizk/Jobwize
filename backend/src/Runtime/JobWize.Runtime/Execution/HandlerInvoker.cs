@@ -51,4 +51,20 @@ namespace JobWize.Runtime.Execution
             return null;
         }
     }
+    
+    internal sealed class ModuleQueryHandlerInvoker<THandler, TQuery, TResponse>
+        : IHandlerInvoker<TResponse>
+        where THandler : IModuleQueryHandler<TQuery, TResponse>
+        where TQuery : IModuleQuery<TResponse>
+    {
+        public async Task<TResponse> InvokeAsync(
+            object handler,
+            object request,
+            CancellationToken cancellationToken)
+        {
+            return await ((THandler)handler).HandleAsync(
+                (TQuery)request,
+                cancellationToken);
+        }
+    }
 }

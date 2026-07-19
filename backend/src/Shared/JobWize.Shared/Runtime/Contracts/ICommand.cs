@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace JobWize.Shared.Application.Dispatching
+namespace JobWize.Shared.Runtime.Contracts
 {
     public interface ICommand<T> : IRequest<Result<T>>
     {

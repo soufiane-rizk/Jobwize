@@ -1,6 +1,7 @@
 ﻿using FluentAssertions;
 using JobWize.ModuleOne;
 using JobWize.ModuleOne.Features;
+using JobWize.ModuleOne.Contracts;
 using JobWize.Runtime.Execution;
 using JobWize.Runtime.UnitTests.Helpers;
 using JobWize.Shared.Application.Results;
@@ -51,10 +52,10 @@ public sealed class ModuleRuntimeTests
         // Arrange
         Guid id = Guid.NewGuid();
 
-        GetItem.Query query = new(id);
+        ModuleOne.Features.GetItem.Query query = new(id);
 
         // Act
-        Result<GetItem.ItemDto> result = await _runtime.SendAsync(_provider, query, CancellationToken.None);
+        Result<ModuleOne.Contracts.GetItem.Response> result = await _runtime.SendAsync(_provider, query, CancellationToken.None);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -70,7 +71,7 @@ public sealed class ModuleRuntimeTests
         // Arrange
         Guid itemId = Guid.NewGuid();
 
-        CreateItem.ItemCreated notification = new(itemId);
+        ItemCreated notification = new(itemId);
 
         INotificationStore store = _provider.GetRequiredService<INotificationStore>();
 

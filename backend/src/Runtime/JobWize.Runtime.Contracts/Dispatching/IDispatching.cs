@@ -9,7 +9,7 @@ namespace JobWize.Runtime.Contracts.Dispatching
     public interface IDispatcher
     {
         public Task<TResponse> SendAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default);
-        //public Task<TResponse> SendModuleQueryAsync<TResponse>(IModuleQuery<TResponse> query, CancellationToken cancellationToken = default);
+        public Task<TResponse> SendModuleQueryAsync<TResponse>(IModuleQuery<TResponse> query, CancellationToken cancellationToken = default);
         public Task PublishAsync(INotification notification, CancellationToken cancellationToken = default);
     }
 

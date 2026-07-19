@@ -7,10 +7,12 @@ namespace JobWize.Runtime.Discovery
 {
     public sealed class ModuleDescriptor
     {
-        public ImmutableArray<Type> Requests { get; init; } = [];
+        public ImmutableArray<Type> Requests { get; init; }
 
-        public ImmutableArray<HandlerDescriptor> Handlers { get; init; } = [];
+        public ImmutableArray<HandlerDescriptor> Handlers { get; init; }
 
-        public ImmutableArray<HandlerDescriptor> NotificationHandlers { get; init; } = [];
+        public ImmutableArray<HandlerDescriptor> ModuleQueryHandlers { get; init; }
+
+        public ImmutableArray<HandlerDescriptor> NotificationHandlers { get; init; }
     }
 }

@@ -8,7 +8,10 @@
     <Project Path="Modules/Identity/JobWize.Modules.Identity/JobWize.Modules.Identity.csproj" Id="55cfede1-3fb6-4f2d-8d02-b0c25d1b1daa" />
   </Folder>
   <Folder Name="/Runtime/">
+    <Project Path="../tests/JobWize.ModuleOne.Contracts/JobWize.ModuleOne.Contracts.csproj" Id="cca4cf39-5fc6-4010-ae3e-774fac063f84" />
     <Project Path="../tests/JobWize.ModuleOne/JobWize.ModuleOne.csproj" Id="570cb2f6-2340-4d4d-9c2f-2b3eb1eed40b" />
+    <Project Path="../tests/JobWize.ModuleTwo.Contracts/JobWize.ModuleTwo.Contracts.csproj" Id="e2c8bfe3-8b79-4360-a79c-17139e893ca6" />
+    <Project Path="../tests/JobWize.ModuleTwo/JobWize.ModuleTwo.csproj" Id="7704b685-7d1e-44fb-9640-5e93c3c936eb" />
     <Project Path="../tests/JobWize.Runtime.UnitTests/JobWize.Runtime.UnitTests.csproj" Id="1e4ff886-0134-414f-b016-8a91b7fda726" />
     <Project Path="Runtime/JobWize.Runtime.Contracts/JobWize.Runtime.Contracts.csproj" Id="a06264e0-b594-4c7e-bacb-a9b6443257d5" />
     <Project Path="Runtime/JobWize.Runtime/JobWize.Runtime.csproj" Id="4d27b772-e6ee-4161-a88b-75a876a0af7b" />

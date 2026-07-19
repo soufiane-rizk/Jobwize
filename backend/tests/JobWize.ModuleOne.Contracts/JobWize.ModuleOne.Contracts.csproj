@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Shared\JobWize.Shared\JobWize.Shared.csproj" />
-    <ProjectReference Include="..\JobWize.ModuleOne.Contracts\JobWize.ModuleOne.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

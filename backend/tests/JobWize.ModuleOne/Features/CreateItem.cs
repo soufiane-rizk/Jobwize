@@ -1,8 +1,6 @@
 ﻿using JobWize.Runtime.Contracts.Notifications;
-using JobWize.Shared.Application.Dispatching;
 using JobWize.Shared.Application.Results;
-using JobWize.Shared.Contracts.Application.Dispatching;
-using JobWize.Shared.Runtime.Handlers;
+using JobWize.Shared.Runtime.Contracts;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -29,7 +27,5 @@ namespace JobWize.ModuleOne.Features
                 return Task.FromResult(Result<Guid>.Success(id));
             }
         }
-
-        internal record ItemCreated(Guid Id) : INotification;
     }
 }

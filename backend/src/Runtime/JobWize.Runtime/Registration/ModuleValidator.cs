@@ -11,7 +11,7 @@ namespace JobWize.Runtime.Registration
         {
             ValidateRequestsHaveExactlyOneHandler(descriptor);
 
-            ValidateHandlersTargetKnownRequests(descriptor);
+            ValidateDispatchableTypesHaveExactlyOneHandler(descriptor);
         }
 
         private static void ValidateRequestsHaveExactlyOneHandler(ModuleDescriptor descriptor)
@@ -35,7 +35,7 @@ namespace JobWize.Runtime.Registration
             }
         }
 
-        private static void ValidateHandlersTargetKnownRequests(ModuleDescriptor descriptor)
+        private static void ValidateDispatchableTypesHaveExactlyOneHandler(ModuleDescriptor descriptor)
         {
             HashSet<Type> requests = descriptor.Requests.ToHashSet();
 

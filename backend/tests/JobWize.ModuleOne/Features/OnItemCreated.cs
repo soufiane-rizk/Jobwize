@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using static JobWize.ModuleOne.Features.CreateItem;
+using JobWize.ModuleOne.Contracts;
 
 namespace JobWize.ModuleOne.Features
 {
