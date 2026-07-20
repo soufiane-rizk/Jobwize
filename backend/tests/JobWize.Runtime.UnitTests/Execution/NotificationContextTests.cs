@@ -20,7 +20,6 @@ public sealed class NotificationContextTests
 
         // Assert
         isRoot.Should().BeTrue();
-        context.IsActive.Should().BeTrue();
     }
 
     [Fact]
@@ -36,11 +35,10 @@ public sealed class NotificationContextTests
 
         // Assert
         isRoot.Should().BeFalse();
-        context.IsActive.Should().BeTrue();
     }
 
     [Fact]
-    public void Collect_Should_Throw_When_Context_Is_Not_Active()
+    public void Publish_Should_Throw_When_Context_Is_Not_Active()
     {
         // Arrange
         NotificationContext context = new();
@@ -48,15 +46,16 @@ public sealed class NotificationContextTests
         ItemCreated notification = new(Guid.NewGuid());
 
         // Act
-        Action action = () => context.Collect(notification);
+        Action action = () => context.Publish(notification);
 
         // Assert
-        action.Should().Throw<InvalidOperationException>()
-            .WithMessage("*Cannot collect*");
+        action.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("*active notification workflow*");
     }
 
     [Fact]
-    public void Complete_Should_Return_Collected_Notifications()
+    public void GetCurrentWave_Should_Return_Published_Notifications()
     {
         // Arrange
         NotificationContext context = new();
@@ -66,32 +65,68 @@ public sealed class NotificationContextTests
 
         context.Begin();
 
-        context.Collect(first);
-        context.Collect(second);
+        context.Publish(first);
+        context.Publish(second);
 
         // Act
-        IReadOnlyCollection<INotification> notifications = context.Complete();
+        IReadOnlyCollection<INotification> notifications =
+            context.GetCurrentWave();
 
         // Assert
-        notifications.Should().HaveCount(2);
-        notifications.Should().Contain(first);
-        notifications.Should().Contain(second);
-
-        context.IsActive.Should().BeFalse();
+        notifications.Should().Equal(first, second);
     }
 
     [Fact]
-    public void Complete_Should_Throw_When_Context_Is_Not_Active()
+    public void Publish_Should_Queue_New_Notifications_In_Next_Wave()
     {
         // Arrange
         NotificationContext context = new();
 
+        ItemCreated first = new(Guid.NewGuid());
+        ItemCreated second = new(Guid.NewGuid());
+
+        context.Begin();
+
+        context.Publish(first);
+
+        context.GetCurrentWave();
+
         // Act
-        Action action = () => context.Complete();
+        context.Publish(second);
 
         // Assert
-        action.Should().Throw<InvalidOperationException>()
-            .WithMessage("*No active transaction*");
+        context.GetCurrentWave()
+            .Should()
+            .ContainSingle()
+            .Which.Should()
+            .BeSameAs(first);
+
+        context.MoveToNextWave().Should().BeTrue();
+
+        context.GetCurrentWave()
+            .Should()
+            .ContainSingle()
+            .Which.Should()
+            .BeSameAs(second);
+    }
+
+    [Fact]
+    public void MoveToNextWave_Should_Return_False_When_No_Notifications_Are_Pending()
+    {
+        // Arrange
+        NotificationContext context = new();
+
+        context.Begin();
+
+        context.Publish(new ItemCreated(Guid.NewGuid()));
+
+        context.GetCurrentWave();
+
+        // Act
+        bool result = context.MoveToNextWave();
+
+        // Assert
+        result.Should().BeFalse();
     }
 
     [Fact]
@@ -102,44 +137,18 @@ public sealed class NotificationContextTests
 
         context.Begin();
 
-        context.Collect(new ItemCreated(Guid.NewGuid()));
+        context.Publish(new ItemCreated(Guid.NewGuid()));
+
+        context.GetCurrentWave();
+
+        context.Complete();
 
         // Act
-        context.Abort();
-
-        // Assert
-        context.IsActive.Should().BeFalse();
-
         bool isRoot = context.Begin();
 
+        // Assert
         isRoot.Should().BeTrue();
 
-        IReadOnlyCollection<INotification> notifications = context.Complete();
-
-        notifications.Should().BeEmpty();
-    }
-
-
-    [Fact]
-    public void Complete_Should_Preserve_Notification_Order()
-    {
-        // Arrange
-        NotificationContext context = new();
-
-        ItemCreated first = new(Guid.NewGuid());
-        ItemCreated second = new(Guid.NewGuid());
-        ItemCreated third = new(Guid.NewGuid());
-
-        context.Begin();
-
-        context.Collect(first);
-        context.Collect(second);
-        context.Collect(third);
-
-        // Act
-        IReadOnlyCollection<INotification> notifications = context.Complete();
-
-        // Assert
-        notifications.Should().Equal(first, second, third);
+        context.GetCurrentWave().Should().BeEmpty();
     }
 }

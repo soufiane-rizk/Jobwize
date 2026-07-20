@@ -16,6 +16,8 @@ public sealed class DispatcherTests
     private readonly FakeNotificationContext _notificationContext;
     private readonly FakeModuleDispatcher _moduleDispatcher;
     private readonly IServiceProvider _serviceProvider;
+    private readonly FakeNotificationDispatcher _notificationDispatcher;
+
     private readonly Dispatcher _dispatcher;
 
     public DispatcherTests()
@@ -28,6 +30,7 @@ public sealed class DispatcherTests
 
         _notificationContext = new FakeNotificationContext();
         _moduleDispatcher = new FakeModuleDispatcher();
+        _notificationDispatcher = new FakeNotificationDispatcher();
 
         _serviceProvider = new ServiceCollection().BuildServiceProvider();
 
@@ -35,7 +38,8 @@ public sealed class DispatcherTests
             _moduleDispatcher,
             _notificationContext,
             _serviceProvider,
-            _registry);
+            _registry,
+            _notificationDispatcher);
     }
 
     [Fact]
@@ -102,8 +106,10 @@ public sealed class DispatcherTests
 
         // Assert
         _notificationContext.BeginCalled.Should().BeTrue();
-        _notificationContext.Notifications.Should().ContainSingle();
-        _notificationContext.Notifications.Single().Should().BeSameAs(notification);
+
+        _notificationContext.PublishCalled.Should().BeTrue();
+
+        _notificationContext.PublishedNotification.Should().BeSameAs(notification);
     }
 
     [Fact]

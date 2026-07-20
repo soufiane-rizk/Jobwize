@@ -8,68 +8,84 @@ namespace JobWize.Runtime.Dispatching
 {
     public interface INotificationContext
     {
-        bool IsActive { get; }
-
         bool Begin();
 
-        void Collect(INotification Notification);
+        void Publish(INotification notification);
 
-        IReadOnlyCollection<INotification> Complete();
+        IReadOnlyCollection<INotification> GetCurrentWave();
 
-        void Abort();
+        bool MoveToNextWave();
+
+        void Complete();
     }
     internal sealed class NotificationContext : INotificationContext
     {
-        private bool _isActive;
-
-        private readonly List<INotification> _events = [];
-
-        public bool IsActive => _isActive;
+        private int _depth;
+        private bool _isExecutingWave;
+        private readonly List<INotification> _currentWave = [];
+        private readonly List<INotification> _nextWave = [];
 
         public bool Begin()
         {
-            if (_isActive)
+            _depth++;
+
+            return _depth == 1;
+        }
+
+        public void Publish(INotification notification)
+        {
+            if (_depth == 0)
+            {
+                throw new InvalidOperationException("Notifications can only be published during an active notification workflow.");
+            }
+
+            if (_isExecutingWave)
+            {
+                _nextWave.Add(notification);
+            }
+            else
+            {
+                _currentWave.Add(notification);
+            }
+        }
+
+        public IReadOnlyCollection<INotification> GetCurrentWave()
+        {
+            _isExecutingWave = true;
+
+            return _currentWave;
+        }
+
+        public bool MoveToNextWave()
+        {
+            _isExecutingWave = false;
+
+            if (_nextWave.Count == 0)
             {
                 return false;
             }
 
-            _events.Clear();
-            _isActive = true;
+            _currentWave.Clear();
+            _currentWave.AddRange(_nextWave);
+
+            _nextWave.Clear();
 
             return true;
         }
 
-        public void Collect(INotification Notification)
+        public void Complete()
         {
-            if (!_isActive)
+            _depth--;
+
+            if (_depth != 0)
             {
-                throw new InvalidOperationException(
-                    "Cannot collect integration events outside of an active transaction.");
+                return;
             }
 
-            _events.Add(Notification);
-        }
+            _isExecutingWave = false;
 
-        public IReadOnlyCollection<INotification> Complete()
-        {
-            if (!_isActive)
-            {
-                throw new InvalidOperationException(
-                    "No active transaction.");
-            }
-
-            var events = _events.ToArray();
-
-            _events.Clear();
-            _isActive = false;
-
-            return events;
-        }
-
-        public void Abort()
-        {
-            _events.Clear();
-            _isActive = false;
+            _currentWave.Clear();
+            _nextWave.Clear();
         }
     }
 }

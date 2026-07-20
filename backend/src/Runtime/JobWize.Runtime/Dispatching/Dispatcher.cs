@@ -1,6 +1,7 @@
 ﻿using JobWize.Runtime.Contracts.Dispatching;
 using JobWize.Runtime.Contracts.Notifications;
 using JobWize.Runtime.Contracts.Requests;
+using JobWize.Runtime.Dispatching.Notifications;
 using JobWize.Runtime.Execution;
 using JobWize.Runtime.Registration;
 using System;
@@ -16,32 +17,42 @@ namespace JobWize.Runtime.Dispatching
         private readonly INotificationContext _notificationContext;
         private readonly IServiceProvider _serviceProvider;
         private readonly IModuleRegistry _registry;
+        private readonly INotificationDispatcher _notificationDispatcher;
 
-        public Dispatcher(IModuleDispatcher moduleDispatcher, INotificationContext notificationContext, IServiceProvider serviceProvider, IModuleRegistry registry)
+        public Dispatcher(IModuleDispatcher moduleDispatcher, INotificationContext notificationContext, IServiceProvider serviceProvider, IModuleRegistry registry, INotificationDispatcher notificationDispatcher)
         {
-            //_mediator = mediator;
             _moduleDispatcher = moduleDispatcher;
             _notificationContext = notificationContext;
             _serviceProvider = serviceProvider;
             _registry = registry;
+            _notificationDispatcher = notificationDispatcher;
         }
 
         public async Task PublishAsync(INotification notification, CancellationToken cancellationToken = default)
         {
             bool isRootPublication = _notificationContext.Begin();
 
-            _notificationContext.Collect(notification);
-
-            IModuleRuntime runtime = _registry.Resolve(notification.GetType());
-
-            await runtime.PublishAsync(_serviceProvider, notification, cancellationToken);
-
-            if (isRootPublication)
+            try
             {
-                IReadOnlyCollection<INotification> notifications = _notificationContext.Complete();
+                _notificationContext.Publish(notification);
 
-                // TODO:
-                // Persist integrationEvents to the Outbox.
+                IModuleRuntime runtime = _registry.Resolve(notification.GetType());
+
+                await runtime.PublishAsync(_serviceProvider, notification, cancellationToken);
+
+                if (isRootPublication)
+                {
+                    IReadOnlyCollection<INotification> notifications = _notificationContext.GetCurrentWave();
+
+                    await _notificationDispatcher.DispatchAsync(notifications, cancellationToken);
+                }
+            }
+            finally
+            {
+                if (isRootPublication)
+                {
+                    _notificationContext.Complete();
+                }
             }
         }
 

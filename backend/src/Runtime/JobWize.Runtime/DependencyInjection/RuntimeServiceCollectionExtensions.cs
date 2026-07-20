@@ -2,6 +2,7 @@
 using JobWize.Runtime.Contracts.Dispatching;
 using JobWize.Runtime.Contracts.Modules;
 using JobWize.Runtime.Dispatching;
+using JobWize.Runtime.Dispatching.Notifications;
 using JobWize.Runtime.Execution;
 using JobWize.Runtime.Registration;
 using Microsoft.Extensions.Configuration;
@@ -47,6 +48,8 @@ namespace JobWize.Runtime.DependencyInjection
             services.AddScoped<IModuleDispatcher, InProcessModuleDispatcher>();
 
             services.AddScoped<INotificationContext, NotificationContext>();
+
+            services.AddSingleton<INotificationDispatcher, ImmediateNotificationDispatcher>();
         }
 
     }
