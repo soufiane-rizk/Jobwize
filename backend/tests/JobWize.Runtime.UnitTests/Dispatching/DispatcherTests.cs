@@ -11,83 +11,24 @@ namespace JobWize.Runtime.UnitTests.Dispatching;
 
 public sealed class DispatcherTests
 {
-    private readonly FakeModuleRuntime _runtime;
-    private readonly FakeModuleRegistry _registry;
-    private readonly FakeNotificationContext _notificationContext;
     private readonly FakeExecutionModel _executionModel;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly FakeNotificationDispatcher _notificationDispatcher;
 
     private readonly Dispatcher _dispatcher;
 
     public DispatcherTests()
     {
-        _runtime = new FakeModuleRuntime();
-
-        _registry = new FakeModuleRegistry
-        {
-            Runtime = _runtime
-        };
-
-        _notificationContext = new FakeNotificationContext();
-
         _executionModel = new FakeExecutionModel();
 
-        _notificationDispatcher = new FakeNotificationDispatcher();
-
-        _serviceProvider = new ServiceCollection().BuildServiceProvider();
-
-        _dispatcher = new Dispatcher(
-            _notificationContext,
-            _serviceProvider,
-            _registry,
-            _notificationDispatcher,
-            _executionModel);
+        _dispatcher = new Dispatcher(_executionModel);
     }
 
     [Fact]
-    public async Task SendAsync_Should_Resolve_Runtime_For_Request()
+    public async Task SendAsync_Should_Delegate_Request_To_ExecutionModel()
     {
         // Arrange
         Result<Guid> expected = Result<Guid>.Success(Guid.NewGuid());
 
-        _runtime.Response = expected;
-
-        CreateItem.Command command = new("Phone");
-
-        // Act
-        await _dispatcher.SendAsync(command);
-
-        // Assert
-        _registry.ResolvedType.Should().Be(typeof(CreateItem.Command));
-        _runtime.SendCalled.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task SendAsync_Should_Forward_Request_To_Runtime()
-    {
-        // Arrange
-        Result<Guid> expected = Result<Guid>.Success(Guid.NewGuid());
-
-        _runtime.Response = expected;
-
-        CreateItem.Command command = new("Phone");
-
-        // Act
-        await _dispatcher.SendAsync(command);
-
-        // Assert
-        _runtime.Request.Should().BeSameAs(command);
-        _runtime.ServiceProvider.Should().BeSameAs(_serviceProvider);
-    }
-
-    [Fact]
-    public async Task SendAsync_Should_Return_Runtime_Response()
-    {
-        // Arrange
-        Result<Guid> expected = Result<Guid>.Success(Guid.NewGuid());
-
-        _runtime.Response = expected;
+        _executionModel.Response = expected;
 
         CreateItem.Command command = new("Phone");
 
@@ -95,11 +36,13 @@ public sealed class DispatcherTests
         Result<Guid> actual = await _dispatcher.SendAsync(command);
 
         // Assert
+        _executionModel.Request.Should().BeSameAs(command);
+
         actual.Should().BeSameAs(expected);
     }
 
     [Fact]
-    public async Task PublishAsync_Should_Collect_Notification()
+    public async Task PublishAsync_Should_Delegate_To_ExecutionModel()
     {
         // Arrange
         ItemCreated notification = new(Guid.NewGuid());
@@ -108,57 +51,7 @@ public sealed class DispatcherTests
         await _dispatcher.PublishAsync(notification);
 
         // Assert
-        _notificationContext.BeginCalled.Should().BeTrue();
-
-        _notificationContext.PublishCalled.Should().BeTrue();
-
-        _notificationContext.PublishedNotification.Should().BeSameAs(notification);
-    }
-
-    [Fact]
-    public async Task PublishAsync_Should_Invoke_Runtime()
-    {
-        // Arrange
-        ItemCreated notification = new(Guid.NewGuid());
-
-        // Act
-        await _dispatcher.PublishAsync(notification);
-
-        // Assert
-        _registry.ResolvedType.Should().Be(typeof(ItemCreated));
-        _runtime.PublishCalled.Should().BeTrue();
-        _runtime.Notification.Should().BeSameAs(notification);
-        _runtime.ServiceProvider.Should().BeSameAs(_serviceProvider);
-    }
-
-    [Fact]
-    public async Task PublishAsync_Should_Complete_Context_For_Root_Publication()
-    {
-        // Arrange
-        _notificationContext.BeginResult = true;
-
-        ItemCreated notification = new(Guid.NewGuid());
-
-        // Act
-        await _dispatcher.PublishAsync(notification);
-
-        // Assert
-        _notificationContext.CompleteCalled.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task PublishAsync_Should_Not_Complete_Context_For_Nested_Publication()
-    {
-        // Arrange
-        _notificationContext.BeginResult = false;
-
-        ItemCreated notification = new(Guid.NewGuid());
-
-        // Act
-        await _dispatcher.PublishAsync(notification);
-
-        // Assert
-        _notificationContext.CompleteCalled.Should().BeFalse();
+        _executionModel.Notification.Should().BeSameAs(notification);
     }
 
     [Fact]

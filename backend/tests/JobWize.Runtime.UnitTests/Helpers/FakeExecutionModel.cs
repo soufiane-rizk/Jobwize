@@ -9,9 +9,8 @@ namespace JobWize.Runtime.UnitTests.Helpers
 {
     internal sealed class FakeExecutionModel : IExecutionModel
     {
-        public IRequest? Request { get; private set; }
+        public object? Request { get; private set; }
 
-        public object? RequestWithResponse { get; private set; }
 
         public object? ModuleQuery { get; private set; }
 
@@ -19,16 +18,9 @@ namespace JobWize.Runtime.UnitTests.Helpers
 
         public object? Response { get; set; }
 
-        public Task SendAsync(IRequest request, CancellationToken cancellationToken = default)
-        {
-            Request = request;
-
-            return Task.CompletedTask;
-        }
-
         public Task<TResponse> SendAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
         {
-            RequestWithResponse = request;
+            Request = request;
 
             return Task.FromResult((TResponse)Response!);
         }

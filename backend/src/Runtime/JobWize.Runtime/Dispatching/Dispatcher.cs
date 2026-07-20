@@ -13,54 +13,22 @@ namespace JobWize.Runtime.Dispatching
 {
     public sealed class Dispatcher : IDispatcher
     {
-        private readonly INotificationContext _notificationContext;
-        private readonly IServiceProvider _serviceProvider;
-        private readonly IModuleRegistry _registry;
-        private readonly INotificationDispatcher _notificationDispatcher;
         private readonly IExecutionModel _executionModel;
 
-        public Dispatcher(INotificationContext notificationContext, IServiceProvider serviceProvider, IModuleRegistry registry, INotificationDispatcher notificationDispatcher, IExecutionModel executionModel)
+        public Dispatcher(IExecutionModel executionModel)
         {
-            _notificationContext = notificationContext;
-            _serviceProvider = serviceProvider;
-            _registry = registry;
-            _notificationDispatcher = notificationDispatcher;
             _executionModel = executionModel;
         }
 
         public async Task PublishAsync(INotification notification, CancellationToken cancellationToken = default)
         {
-            bool isRootPublication = _notificationContext.Begin();
-
-            try
-            {
-                _notificationContext.Publish(notification);
-
-                IModuleRuntime runtime = _registry.Resolve(notification.GetType());
-
-                await runtime.PublishAsync(_serviceProvider, notification, cancellationToken);
-
-                if (isRootPublication)
-                {
-                    IReadOnlyCollection<INotification> notifications = _notificationContext.GetCurrentWave();
-
-                    await _notificationDispatcher.DispatchAsync(notifications, cancellationToken);
-                }
-            }
-            finally
-            {
-                if (isRootPublication)
-                {
-                    _notificationContext.Complete();
-                }
-            }
+            await _executionModel.PublishAsync(notification, cancellationToken);
+            return;
         }
 
         public Task<TResponse> SendAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
         {
-            IModuleRuntime runtime = _registry.Resolve(request.GetType());
-
-            return runtime.SendAsync(_serviceProvider, request, cancellationToken);
+            return _executionModel.SendAsync<TResponse>(request, cancellationToken);
         }   
 
         public Task<TResponse> SendModuleQueryAsync<TResponse>(IModuleQuery<TResponse> query, CancellationToken cancellationToken = default)
