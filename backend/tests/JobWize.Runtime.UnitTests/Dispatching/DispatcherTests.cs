@@ -14,7 +14,7 @@ public sealed class DispatcherTests
     private readonly FakeModuleRuntime _runtime;
     private readonly FakeModuleRegistry _registry;
     private readonly FakeNotificationContext _notificationContext;
-    private readonly FakeModuleDispatcher _moduleDispatcher;
+    private readonly FakeExecutionModel _executionModel;
     private readonly IServiceProvider _serviceProvider;
     private readonly FakeNotificationDispatcher _notificationDispatcher;
 
@@ -23,23 +23,26 @@ public sealed class DispatcherTests
     public DispatcherTests()
     {
         _runtime = new FakeModuleRuntime();
+
         _registry = new FakeModuleRegistry
         {
             Runtime = _runtime
         };
 
         _notificationContext = new FakeNotificationContext();
-        _moduleDispatcher = new FakeModuleDispatcher();
+
+        _executionModel = new FakeExecutionModel();
+
         _notificationDispatcher = new FakeNotificationDispatcher();
 
         _serviceProvider = new ServiceCollection().BuildServiceProvider();
 
         _dispatcher = new Dispatcher(
-            _moduleDispatcher,
             _notificationContext,
             _serviceProvider,
             _registry,
-            _notificationDispatcher);
+            _notificationDispatcher,
+            _executionModel);
     }
 
     [Fact]
@@ -159,12 +162,12 @@ public sealed class DispatcherTests
     }
 
     [Fact]
-    public async Task SendModuleQueryAsync_Should_Delegate_To_ModuleDispatcher()
+    public async Task SendModuleQueryAsync_Should_Delegate_To_ExecutionModel()
     {
         // Arrange
         GetItemSummary.Response expected = new(Guid.NewGuid(), "Phone");
 
-        _moduleDispatcher.Response = expected;
+        _executionModel.Response = expected;
 
         GetItemSummary.Query query = new(Guid.NewGuid());
 
@@ -172,7 +175,8 @@ public sealed class DispatcherTests
         GetItemSummary.Response actual = await _dispatcher.SendModuleQueryAsync(query);
 
         // Assert
-        _moduleDispatcher.Query.Should().BeSameAs(query);
+        _executionModel.ModuleQuery.Should().BeSameAs(query);
+
         actual.Should().BeSameAs(expected);
     }
 }

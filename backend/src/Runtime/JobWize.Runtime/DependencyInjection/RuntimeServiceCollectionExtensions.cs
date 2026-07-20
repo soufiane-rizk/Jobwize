@@ -45,11 +45,11 @@ namespace JobWize.Runtime.DependencyInjection
         {
             services.AddScoped<IDispatcher, Dispatcher>();
 
-            services.AddScoped<IModuleDispatcher, InProcessModuleDispatcher>();
-
             services.AddScoped<INotificationContext, NotificationContext>();
 
             services.AddSingleton<INotificationDispatcher, ImmediateNotificationDispatcher>();
+
+            services.AddScoped<IExecutionModel, MonolithExecutionModel>();
         }
 
     }

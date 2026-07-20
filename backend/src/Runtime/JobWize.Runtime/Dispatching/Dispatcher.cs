@@ -13,19 +13,19 @@ namespace JobWize.Runtime.Dispatching
 {
     public sealed class Dispatcher : IDispatcher
     {
-        private readonly IModuleDispatcher _moduleDispatcher;
         private readonly INotificationContext _notificationContext;
         private readonly IServiceProvider _serviceProvider;
         private readonly IModuleRegistry _registry;
         private readonly INotificationDispatcher _notificationDispatcher;
+        private readonly IExecutionModel _executionModel;
 
-        public Dispatcher(IModuleDispatcher moduleDispatcher, INotificationContext notificationContext, IServiceProvider serviceProvider, IModuleRegistry registry, INotificationDispatcher notificationDispatcher)
+        public Dispatcher(INotificationContext notificationContext, IServiceProvider serviceProvider, IModuleRegistry registry, INotificationDispatcher notificationDispatcher, IExecutionModel executionModel)
         {
-            _moduleDispatcher = moduleDispatcher;
             _notificationContext = notificationContext;
             _serviceProvider = serviceProvider;
             _registry = registry;
             _notificationDispatcher = notificationDispatcher;
+            _executionModel = executionModel;
         }
 
         public async Task PublishAsync(INotification notification, CancellationToken cancellationToken = default)
@@ -65,7 +65,7 @@ namespace JobWize.Runtime.Dispatching
 
         public Task<TResponse> SendModuleQueryAsync<TResponse>(IModuleQuery<TResponse> query, CancellationToken cancellationToken = default)
         {
-            return _moduleDispatcher.SendAsync(query, cancellationToken);
+            return _executionModel.SendAsync<TResponse>(query, cancellationToken);
         }
     }
 }

@@ -16,7 +16,7 @@ using JobWize.Shared.Application.Results;
 
 namespace JobWize.Runtime.UnitTests.Integration
 {
-    public sealed class InProcessModuleDispatcherTests
+    public sealed class MonolithExecutionModelTests
     {
         [Fact]
         public async Task SendAsync_Should_Execute_Module_Query_Handler()
@@ -36,14 +36,13 @@ namespace JobWize.Runtime.UnitTests.Integration
 
             ServiceProvider provider = services.BuildServiceProvider();
 
-            IModuleDispatcher dispatcher =
-                provider.GetRequiredService<IModuleDispatcher>();
+            IExecutionModel executionModel =
+                provider.GetRequiredService<IExecutionModel>();
 
             GetItemSummary.Query query = new(Guid.NewGuid());
 
             // Act
-            GetItemSummary.Response response =
-                await dispatcher.SendAsync(query);
+            GetItemSummary.Response response = await executionModel.SendAsync(query);
 
             // Assert
             response.Id.Should().Be(query.Id);
@@ -70,11 +69,9 @@ namespace JobWize.Runtime.UnitTests.Integration
 
             ServiceProvider provider = services.BuildServiceProvider();
 
-            IDispatcher dispatcher =
-                provider.GetRequiredService<IDispatcher>();
+            IDispatcher dispatcher = provider.GetRequiredService<IDispatcher>();
 
-            ModuleTwo.Features.GetExternalItemSummary.Query query =
-                new(Guid.NewGuid());
+            ModuleTwo.Features.GetExternalItemSummary.Query query = new(Guid.NewGuid());
 
             // Act
             Result<ModuleTwo.Contracts.GetExternalItemSummary.Response> response = await dispatcher.SendAsync(query);

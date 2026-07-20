@@ -26,13 +26,11 @@ namespace JobWize.ModuleTwo.Features
                 Query request,
                 CancellationToken cancellationToken)
             {
-                ModuleOne.Contracts.GetItemSummary.Response summary =
-                    await _dispatcher.SendModuleQueryAsync(
+                ModuleOne.Contracts.GetItemSummary.Response summary = await _dispatcher.SendModuleQueryAsync(
                         new GetItemSummary.Query(request.Id),
                         cancellationToken);
 
-                return Result<Response>.Success(
-                    new Response(summary.Id, summary.Name));
+                return Result<Response>.Success(new Response(summary.Id, summary.Name));
             }
         }
     }
