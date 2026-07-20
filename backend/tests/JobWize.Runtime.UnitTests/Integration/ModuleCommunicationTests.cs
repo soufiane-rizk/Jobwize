@@ -16,7 +16,7 @@ using JobWize.Shared.Application.Results;
 
 namespace JobWize.Runtime.UnitTests.Integration
 {
-    public sealed class MonolithExecutionModelTests
+    public sealed class ModuleCommunicationTests
     {
         [Fact]
         public async Task SendAsync_Should_Execute_Module_Query_Handler()
