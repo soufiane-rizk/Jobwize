@@ -16,7 +16,6 @@ namespace JobWize.Runtime.UnitTests.Execution
         private readonly FakeModuleRuntime _runtime;
         private readonly FakeModuleRegistry _registry;
         private readonly FakeNotificationContext _notificationContext;
-        private readonly FakeNotificationDispatcher _notificationDispatcher;
         private readonly IServiceProvider _serviceProvider;
 
         private readonly MonolithExecutionModel _executionModel;
@@ -32,15 +31,13 @@ namespace JobWize.Runtime.UnitTests.Execution
 
             _notificationContext = new FakeNotificationContext();
 
-            _notificationDispatcher = new FakeNotificationDispatcher();
 
             _serviceProvider = new ServiceCollection().BuildServiceProvider();
 
             _executionModel = new MonolithExecutionModel(
                 _serviceProvider,
                 _registry,
-                _notificationContext,
-                _notificationDispatcher);
+                _notificationContext);
         }
 
         [Fact]
@@ -228,40 +225,6 @@ namespace JobWize.Runtime.UnitTests.Execution
 
             // Assert
             _notificationContext.CompleteCalled.Should().BeFalse();
-        }
-
-        [Fact]
-        public async Task PublishAsync_Should_Dispatch_Current_Wave_For_Root_Publication()
-        {
-            // Arrange
-            _notificationContext.BeginResult = true;
-
-            ItemCreated notification = new(Guid.NewGuid());
-
-            // Act
-            await _executionModel.PublishAsync(notification);
-
-            // Assert
-            _notificationDispatcher.DispatchCalled.Should().BeTrue();
-
-            _notificationDispatcher.Notifications.Should().ContainSingle();
-
-            _notificationDispatcher.Notifications.Single().Should().BeSameAs(notification);
-        }
-
-        [Fact]
-        public async Task PublishAsync_Should_Not_Dispatch_Current_Wave_For_Nested_Publication()
-        {
-            // Arrange
-            _notificationContext.BeginResult = false;
-
-            ItemCreated notification = new(Guid.NewGuid());
-
-            // Act
-            await _executionModel.PublishAsync(notification);
-
-            // Assert
-            _notificationDispatcher.DispatchCalled.Should().BeFalse();
         }
     }
 }

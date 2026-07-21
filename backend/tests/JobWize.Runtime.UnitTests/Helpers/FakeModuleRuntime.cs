@@ -47,7 +47,7 @@ namespace JobWize.Runtime.UnitTests.Helpers
             return Task.FromResult((TResponse)Response!);
         }
 
-        public Task PublishAsync(IServiceProvider serviceProvider, INotification notification, CancellationToken cancellationToken = default)
+        public Task PublishAsync(IServiceProvider serviceProvider, INotification notification, ExecutionScope executionScope, CancellationToken cancellationToken = default)
         {
             PublishCalled = true;
 

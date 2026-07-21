@@ -9,6 +9,7 @@ using System.Text;
 
 namespace JobWize.Runtime.Execution
 {
+    public enum ExecutionScope { Global, Module }
     public interface IModuleRuntime
     {
         string Name { get; }
@@ -19,7 +20,7 @@ namespace JobWize.Runtime.Execution
 
         Task<TResponse> SendAsync<TResponse>(IServiceProvider serviceProvider, IModuleQuery<TResponse> query, CancellationToken cancellationToken);
 
-        Task PublishAsync(IServiceProvider serviceProvider, INotification notification, CancellationToken cancellationToken = default);
+        Task PublishAsync(IServiceProvider serviceProvider, INotification notification, ExecutionScope scope, CancellationToken cancellationToken = default);
     }
 
     public sealed class ModuleRuntime : IModuleRuntime
@@ -61,7 +62,7 @@ namespace JobWize.Runtime.Execution
             return invoker.InvokeAsync(handler, message, cancellationToken);
         }
 
-        public async Task PublishAsync(IServiceProvider serviceProvider, INotification notification, CancellationToken cancellationToken = default)
+        public async Task PublishAsync(IServiceProvider serviceProvider, INotification notification, ExecutionScope scope, CancellationToken cancellationToken = default)
         {
             IReadOnlyCollection<HandlerDescriptor> descriptors = _handlerCatalog.GetNotificationHandlers(notification.GetType());
 

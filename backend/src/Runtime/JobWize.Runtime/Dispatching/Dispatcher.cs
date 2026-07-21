@@ -1,7 +1,6 @@
 ﻿using JobWize.Runtime.Contracts.Dispatching;
 using JobWize.Runtime.Contracts.Notifications;
 using JobWize.Runtime.Contracts.Requests;
-using JobWize.Runtime.Dispatching.Notifications;
 using JobWize.Runtime.Execution;
 using JobWize.Runtime.Registration;
 using System;

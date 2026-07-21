@@ -77,7 +77,7 @@ public sealed class ModuleRuntimeTests
 
         store.Published.Should().BeEmpty();
 
-        await _runtime.PublishAsync(_provider, notification);
+        await _runtime.PublishAsync(_provider, notification, ExecutionScope.Global);
 
         store.Published.Should().ContainSingle().Which.Should().Be(itemId);
     }
