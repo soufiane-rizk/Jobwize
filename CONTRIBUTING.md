@@ -181,6 +181,9 @@ Responsible for:
 Every contribution follows the same workflow.
 
 ```text
+Jira Issue
+      │
+      ▼
 Create Branch
       │
       ▼
@@ -203,9 +206,37 @@ Approval
       │
       ▼
 Squash & Merge
+      │
+      ▼
+Close Jira Issue
 ```
 
 Direct pushes to protected branches are not allowed.
+
+---
+
+# Jira Workflow
+
+JobWize uses **Jira** as its official project management platform following the Agile philosophy and the Scrum framework.
+
+## Project Hierarchy
+
+```text
+Epic
+    ↓
+Story
+    ↓
+Task
+    ↓
+Sub-task (optional)
+```
+
+## Rules
+
+- Project work is organized and tracked in Jira.
+- Jira uses the hierarchy Epic, Story, Task, and optional Sub-task.
+- Repository changes must be submitted through a Pull Request.
+- A Jira Issue is marked as **Done** after the related work has been completed and merged into `develop`.
 
 ---
 
@@ -234,7 +265,7 @@ feature/company-management
 bugfix/login-validation
 
 docs/update-readme
-docs/contributing-guide
+docs/update-contributing-guide
 
 infra/docker-compose
 infra/kubernetes
@@ -248,47 +279,45 @@ ci/gitlab-pipeline
 
 We use the **Conventional Commits** specification.
 
-Format
+## Format
 
 ```text
-type: short description
+type(scope): short description
 ```
 
-Examples
+## Examples
 
 ```text
-feat: add authentication module
+feat(identity): add authentication module
 
-fix: resolve login validation issue
+fix(identity): resolve login validation issue
 
-docs: update contributing guide
+docs(contributing): update contribution guidelines
 
-infra: configure docker compose
+ci(gitlab): add deployment pipeline
 
-ci: add gitlab deployment pipeline
+build(docker): update backend image
 
-refactor: simplify application service
+chore(terraform): create project structure
 
-test: add integration tests
+test(identity): add login integration tests
 
-perf: optimize dashboard queries
-
-chore: update dependencies
+perf(dashboard): optimize dashboard queries
 ```
 
 ## Commit Types
 
 | Type | Description |
 |------|-------------|
-| feat | New feature |
-| fix | Bug fix |
-| docs | Documentation |
-| refactor | Code improvement |
-| test | Tests |
-| ci | Continuous Integration |
-| infra | Infrastructure |
-| perf | Performance |
-| chore | Maintenance |
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `docs` | Documentation |
+| `refactor` | Code improvement |
+| `test` | Tests |
+| `ci` | Continuous Integration |
+| `build` | Build system, Docker, or dependencies |
+| `perf` | Performance |
+| `chore` | Maintenance |
 
 ---
 
@@ -301,7 +330,7 @@ A Pull Request should:
 - Focus on a single topic
 - Have a meaningful title
 - Include a clear description
-- Reference related Issues (when applicable)
+- Reference the related Jira Issue when applicable
 - Pass CI checks
 - Be reviewed before merging
 
@@ -341,6 +370,14 @@ Benefits:
 - Better changelog generation
 - One commit per Pull Request
 
+The final squash commit should follow the Conventional Commits specification.
+
+Example:
+
+```text
+docs(contributing): update contribution guidelines
+```
+
 ---
 
 # Coding Standards
@@ -368,6 +405,8 @@ Never commit:
 - Private SSH Keys
 - Production configuration
 - Real `.env` files
+- Terraform state files
+- Sensitive Terraform variable files
 
 Use:
 
