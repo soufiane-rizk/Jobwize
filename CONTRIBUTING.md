@@ -181,9 +181,6 @@ Responsible for:
 Every contribution follows the same workflow.
 
 ```text
-Jira Issue
-      │
-      ▼
 Create Branch
       │
       ▼
@@ -206,37 +203,9 @@ Approval
       │
       ▼
 Squash & Merge
-      │
-      ▼
-Close Jira Issue
 ```
 
 Direct pushes to protected branches are not allowed.
-
----
-
-# Jira Workflow
-
-JobWize uses **Jira** as its official project management platform following the Agile philosophy and the Scrum framework.
-
-## Project Hierarchy
-
-```text
-Epic
-    ↓
-Story
-    ↓
-Task
-    ↓
-Sub-task (optional)
-```
-
-## Rules
-
-- Project work is organized and tracked in Jira.
-- Jira uses the hierarchy Epic, Story, Task, and optional Sub-task.
-- Repository changes must be submitted through a Pull Request.
-- A Jira Issue is marked as **Done** after the related work has been completed and merged into `develop`.
 
 ---
 
@@ -265,7 +234,7 @@ feature/company-management
 bugfix/login-validation
 
 docs/update-readme
-docs/update-contributing-guide
+docs/contributing-guide
 
 infra/docker-compose
 infra/kubernetes
@@ -279,20 +248,20 @@ ci/gitlab-pipeline
 
 We use the **Conventional Commits** specification.
 
-## Format
+Format
 
 ```text
 type(scope): short description
 ```
 
-## Examples
+Examples
 
 ```text
 feat(identity): add authentication module
 
 fix(identity): resolve login validation issue
 
-docs(contributing): update contribution guidelines
+docs(contributing): update contributing guide
 
 ci(gitlab): add deployment pipeline
 
@@ -300,7 +269,9 @@ build(docker): update backend image
 
 chore(terraform): create project structure
 
-test(identity): add login integration tests
+refactor(application): simplify application service
+
+test(identity): add integration tests
 
 perf(dashboard): optimize dashboard queries
 ```
@@ -330,7 +301,7 @@ A Pull Request should:
 - Focus on a single topic
 - Have a meaningful title
 - Include a clear description
-- Reference the related Jira Issue when applicable
+- Reference related Issues (when applicable)
 - Pass CI checks
 - Be reviewed before merging
 
@@ -370,14 +341,6 @@ Benefits:
 - Better changelog generation
 - One commit per Pull Request
 
-The final squash commit should follow the Conventional Commits specification.
-
-Example:
-
-```text
-docs(contributing): update contribution guidelines
-```
-
 ---
 
 # Coding Standards
@@ -405,8 +368,6 @@ Never commit:
 - Private SSH Keys
 - Production configuration
 - Real `.env` files
-- Terraform state files
-- Sensitive Terraform variable files
 
 Use:
 
