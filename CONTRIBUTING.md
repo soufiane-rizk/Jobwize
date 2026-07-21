@@ -251,44 +251,44 @@ We use the **Conventional Commits** specification.
 Format
 
 ```text
-type: short description
+type(scope): short description
 ```
 
 Examples
 
 ```text
-feat: add authentication module
+feat(identity): add authentication module
 
-fix: resolve login validation issue
+fix(identity): resolve login validation issue
 
-docs: update contributing guide
+docs(contributing): update contributing guide
 
-infra: configure docker compose
+ci(gitlab): add deployment pipeline
 
-ci: add gitlab deployment pipeline
+build(docker): update backend image
 
-refactor: simplify application service
+chore(terraform): create project structure
 
-test: add integration tests
+refactor(application): simplify application service
 
-perf: optimize dashboard queries
+test(identity): add integration tests
 
-chore: update dependencies
+perf(dashboard): optimize dashboard queries
 ```
 
 ## Commit Types
 
 | Type | Description |
 |------|-------------|
-| feat | New feature |
-| fix | Bug fix |
-| docs | Documentation |
-| refactor | Code improvement |
-| test | Tests |
-| ci | Continuous Integration |
-| infra | Infrastructure |
-| perf | Performance |
-| chore | Maintenance |
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `docs` | Documentation |
+| `refactor` | Code improvement |
+| `test` | Tests |
+| `ci` | Continuous Integration |
+| `build` | Build system, Docker, or dependencies |
+| `perf` | Performance |
+| `chore` | Maintenance |
 
 ---
 
