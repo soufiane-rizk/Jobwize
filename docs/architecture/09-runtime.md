@@ -1,545 +1,696 @@
 # Runtime
 
-## Purpose
+## Overview
 
-This document describes the runtime architecture of JobWize.
+The JobWize Runtime is the execution engine responsible for transforming independently developed business modules into a single executable application.
 
-It explains how the application executes, how its components interact during runtime, and how the runtime architecture supports the modular monolith while remaining ready for future evolution.
+Rather than allowing modules to communicate directly, the runtime provides a unified execution model responsible for routing requests, locating handlers, and coordinating execution across module boundaries.
 
-Operational concerns such as containers, orchestration, CI/CD pipelines, cloud infrastructure, and deployment strategies are documented separately under `docs/devops`.
+The runtime is intentionally independent of any transport technology. Whether a request originates from an HTTP endpoint, a background worker, a scheduled job, or another application component, it is executed through the same runtime pipeline.
+
+The runtime is built around a small set of focused components, each responsible for a single aspect of request execution. During application startup these components compose an immutable execution model that remains unchanged for the lifetime of the application.
+
+Once the application has started, request execution relies exclusively on cached runtime metadata and dependency injection, avoiding runtime discovery or reflection.
 
 ---
 
-# Runtime Overview
+## Goals
 
-At runtime, JobWize consists of two independent applications working together:
+The runtime has four primary objectives:
 
--   A **Blazor WebAssembly** frontend running in the user's browser.
--   An **ASP.NET Core API** hosting the backend and its business modules.
+-   Provide a single entry point for executing application requests.
+-   Preserve strict module boundaries while allowing controlled communication.
+-   Execute requests efficiently using immutable runtime metadata.
+-   Remain extensible without coupling business modules to infrastructure concerns.
 
-The backend executes as a single application containing multiple independent business modules. Each module owns its own business logic, data, and background processing while sharing the same application process.
+These goals allow application features to remain completely unaware of how requests are discovered, routed, and executed.
 
-The diagram below illustrates the runtime topology of the system.
+---
+
+## Runtime Architecture
+
+The runtime separates request execution into distinct responsibilities.
 
 ```mermaid
-flowchart TD
+flowchart LR
 
-    Browser["Browser"]
-
-    Frontend["Blazor WebAssembly"]
-
-    Api["ASP.NET Core API"]
+    Endpoint["Application Entry Point"]
 
     Dispatcher["Dispatcher"]
 
+    Execution["Execution Model"]
+
     Registry["Module Registry"]
 
-    subgraph Modules["Business Modules"]
+    Runtime["Module Runtime"]
 
-        subgraph Identity["Identity Module"]
-            IdentityRuntime["Module Runtime"]
-        end
-
-        subgraph Companies["Companies Module"]
-            CompaniesRuntime["Module Runtime"]
-        end
-
-        subgraph Applications["Applications Module"]
-            ApplicationsRuntime["Module Runtime"]
-        end
-
-        subgraph Notifications["Notifications Module"]
-            NotificationsRuntime["Module Runtime"]
-        end
-
-    end
-
-    Database[(PostgreSQL)]
-
-    Broker["Message Broker"]
-
-    Browser --> Frontend
-    Frontend --> Api
-
-    Api --> Dispatcher
-    Dispatcher --> Registry
-
-    Registry --> IdentityRuntime
-    Registry --> CompaniesRuntime
-    Registry --> ApplicationsRuntime
-    Registry --> NotificationsRuntime
-
-    IdentityRuntime --> Database
-    CompaniesRuntime --> Database
-    ApplicationsRuntime --> Database
-    NotificationsRuntime --> Database
-
-    IdentityRuntime --> Broker
-    CompaniesRuntime --> Broker
-    ApplicationsRuntime --> Broker
-    NotificationsRuntime --> Broker
-
-    classDef client fill:#dbeafe,stroke:#2563eb,color:#000;
-    classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
-    classDef infrastructure fill:#fde68a,stroke:#ca8a04,color:#000;
-
-    class Browser,Frontend client;
-    class Api,Dispatcher,Registry,IdentityRuntime,CompaniesRuntime,ApplicationsRuntime,NotificationsRuntime application;
-    class Database,Broker infrastructure;
-```
-
-Although the backend is deployed as a single executable, every module behaves as an independent component with clearly defined boundaries.
-
-This separation allows the frontend and backend to evolve independently while enabling backend modules to evolve independently from one another. As the system grows, individual modules may eventually be extracted into separate services without affecting the frontend or the public API contracts.
-
-The following diagram illustrates the internal runtime flow executed by every business module.
-
-```mermaid
-flowchart TD
-
-    Endpoint["HTTP Endpoint"]
-
-    Dispatcher["Application Dispatcher"]
+    Catalog["Handler Catalog"]
 
     Handler["Application Handler"]
 
-    Database[(Module Schema)]
-
-    Event["Integration Event"]
-
-    Outbox["Outbox"]
-
-    Broker["Message Broker"]
-
-    Inbox["Inbox"]
-
-    Notification["Notification Handler"]
-
-    Projection["Projection Update"]
-
     Endpoint --> Dispatcher
 
-    Dispatcher --> Handler
+    Dispatcher --> Execution
 
-    Handler --> Database
+    Execution --> Registry
 
-    Handler --> Event
+    Registry --> Runtime
 
-    Event --> Outbox
+    Runtime --> Catalog
 
-    Outbox --> Broker
+    Catalog --> Handler
 
-    Broker --> Inbox
+    classDef entry fill:#E3F2FD,stroke:#1E88E5,color:#000;
+    classDef runtime fill:#fde68a,stroke:#ca8a04,color:#000
+    classDef module fill:#E8F5E9,stroke:#43A047,color:#000;
 
-    Inbox --> Notification
-
-    Notification --> Projection
-
-    Projection -. "Module Query" .-> Database
-
-    classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
-    classDef infrastructure fill:#fde68a,stroke:#ca8a04,color:#000;
-
-    class Endpoint,Dispatcher,Handler,Event,Notification,Projection application;
-    class Database,Outbox,Broker,Inbox infrastructure;
+    class Endpoint entry;
+    class Dispatcher,Execution,Registry runtime;
+    class Runtime,Catalog,Handler module;
 ```
 
-Application features execute synchronously through endpoints, the application dispatcher, and handlers, while communication between modules always occurs asynchronously through the Outbox, Message Broker, and Inbox.
+Each component has a single responsibility.
 
-When maintaining projections, notification handlers retrieve the authoritative state through **Module Queries** rather than relying solely on the payload contained within the integration event.
+The Dispatcher exposes the public API used by the application.
 
----
+The Execution Model coordinates request execution.
 
-# Runtime Components
+The Module Registry determines which module owns a request.
 
-The runtime consists of the following primary components.
+Each Module Runtime executes requests belonging to a single module.
 
-| Component              | Responsibility                                                                                  |
-| ---------------------- | ----------------------------------------------------------------------------------------------- |
-| **Browser**            | Executes the Blazor WebAssembly application.                                                    |
-| **Blazor WebAssembly** | Provides the user interface and communicates with the backend through HTTP APIs.                |
-| **ASP.NET Core API**   | Hosts the HTTP pipeline, dependency injection container, hosted services, and business modules. |
-| **Business Modules**   | Execute application features while enforcing module boundaries and owning their data.           |
-| **PostgreSQL**         | Stores module data, projections, Inbox, and Outbox tables.                                      |
-| **Message Broker**     | Delivers integration events asynchronously between modules.                                     |
-| **Hosted Services**    | Process Inbox, Outbox, and other asynchronous background tasks.                                 |
-| **Dispatcher**         | Entry point for application requests.                                                           |
-| **Module Registry**    | Resolves which module owns a request.                                                           |
-| **Module Runtime**     | Executes requests belonging to a module.                                                        |
+Finally, the Handler Catalog performs constant-time lookup of the appropriate application handler.
+
+Together these components form the execution pipeline used throughout the application.
 
 ---
 
-# Application Startup
+## Runtime Philosophy
 
-The application follows a predictable startup sequence.
+The runtime follows a composition-first architecture.
+
+During application startup, modules are scanned and immutable runtime metadata is generated. After startup, no additional discovery occurs.
+
+This approach provides several advantages:
+
+-   predictable request routing
+-   constant-time handler lookup
+-   minimal runtime overhead
+-   complete module isolation
+-   deterministic application startup
+
+Because runtime metadata is immutable, execution behavior cannot change while the application is running. This makes request execution easier to reason about and simplifies testing.
+
+---
+
+## Runtime Composition
+
+The runtime is composed once during application startup through the `AddRuntime()` composition root.
+
+Rather than relying on automatic discovery during execution, every module is explicitly registered during application initialization.
+
+```csharp
+services.AddRuntime(
+    configuration,
+    options =>
+    {
+        options
+            .AddModule(new IdentityModule());
+            // .AddModule(new CompaniesModule());
+            // .AddModule(new ApplicationsModule());
+    });
+```
+
+Each registered module participates in the runtime composition process.
+
+The runtime scans every module, builds its execution metadata, constructs a dedicated runtime instance, and finally creates the registry responsible for routing requests during execution.
+
+Once this process completes, the runtime becomes immutable.
+
+No additional modules, handlers, or routing information are added after application startup.
+
+---
+
+## Startup Sequence
+
+Runtime composition follows a deterministic startup sequence.
 
 ```mermaid
 flowchart TD
 
-    Start["Application Starts"]
+    Modules["Registered Modules"]
 
-    Configuration["Load Configuration"]
+    Configure["Configure Services"]
 
-    Shared["Configure Shared Services"]
+    Scan["Scan Assemblies"]
 
-    Modules["Initialize Business Modules"]
+    Descriptor["Build Module Descriptor"]
 
     Runtime["Build Module Runtime"]
 
-    Registry["Register Module Registry"]
+    Registry["Build Module Registry"]
 
-    Hosted["Start Hosted Services"]
+    Ready["Runtime Ready"]
 
-    Ready["Application Ready"]
+    Modules --> Configure
 
-    Start --> Configuration
-    Configuration --> Shared
-    Shared --> Modules
-    Modules --> Runtime
+    Configure --> Scan
+
+    Scan --> Descriptor
+
+    Descriptor --> Runtime
+
     Runtime --> Registry
-    Registry --> Hosted
-    Hosted --> Ready
 
-    classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
+    Registry --> Ready
 
-    class Start,Configuration,Shared,Modules,Runtime,Registry,Hosted,Ready application;
+    classDef module fill:#dcfce7,stroke:#16a34a,color:#000;
+    classDef runtime fill:#fde68a,stroke:#ca8a04,color:#000;
+    classDef infrastructure fill:#dbeafe,stroke:#2563eb,color:#000;
+
+    class Modules module;
+    class Descriptor,Runtime,Registry runtime;
+    class Configure,Scan,Ready infrastructure;
 ```
 
-During startup the application:
+Each step has a dedicated responsibility.
 
-1. Loads application configuration.
-2. Configures dependency injection.
-3. Registers every business module.
-4. Starts all hosted background services.
-5. Begins accepting incoming HTTP requests.
+### Configure Services
 
-The startup sequence is coordinated through the application's composition root.
+Each module registers its own dependencies using the standard dependency injection container.
+
+At this stage, modules remain completely independent and are unaware of one another.
+
+### Scan Assemblies
+
+The runtime scans each module assembly to discover application handlers.
+
+This discovery process occurs only once during startup.
+
+### Build Module Descriptor
+
+The discovered handlers are transformed into an immutable `ModuleDescriptor`.
+
+A descriptor represents the executable metadata of a module, including:
+
+-   commands
+-   queries
+-   notifications
+-   handler descriptors
+
+The descriptor contains no service instances or runtime state.
+
+It is purely structural metadata describing the capabilities of a module.
+
+### Build Module Runtime
+
+Using the generated descriptor, the runtime creates a dedicated `ModuleRuntime` for the module.
+
+Each runtime owns the execution metadata required to execute requests belonging to that module.
+
+Because every module receives its own runtime instance, execution remains isolated while sharing the same application infrastructure.
+
+### Build Module Registry
+
+Once every module runtime has been created, the runtime builds the `ModuleRegistry`.
+
+The registry establishes the routing table used during request execution.
+
+It determines:
+
+-   which module owns a request
+-   which modules subscribe to a notification
+
+The registry itself contains no business logic.
+
+Its only responsibility is routing.
 
 ---
 
-# Runtime Dispatch Pipeline
+## Immutable Runtime Metadata
 
-After the application has started, every synchronous request follows the same execution pipeline.
+One of the key design decisions of the runtime is that execution metadata is immutable.
 
-The Dispatcher acts as the single entry point for application requests. It first asks the Module Registry which business module owns the request type. The registry returns the corresponding Module Runtime, which resolves the appropriate handler from its Handler Catalog, creates the handler through the dependency injection container, and finally executes the request.
+After startup, every routing decision has already been computed.
 
-Because every module owns its own runtime, request execution remains fully encapsulated within the owning module while request routing remains centralized.
+This means that request execution never performs:
+
+-   assembly scanning
+-   reflection-based discovery
+-   handler registration
+-   routing computation
+
+Instead, execution consists primarily of dictionary lookups followed by dependency injection.
+
+This approach improves both performance and predictability while keeping runtime behavior deterministic throughout the application's lifetime.
+
+---
+
+## Runtime Components
+
+The runtime is composed of a small number of focused components.
+
+Each component has a single responsibility and collaborates with the others to execute application requests.
+
+The following sections describe the responsibility of each component in the order in which they participate during execution.
+
+---
+
+### Dispatcher
+
+The `Dispatcher` is the public entry point of the runtime.
+
+It provides a simple API for sending requests and publishing notifications while remaining completely unaware of modules, handlers, or routing decisions.
+
+Rather than executing requests directly, the Dispatcher delegates execution to the configured `IExecutionModel`.
+
+This separation allows different execution strategies to be introduced without changing the public API exposed to the application.
+
+Responsibilities:
+
+-   Accept application requests.
+-   Accept notifications.
+-   Delegate execution.
+-   Hide runtime implementation details from callers.
+
+---
+
+### Execution Model
+
+The `ExecutionModel` coordinates request execution.
+
+It acts as the orchestrator of the runtime by determining how requests and notifications should be executed.
+
+The runtime currently provides a monolithic execution model where every module executes within the same process.
+
+The execution model is responsible for:
+
+-   locating the target module
+-   invoking the appropriate module runtime
+-   coordinating notification execution
+
+Because execution behavior is centralized inside the execution model, additional execution strategies can be introduced in the future without modifying business modules.
+
+Examples include:
+
+-   distributed execution
+-   remote module execution
+-   asynchronous execution models
+
+---
+
+### Module Registry
+
+The `ModuleRegistry` owns request routing.
+
+Rather than executing requests itself, the registry simply determines which module runtime should receive a particular request.
+
+During startup the registry builds immutable routing tables from every registered module.
+
+These routing tables allow constant-time lookup during execution.
+
+The registry is responsible for:
+
+-   locating the owner of a request
+-   locating modules interested in a notification
+
+The registry never executes business logic.
+
+Its sole responsibility is routing.
+
+---
+
+### Module Runtime
+
+Each business module owns exactly one `ModuleRuntime`.
+
+The module runtime represents the executable boundary of a module.
+
+It receives requests already routed by the registry and is responsible for locating and invoking the appropriate handler inside its own module.
+
+A module runtime never executes handlers belonging to another module.
+
+This preserves strict module isolation while allowing the application to execute as a unified system.
+
+Responsibilities:
+
+-   execute commands
+-   execute queries
+-   execute notifications belonging to the module
+-   resolve handlers using the handler catalog
+
+---
+
+### Handler Catalog
+
+Every module runtime owns a dedicated `HandlerCatalog`.
+
+The handler catalog contains precomputed execution metadata generated during application startup.
+
+Rather than searching assemblies or inspecting types during execution, the runtime performs simple dictionary lookups against the catalog.
+
+The catalog stores:
+
+-   command handlers
+-   query handlers
+-   notification handlers
+
+Because the catalog is immutable after startup, handler resolution remains predictable and efficient throughout the application's lifetime.
+
+The catalog performs no dependency resolution.
+
+Its responsibility is limited to locating the correct handler descriptor.
+
+---
+
+### Runtime Builder
+
+The `RuntimeBuilder` is responsible for constructing executable module runtimes during application startup.
+
+For each registered module it:
+
+1. scans the module assembly
+2. validates the discovered handlers
+3. builds a `ModuleDescriptor`
+4. registers application handlers into dependency injection
+5. creates the corresponding `ModuleRuntime`
+
+The builder only participates during application startup.
+
+It plays no role during normal request execution.
+
+---
+
+### Module Descriptor
+
+The `ModuleDescriptor` is the immutable representation of a module.
+
+It describes every executable capability exposed by the module without containing any runtime state or service instances.
+
+Descriptors are generated once during startup and reused throughout the application's lifetime.
+
+A descriptor contains metadata describing:
+
+-   commands
+-   queries
+-   notifications
+-   handler descriptors
+
+Module runtimes rely entirely on their descriptors to build the execution infrastructure required by the runtime.
+
+---
+
+## Request Execution
+
+Once the application has started, every request follows the same execution pipeline.
+
+The runtime does not perform assembly scanning, reflection, or handler discovery during execution.
+
+Instead, it relies entirely on the immutable execution metadata generated during application startup.
+
+The execution pipeline is illustrated below.
 
 ```mermaid
 sequenceDiagram
 
-    participant Endpoint
+    participant Client
     participant Dispatcher
-    participant Registry as Module Registry
-    participant Runtime as Module Runtime
-    participant Catalog as Handler Catalog
-    participant DI as Dependency Injection
+    participant ExecutionModel
+    participant Registry
+    participant Runtime
+    participant Catalog
+    participant DI
     participant Handler
 
-    Endpoint->>Dispatcher: SendAsync(request)
+    Client->>Dispatcher: Send(Command)
 
-    Dispatcher->>Registry: Resolve(requestType)
-    Registry-->>Dispatcher: ModuleRuntime
+    Dispatcher->>ExecutionModel: Execute request
 
-    Dispatcher->>Runtime: SendAsync(request)
+    ExecutionModel->>Registry: Resolve owning module
 
-    Runtime->>Catalog: GetRequestHandler(requestType)
+    Registry-->>ExecutionModel: ModuleRuntime
+
+    ExecutionModel->>Runtime: Execute request
+
+    Runtime->>Catalog: Locate handler
+
     Catalog-->>Runtime: HandlerDescriptor
 
-    Runtime->>DI: Resolve(handlerType)
-    DI-->>Runtime: Handler
+    Runtime->>DI: Resolve handler
 
-    Runtime->>Handler: HandleAsync(request)
+    DI-->>Runtime: Handler instance
+
+    Runtime->>Handler: Handle(request)
+
     Handler-->>Runtime: Result
 
-    Runtime-->>Dispatcher: Result
-    Dispatcher-->>Endpoint: Result
+    Runtime-->>ExecutionModel: Result
 
-    box rgb(220,252,231) Application
-        participant Endpoint
-        participant Dispatcher
-        participant Runtime
-        participant Catalog
-        participant Handler
-    end
+    ExecutionModel-->>Dispatcher: Result
 
-    box rgb(253,230,138) Infrastructure
-        participant Registry
-        participant DI
-    end
+    Dispatcher-->>Client: Result
 ```
 
-The Handler Catalog is created once during application startup from the module descriptor produced by the Handler Scanner. As a result, request execution requires no reflection or assembly scanning, relying only on dictionary lookups and dependency injection to locate and execute the correct handler.
+Request execution is entirely deterministic.
+
+Each component performs a single responsibility before delegating execution to the next component.
 
 ---
 
-# Request Lifecycle
+### Step 1 — Dispatcher
 
-A synchronous request follows the execution flow below.
+Execution begins when the application submits a request through the Dispatcher.
 
-```mermaid
-flowchart LR
+The Dispatcher exposes a unified API regardless of the request origin.
 
-Client["Client"]
+Requests may originate from:
 
-Endpoint["Endpoint"]
+-   HTTP endpoints
+-   Background services
+-   Scheduled jobs
+-   Other application components
 
-Dispatcher["Dispatcher"]
+The Dispatcher does not execute requests itself.
 
-Registry["Module Registry"]
-
-Runtime["Module Runtime"]
-
-Handler["Application Handler"]
-
-Database[(Module Schema)]
-
-Client --> Endpoint
-Endpoint --> Dispatcher
-Dispatcher --> Registry
-Registry --> Runtime
-Runtime --> Handler
-Handler --> Database
-Database --> Handler
-Handler --> Endpoint
-Endpoint --> Client
-
-classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
-classDef infrastructure fill:#fde68a,stroke:#ca8a04,color:#000;
-
-class Client,Endpoint,Dispatcher,Registry,Runtime,Handler application;
-class Database infrastructure;
-```
-
-HTTP endpoints remain intentionally lightweight.
-
-Their responsibility is limited to receiving the request, invoking the application dispatcher, and returning the response.
-
-The dispatcher resolves the owning module through the Module Registry, which forwards execution to the corresponding Module Runtime. The runtime resolves the appropriate handler and executes it within the module boundary. Business logic therefore remains encapsulated inside the owning module while request routing is coordinated centrally.
+Its only responsibility is forwarding execution to the configured execution model.
 
 ---
 
-# Integration Event Lifecycle
+### Step 2 — Execution Model
 
-Integration events follow a different execution path.
+The Execution Model becomes responsible for coordinating execution.
 
-Rather than communicating directly with other modules, every integration event is delivered through the messaging infrastructure.
+It determines how the request should be processed and delegates routing to the Module Registry.
 
-```mermaid
-flowchart LR
-
-    Handler["Application Handler"]
-
-    Outbox["Outbox"]
-
-    Broker["Message Broker"]
-
-    Inbox["Inbox"]
-
-    Notification["Notification Handler"]
-
-    Projection["Projection Update"]
-
-    Handler --> Outbox
-    Outbox --> Broker
-    Broker --> Inbox
-    Inbox --> Notification
-    Notification --> Projection
-
-    classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
-    classDef infrastructure fill:#fde68a,stroke:#ca8a04,color:#000;
-
-    class Handler,Notification,Projection application;
-    class Outbox,Broker,Inbox infrastructure;
-```
-
-Even when both the publisher and subscriber execute inside the same application process, integration events always travel through the Outbox, Message Broker, and Inbox.
-
-This guarantees identical communication semantics regardless of whether modules execute within the same process or are later deployed as independent services.
+The execution model owns the execution strategy of the application without containing any business logic.
 
 ---
 
-# Hosted Background Services
+### Step 3 — Module Registry
 
-Each business module may register one or more hosted background services responsible for asynchronous processing.
+The Module Registry determines which module owns the incoming request.
 
-Typical responsibilities include:
+Ownership is resolved using the immutable routing tables generated during application startup.
 
--   Processing the module's Outbox.
--   Processing the module's Inbox.
--   Executing scheduled background tasks when required.
+If no module owns the request, execution fails immediately.
 
-As additional modules are introduced, each module remains responsible for its own background processing, allowing the runtime to grow without introducing centralized processing services.
-
-Hosted services execute within the ASP.NET Core application process, allowing background processing to remain encapsulated inside each module while sharing the same runtime.
-
-If a module is later extracted into an independent service, its hosted services move together with the module without requiring architectural changes.
-
-# External Dependencies
-
-The runtime currently depends on the following external services.
-
-| Dependency         | Responsibility                                                               |
-| ------------------ | ---------------------------------------------------------------------------- |
-| **PostgreSQL**     | Persistent storage for business data, projections, Inbox, and Outbox tables. |
-| **Message Broker** | Reliable asynchronous communication between business modules.                |
-
-As the platform evolves, additional infrastructure services may be introduced, such as:
-
--   Object storage for uploaded files.
--   SMTP providers for email delivery.
--   External authentication providers.
-
-These integrations remain infrastructure concerns and do not affect the internal architecture of the business modules.
+Otherwise, the corresponding Module Runtime is returned.
 
 ---
 
-# Configuration
+### Step 4 — Module Runtime
 
-Application configuration is loaded during startup through the ASP.NET Core configuration system.
+The Module Runtime becomes responsible for executing the request inside its own module.
 
-Typical configuration includes:
+Execution never crosses module boundaries.
 
--   Database connection strings.
--   Message broker settings.
--   Authentication settings.
--   External service configuration.
--   Environment-specific values.
+A runtime only executes handlers belonging to the module it represents.
 
-Business modules consume configuration through abstractions and remain independent from the underlying configuration providers.
+This guarantees that business modules remain isolated while participating in the same application.
 
 ---
 
-# Health Checks
+### Step 5 — Handler Catalog
 
-The runtime exposes health endpoints that allow external systems to verify the operational state of the application.
+The Module Runtime asks its Handler Catalog to locate the appropriate handler descriptor.
 
-Health checks may validate critical dependencies such as:
+The catalog performs constant-time lookup using the request type.
 
--   Database connectivity.
--   Message broker availability.
--   Other infrastructure services required for normal operation.
-
-These endpoints support monitoring, automated deployments, and operational diagnostics while remaining independent from deployment-specific tooling.
+Because every lookup table was generated during startup, handler resolution requires no reflection or discovery.
 
 ---
 
-# Scalability
+### Step 6 — Dependency Resolution
 
-The runtime architecture intentionally separates **logical module boundaries** from **deployment boundaries**.
+Once the handler descriptor has been located, the Module Runtime resolves the handler instance through the application's dependency injection container.
 
-Today, JobWize executes as a single deployable application.
+Dependency injection remains responsible for constructing handler instances and injecting their dependencies.
 
-```text
-Browser
-
-↓
-
-Blazor WebAssembly
-
-↓
-
-ASP.NET Core API
-
-├── Identity
-├── Companies
-├── Applications
-└── Notifications
-```
-
-As the system evolves, individual modules may be extracted into independently deployable services.
-
-```text
-Browser
-
-↓
-
-Blazor WebAssembly
-
-↓
-
-API Gateway
-
-├── Identity Service
-├── Companies Service
-├── Applications Service
-└── Notifications Service
-```
-
-Because communication already occurs through module contracts, integration events, and asynchronous messaging, this evolution primarily affects deployment rather than application code.
-
-A heavily used module can therefore be scaled independently without requiring additional instances of the entire application.
-
-This architecture enables the system to evolve gradually from a modular monolith toward a distributed architecture when business requirements justify the additional operational complexity.
+The runtime itself never creates handlers.
 
 ---
 
-# Runtime Lifecycle
+### Step 7 — Handler Execution
 
-The application follows the lifecycle below.
+Finally, the application handler executes the business logic associated with the request.
 
-```mermaid
-flowchart TD
+From the handler's perspective, the runtime is completely transparent.
 
-    Start["Application Starts"]
+Handlers remain unaware of:
 
-    Config["Configuration Loaded"]
+-   modules
+-   routing
+-   registries
+-   catalogs
+-   execution models
 
-    Register["Modules Registered"]
-
-    Hosted["Hosted Services Started"]
-
-    Ready["Application Ready"]
-
-    Requests["HTTP Requests"]
-
-    Background["Background Processing"]
-
-    Shutdown["Graceful Shutdown"]
-
-    Start --> Config
-    Config --> Register
-    Register --> Hosted
-    Hosted --> Ready
-
-    Ready --> Requests
-    Ready --> Background
-
-    Requests --> Shutdown
-    Background --> Shutdown
-
-    classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
-
-    class Start,Config,Register,Hosted,Ready,Requests,Background,Shutdown application;
-```
-
-During shutdown the runtime stops accepting new requests while allowing in-flight requests and background processing to complete before terminating.
-
-This graceful shutdown process minimizes service interruption and helps preserve the consistency of ongoing operations.
+They simply receive a request and return a response.
 
 ---
 
-# Runtime Principles
+## Runtime Guarantees
 
-The runtime architecture follows these principles:
+The execution pipeline provides several architectural guarantees.
 
--   The frontend and backend execute as independent applications.
--   The backend is deployed as a single executable.
--   Business modules remain logically independent.
--   Request execution is module-aware and always routed through the owning module runtime.
--   Each module owns its own data and background processing.
--   Integration events always traverse the messaging infrastructure.
--   Background processing is encapsulated within individual modules.
--   External dependencies are accessed exclusively through infrastructure abstractions.
--   Logical module boundaries remain independent from deployment boundaries.
--   The runtime supports gradual evolution toward independently deployable services without requiring changes to business logic.
+### Immutable Execution Metadata
+
+All routing information is computed during application startup.
+
+Execution never modifies runtime metadata.
 
 ---
 
-# Summary
+### Constant-Time Routing
 
-The runtime architecture brings together every architectural concept introduced throughout this documentation.
+Request routing relies on dictionary lookups instead of runtime discovery.
 
-The frontend and backend remain independently evolvable, business modules execute within a shared runtime while preserving strict boundaries, synchronous operations are routed through the application dispatcher, module registry, and module runtime before reaching the owning application handler, and asynchronous communication is performed through reliable messaging using the Outbox and Inbox patterns.
+This ensures predictable execution performance.
 
-This separation of concerns allows the application to remain simple to develop and deploy today while providing a clear and incremental path toward independently scalable services as the platform grows.
+---
+
+### Module Isolation
+
+Modules never invoke one another directly.
+
+Every interaction passes through the runtime.
+
+This prevents accidental coupling between business modules.
+
+---
+
+### Separation of Responsibilities
+
+Each runtime component owns a single responsibility.
+
+No component performs routing, handler lookup, dependency resolution, and execution simultaneously.
+
+This separation keeps the runtime easier to understand, maintain, and extend.
+
+---
+
+## Design Principles
+
+The runtime was designed around a small number of architectural principles.
+
+These principles guide both the current implementation and future evolution of the runtime.
+
+---
+
+### Composition During Startup
+
+The runtime performs all discovery and composition during application startup.
+
+Business modules are scanned once, execution metadata is generated, and routing tables are constructed before the application begins processing requests.
+
+Once startup completes, the runtime becomes immutable.
+
+This minimizes runtime overhead while ensuring deterministic execution.
+
+---
+
+### Immutable Metadata
+
+Execution metadata never changes while the application is running.
+
+Descriptors, handler catalogs, and routing tables are all generated during startup and remain read-only for the lifetime of the application.
+
+This guarantees that every request is executed using the same runtime model.
+
+---
+
+### Explicit Module Boundaries
+
+Each business module owns its own runtime and execution metadata.
+
+Modules never execute handlers belonging to another module.
+
+Instead, all communication passes through the runtime, preserving clear architectural boundaries and preventing accidental coupling.
+
+---
+
+### Separation of Responsibilities
+
+Each runtime component owns a single responsibility.
+
+| Component       | Responsibility                    |
+| --------------- | --------------------------------- |
+| Dispatcher      | Public runtime entry point        |
+| Execution Model | Coordinates execution             |
+| Module Registry | Routes requests                   |
+| Module Runtime  | Executes requests within a module |
+| Handler Catalog | Resolves handlers                 |
+
+Because responsibilities remain isolated, components can evolve independently without affecting the overall execution model.
+
+---
+
+### Infrastructure Transparency
+
+Application handlers remain completely unaware of the runtime.
+
+Business logic does not know:
+
+-   how requests are routed
+-   which module owns the request
+-   how handlers are discovered
+-   how dependencies are resolved
+
+Handlers simply implement application behavior while the runtime manages execution.
+
+This keeps business code focused entirely on domain concerns.
+
+---
+
+### Extensibility
+
+The runtime is designed to evolve without requiring changes to business modules.
+
+Its primary extension point is the execution pipeline, which allows cross-cutting concerns to participate in request execution while remaining independent from application handlers.
+
+Future runtime capabilities may also include alternative execution models, distributed module execution, and additional runtime diagnostics.
+
+Business modules continue to interact with the runtime exclusively through the Dispatcher.
+
+---
+
+## Future Evolution
+
+The runtime has been designed to evolve through extension rather than modification.
+
+Future capabilities are expected to build upon the existing architecture by introducing new execution models, additional extension points, and improved runtime observability while preserving the existing programming model.
+
+---
+
+## Summary
+
+The JobWize Runtime provides the execution infrastructure that connects independently developed business modules into a single cohesive application.
+
+By separating composition, routing, execution, and handler resolution into dedicated components, the runtime achieves:
+
+-   predictable request execution
+-   strict module isolation
+-   efficient handler resolution
+-   immutable runtime metadata
+-   a clean extension model
+
+The result is a lightweight execution engine that remains independent of application concerns while providing a consistent programming model across the entire system.

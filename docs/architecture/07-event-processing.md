@@ -1,359 +1,318 @@
 # Event Processing
 
-## Purpose
+## Overview
 
-This document describes how integration events are processed reliably across modules.
+The JobWize event processing system enables application modules to react to domain events while remaining completely decoupled from one another.
 
-JobWize uses the Outbox and Inbox patterns to ensure that events are delivered reliably, processed safely, and never lost because of infrastructure failures.
+Rather than allowing modules to invoke one another directly, business interactions occur through notifications published by the runtime.
 
-The event processing pipeline is designed to provide:
+The runtime is responsible for collecting, scheduling, and executing notifications using a deterministic execution model.
 
--   Reliable event delivery.
--   Transactional consistency.
--   Idempotent event processing.
--   Controlled retries.
--   Failure recovery.
+This approach allows multiple modules to participate in the same business workflow while preserving strict module boundaries and avoiding direct dependencies between modules.
+
+Unlike traditional recursive event dispatching, JobWize processes notifications using **execution waves**, ensuring that newly published notifications never interrupt the execution currently in progress.
 
 ---
 
-# Event Lifecycle
+## Goals
 
-The following diagram illustrates the complete lifecycle of an integration event.
+The event processing system has four primary objectives:
 
-```mermaid
-flowchart LR
+-   Allow modules to react to business events without direct dependencies.
+-   Execute notifications deterministically.
+-   Prevent recursive notification execution.
+-   Provide a foundation for future distributed event processing.
 
-    Handler["Application Handler"]
+These goals allow application workflows to grow naturally while keeping the execution model predictable and easy to reason about.
 
-    Outbox["Outbox"]
+---
 
-    OutboxWorkers["Outbox Workers"]
+## Notifications
 
-    Broker["Message Broker"]
+The runtime processes notifications represented by `INotification`.
 
-    Inbox["Inbox"]
+Notifications describe facts that have occurred during request execution and allow other parts of the application to react without introducing direct dependencies between modules.
 
-    InboxWorkers["Inbox Workers"]
+Business modules typically publish notifications through the Dispatcher after successfully completing an application operation.
 
-    Business["Business Handler"]
+The runtime itself makes no distinction between different kinds of notifications.
 
-    Handler --> Outbox
+Specialized abstractions such as `IIntegrationEvent` exist only to provide a stable programming model for business modules and do not change how notifications are processed.
 
-    Outbox --> OutboxWorkers
+The execution behavior of a notification is entirely determined by the configured execution model.
 
-    OutboxWorkers --> Broker
+---
 
-    Broker --> Inbox
+## Notification Processing
 
-    Inbox --> InboxWorkers
+Notification processing begins when application code publishes a notification through the Dispatcher.
 
-    InboxWorkers --> Business
-
-    classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
-    classDef infrastructure fill:#dbeafe,stroke:#2563eb,color:#000;
-
-    class Handler,Business application;
-    class Outbox,OutboxWorkers,Broker,Inbox,InboxWorkers infrastructure;
+```csharp
+await _dispatcher.Publish(new ItemCreated(itemId));
 ```
 
-An event passes through the following stages:
+From this point onward, the runtime becomes responsible for coordinating notification execution.
 
-1. A business operation publishes an Integration Event.
-2. The event is stored in the module's Outbox.
-3. The surrounding transaction is committed.
-4. The Outbox Workers publish the event to the message broker.
-5. Another module receives the event.
-6. The event is stored in the receiving module's Inbox.
-7. The Inbox Workers execute the business handler.
+Unlike request execution, where a single handler is selected, notifications may be handled by multiple modules simultaneously.
+
+The execution model resolves every interested module and ensures that each notification handler is executed according to the runtime's execution strategy.
 
 ---
 
-# Outbox Pattern
+## Notification Context
 
-Each module owns its own Outbox table.
+Notification processing is coordinated through a **Notification Context**.
 
-The Outbox stores integration events before they are published to the message broker.
+The Notification Context represents the state of an ongoing notification execution.
 
-```mermaid
-flowchart LR
+Rather than executing notifications immediately when they are published, the runtime first records them inside the current notification context.
 
-    Transaction["Database Transaction"]
+This allows the runtime to coordinate complex notification chains while preserving deterministic execution.
 
-    BusinessData["Business Data"]
+At any point during execution, the notification context maintains two collections:
 
-    Outbox["Outbox"]
+-   the notifications currently being executed
+-   the notifications scheduled for the next execution wave
 
-    Commit["Commit"]
-
-    Transaction --> BusinessData
-
-    Transaction --> Outbox
-
-    BusinessData --> Commit
-
-    Outbox --> Commit
-
-    classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
-    classDef infrastructure fill:#dbeafe,stroke:#2563eb,color:#000;
-
-    class Transaction,Commit application;
-    class BusinessData,Outbox infrastructure;
-```
-
-The business data and the integration event are committed within the same database transaction.
-
-If the transaction rolls back, neither the business data nor the event is persisted.
-
-This guarantees that events cannot be published without the corresponding business data.
+This separation prevents newly published notifications from interrupting handlers that are already executing.
 
 ---
 
-# Outbox Workers
+## Notification Waves
 
-Publishing to the message broker is performed by background workers.
+Notifications are executed in **waves**.
 
-Their responsibilities are:
-
--   Read unpublished events from the Outbox.
--   Publish events to the message broker.
--   Mark successfully published events.
-
-If the message broker is temporarily unavailable, the event remains in the Outbox and will be retried later.
-
-No events are lost.
-
----
-
-# Inbox Pattern
-
-Each module also owns its own Inbox table.
-
-Incoming events are stored before they are processed.
-
-```mermaid
-flowchart LR
-
-    Broker["Message Broker"]
-
-    Inbox["Inbox"]
-
-    Workers["Inbox Workers"]
-
-    Handler["Business Handler"]
-
-    Broker --> Inbox
-
-    Inbox --> Workers
-
-    Workers --> Handler
-
-    classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
-    classDef infrastructure fill:#dbeafe,stroke:#2563eb,color:#000;
-
-    class Handler application;
-    class Broker,Inbox,Workers infrastructure;
-```
-
-The Inbox provides:
-
--   Reliable processing.
--   Idempotency.
--   Retry tracking.
--   Failure tracking.
-
-Each module owns its own Inbox.
-
-Modules never access another module's Inbox.
-
-The Inbox represents the source of truth for event processing within a module. Event status, retries, and failures are tracked independently of the message broker.
-
----
-
-# Distributed Processing
-
-The Outbox and Inbox Workers may run on multiple application instances simultaneously.
-
-Each worker attempts to claim work from its module's Outbox or Inbox.
-
-The database coordinates ownership of individual events, ensuring that each event is processed by only one instance at a time.
-
-This allows event processing to scale horizontally without requiring changes to the application architecture.
-
-```mermaid
-flowchart LR
-
-    A["Instance A"]
-
-    B["Instance B"]
-
-    C["Instance C"]
-
-    Inbox[(Inbox)]
-
-    Event["Claim Pending Event"]
-
-    A --> Inbox
-
-    B --> Inbox
-
-    C --> Inbox
-
-    Inbox --> Event
-
-    classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
-    classDef infrastructure fill:#dbeafe,stroke:#2563eb,color:#000;
-
-    class A,B,C application;
-    class Inbox,Event infrastructure;
-```
-
----
-
-# Inbox Status
-
-Every Inbox entry has a processing status.
-
-| Status     | Description                                      |
-| ---------- | ------------------------------------------------ |
-| Pending    | Waiting to be processed.                         |
-| Processing | Currently being processed.                       |
-| Processed  | Successfully completed.                          |
-| Failed     | Processing failed and requires manual attention. |
-
-These statuses allow failed events to be retried without relying on the message broker.
-
----
-
-# Idempotency
-
-Message brokers provide **at-least-once delivery**.
-
-An event may therefore be delivered more than once.
-
-To prevent duplicate processing, each Inbox stores the unique EventId.
-
-Before processing an event, the Inbox Workers verify whether the event has already been completed.
+Each wave represents a group of notifications that are executed together before moving on to the next group.
 
 ```mermaid
 flowchart TD
 
-    Event["Incoming Event"]
+    Publish["Publish()"]
 
-    Exists{"Already Processed?"}
+    Wave1["Wave 1"]
 
-    Ignore["Ignore"]
+    Wave2["Wave 2"]
 
-    Process["Process Event"]
+    Wave3["Wave 3"]
 
-    Event --> Exists
+    Complete["Execution Complete"]
 
-    Exists -->|Yes| Ignore
+    Publish --> Wave1
 
-    Exists -->|No| Process
+    Wave1 --> Wave2
 
-    classDef decision fill:#fde68a,stroke:#d97706,color:#000;
-    classDef action fill:#dcfce7,stroke:#16a34a,color:#000;
+    Wave2 --> Wave3
 
-    class Exists decision;
-    class Ignore,Process action;
+    Wave3 --> Complete
+
+    classDef runtime fill:#fde68a,stroke:#ca8a04,color:#000;
+
+    class Publish,Wave1,Wave2,Wave3,Complete runtime;
 ```
 
-This guarantees that processing remains safe even when duplicate deliveries occur.
+When notification execution begins, the published notification becomes the first execution wave.
+
+Every handler interested in that notification is executed.
+
+If one of those handlers publishes additional notifications, those notifications are **not executed immediately**.
+
+Instead, they are collected and scheduled for the next execution wave.
+
+Only after every handler in the current wave has completed does the runtime begin executing the next wave.
+
+This process repeats until no additional notifications remain.
 
 ---
 
-# Retry Strategy
+## Nested Notifications
 
-Not every failure should be treated equally.
+Handlers are free to publish additional notifications while processing an existing one.
 
-JobWize distinguishes between different categories of failures.
-
-| Failure Type   | Retry |
-| -------------- | ----- |
-| Infrastructure | Yes   |
-| Transient      | Yes   |
-| Business       | No    |
-
-Examples of infrastructure failures include:
-
--   Message broker unavailable.
--   Database temporarily unavailable.
--   Network failures.
-
-Examples of transient failures include:
-
--   Deadlocks.
--   Timeouts.
--   Optimistic concurrency conflicts.
-
-Examples of business failures include:
-
--   Entity not found.
--   Invalid business state.
--   Business rule violations.
-
-Infrastructure and transient failures may be retried automatically by the Inbox Workers according to the configured retry policy.
-
-Business failures should be marked as **Failed** and require investigation.
-
----
-
-# Failed Events
-
-When an event cannot be processed successfully after the configured retry policy, its Inbox entry is marked as **Failed**.
-
-The event remains stored within the owning module.
-
-Failed events may later be:
-
--   Inspected.
--   Replayed.
--   Ignored.
-
-This approach prevents poison messages from continuously blocking event processing.
-
----
-
-# Event Ownership
-
-Every module owns its own event processing infrastructure.
+For example:
 
 ```text
-Identity
-├── Outbox
-└── Inbox
-
-Companies
-├── Outbox
-└── Inbox
-
-Applications
-├── Outbox
-└── Inbox
-
-Notifications
-├── Outbox
-└── Inbox
+CreateItem Command
+        │
+        ▼
+ ItemCreated
+      │
+      ├──────────────► Module Two
+      │
+      ▼
+Module One
+      │
+      ▼
+ ItemIndexed
 ```
 
-Modules never modify another module's Outbox or Inbox.
+Although `ItemIndexed` is published while `ItemCreated` is still being processed, it does not interrupt the current execution.
 
-This preserves module boundaries and ownership.
+Instead, the runtime schedules it for the following execution wave.
+
+This guarantees that every handler interested in `ItemCreated` completes before any handler begins processing `ItemIndexed`.
+
+By processing notifications in waves rather than recursively, the runtime produces deterministic and predictable execution regardless of the depth of the notification chain.
+
+The following example illustrates how nested notifications are processed across execution waves.
+
+Although `ItemIndexed` is published while `ItemCreated` handlers are still executing, it is deferred until the next execution wave rather than being executed immediately.
+
+```mermaid
+flowchart TD
+
+    A["CreateItem Command"]
+
+    B["ItemCreated"]
+
+    C["Module One<br/>ItemCreatedHandler"]
+
+    D["Module Two<br/>ItemCreatedHandler"]
+
+    E["ItemIndexed"]
+
+    F["Module Two<br/>ItemIndexedHandler"]
+
+    subgraph W1["Wave 1"]
+        B
+        C
+        D
+    end
+
+    subgraph W2["Wave 2"]
+        E
+        F
+    end
+
+    A --> B
+
+    B --> C
+    B --> D
+
+    C --> E
+
+    E --> F
+
+    classDef module fill:#dcfce7,stroke:#16a34a,color:#000;
+    classDef runtime fill:#fde68a,stroke:#ca8a04,color:#000;
+
+    class A,C,D,F module;
+    class B,E runtime;
+```
 
 ---
 
-# Design Principles
+## Execution Guarantees
 
-Event processing follows these principles.
+The event processing model provides several guarantees that simplify reasoning about application workflows.
 
--   Every module owns its own Outbox and Inbox.
--   Business data and Outbox entries are committed atomically.
--   Events are published only after a successful transaction commit.
--   Every received event is stored before processing.
--   The Inbox owns the event processing lifecycle.
--   Event processing is idempotent.
--   Infrastructure failures are retried automatically.
--   Business failures are recorded for later investigation.
--   Failed events never block the processing of new events.
--   Event processing supports horizontal scaling through distributed workers.
--   Modules remain responsible for their own event processing lifecycle.
+These guarantees remain true regardless of the number of participating modules or the depth of the notification chain.
+
+---
+
+### Complete Wave Execution
+
+Every notification handler belonging to the current execution wave completes before the runtime begins processing the next wave.
+
+Notifications published during the execution of a handler never interrupt handlers that are already running.
+
+This produces deterministic execution ordering and prevents recursive execution.
+
+---
+
+### Deterministic Processing
+
+Notification execution always follows the same algorithm:
+
+1. execute the current wave
+2. collect newly published notifications
+3. execute the next wave
+4. repeat until no notifications remain
+
+Because notifications are processed sequentially by execution waves, the overall execution flow remains predictable and easy to reason about.
+
+---
+
+### Module Independence
+
+Modules never invoke notification handlers belonging to other modules directly.
+
+Each module simply publishes notifications describing completed business operations.
+
+The runtime determines which modules are interested in a notification and coordinates their execution.
+
+This allows modules to collaborate without introducing compile-time dependencies between them.
+
+---
+
+### Transparent Publication
+
+Application handlers remain unaware of the notification processing algorithm.
+
+Handlers simply publish notifications through the Dispatcher.
+
+The runtime is responsible for:
+
+-   scheduling notifications
+-   coordinating execution waves
+-   invoking interested modules
+-   completing notification execution
+
+This keeps business logic focused entirely on application behavior.
+
+---
+
+### Single Execution Context
+
+Every notification published as part of the same application operation participates in the same notification execution context.
+
+As a result, nested notification chains are processed as one coordinated execution rather than as independent recursive publications.
+
+This provides a consistent execution model regardless of how many notifications are produced during a workflow.
+
+---
+
+## Design Principles
+
+The event processing system is built around a small set of architectural principles.
+
+### Event-Driven Collaboration
+
+Modules collaborate by publishing notifications rather than invoking one another directly.
+
+The runtime becomes responsible for coordinating communication between interested modules.
+
+---
+
+### Deferred Execution
+
+Notifications published during handler execution are deferred until the following execution wave.
+
+This prevents recursive execution and guarantees deterministic processing.
+
+---
+
+### Infrastructure Independence
+
+The notification model is independent of any messaging technology.
+
+Notifications represent business facts.
+
+The execution model determines how those notifications are processed, allowing different execution strategies without changing application code.
+
+---
+
+### Runtime Coordination
+
+The runtime coordinates notification execution while remaining separate from business logic.
+
+Application handlers publish notifications, while the runtime manages scheduling, routing, and execution.
+
+---
+
+## Summary
+
+The JobWize event processing system enables independent modules to collaborate through notifications while preserving strict architectural boundaries.
+
+By processing notifications using execution waves instead of recursive publication, the runtime provides deterministic execution, predictable notification ordering, and a scalable foundation for future execution models.
+
+Business modules remain focused on publishing business events, while the runtime coordinates how those events are executed across the application.

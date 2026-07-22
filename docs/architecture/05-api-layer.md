@@ -49,7 +49,7 @@ flowchart LR
 
 The `IDispatcher` abstracts the underlying communication mechanism.
 
-Application features remain unaware of whether a request is processed locally, delegated to another module, or results in event publication.
+Application features remain unaware of how requests and notifications are executed. The configured Runtime Execution Model determines the underlying communication strategy while exposing a single programming model through `IDispatcher`.
 
 ---
 
@@ -164,7 +164,8 @@ CreateUser.cs
 CreateUser
 ├── Command
 ├── Handler
-└── Endpoint
+├── Endpoint
+└── Validator
 ```
 
 Additional components, such as validators or mappings, may be introduced when required by the feature.
@@ -177,7 +178,7 @@ Keeping all implementation details together improves discoverability and reduces
 
 The API layer is responsible only for accepting HTTP requests and dispatching them.
 
-The execution of application use cases—including validation, command handling, business orchestration, and response generation—is described in **11 - Application Layer**.
+The execution of application use cases—including execution pipelines, command handling, business orchestration, and response generation—is described in **11 - Application Layer**.
 
 ---
 
@@ -190,5 +191,6 @@ The API layer follows these principles:
 -   Endpoints never contain business logic.
 -   Public contracts remain separate from application commands.
 -   Communication occurs exclusively through `IDispatcher`.
+-   The API layer remains independent of the configured Runtime execution model.
 -   HTTP concerns remain isolated from the Application and Domain layers.
 -   Feature-oriented organization.

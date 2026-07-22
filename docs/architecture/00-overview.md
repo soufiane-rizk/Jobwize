@@ -69,7 +69,9 @@ The frontend contains no business logic beyond presentation and client-side vali
 
 # Backend
 
-The backend is implemented as a **Modular Monolith**, where business capabilities are divided into independent modules that execute within a single application.
+The backend is implemented as a Modular Monolith, where business capabilities are divided into independent modules that execute within a single application.
+
+Communication between modules is coordinated by the Runtime through configurable execution models while preserving module boundaries and keeping business logic independent from communication infrastructure.
 
 Each module encapsulates its own:
 
@@ -116,6 +118,6 @@ The following documents describe the backend architecture in greater detail.
 | **06 - Module Communication** | Synchronous and asynchronous communication between modules.                                 |
 | **07 - Event Processing**     | Outbox, Inbox, retries, and integration event lifecycle.                                    |
 | **08 - Database**             | Persistence strategy, database ownership, and transactional boundaries.                     |
-| **09 - Runtime**              | Runtime architecture, application components, and external dependencies.                    |
+| **09 - Runtime**              | Runtime architecture, request execution, notification processing, and execution models.     |
 | **10 - Domain Model**         | Domain modeling principles, entities, value objects, business rules, and aggregate design.  |
 | **11 - Application Layer**    | Application use cases, handlers, validation, transactions, results, and execution pipeline. |

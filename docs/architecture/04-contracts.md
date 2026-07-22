@@ -36,7 +36,7 @@ A Contracts project may contain:
 -   Public API DTOs
 -   Module Queries
 -   Module Query Responses
--   Integration Events
+-   Notifications (including Integration Events)
 
 A Contracts project must **never** contain:
 
@@ -60,7 +60,7 @@ flowchart TD
     CONTRACTS["Identity.Contracts"]
 
     PUBLIC["Public"]
-    INTERNAL["Internal"]
+    INTERNAL["Module"]
     EVENTS["Events"]
 
     CONTRACTS --> PUBLIC
@@ -139,7 +139,7 @@ This guarantees that both projects use the same request and response models.
 
 # Module Contracts
 
-Module contracts define synchronous communication between business modules.
+Module contracts define synchronous communication between business modules through the Runtime dispatcher.
 
 They are not intended to be used by the frontend.
 
@@ -164,9 +164,11 @@ These contracts are shared only between backend modules.
 
 # Integration Events
 
-Integration events notify other modules that something important has happened.
+Notifications represent business events published by application features.
 
-Unlike requests and queries, events are organized independently of application features.
+Some notifications are intended only for in-process module collaboration, while others are Integration Events intended for communication across module boundaries.
+
+Both share the same programming model and are dispatched through the Runtime.
 
 Example:
 
@@ -239,7 +241,7 @@ Public
 ```
 
 ```text
-Internal
+Module
 └── Users
     ├── GetUserById.cs
     └── GetUsers.cs

@@ -19,7 +19,7 @@ The Application layer is responsible for:
 -   Coordinating multiple Domain Models when necessary.
 -   Calling application services.
 -   Persisting changes.
--   Publishing integration events.
+-   Publishing notifications.
 -   Returning application results.
 
 The Application layer is **not** responsible for:
@@ -65,7 +65,11 @@ flowchart TD
 
     PERSISTENCE["Persistence"]
 
-    EVENTS["Publish Integration Events"]
+    NOTIFICATIONS["Publish Notifications"]
+
+    EXECUTION["Execution Model"]
+
+    NHANDLERS["Notification Handlers"]
 
     RESULT["Result"]
 
@@ -80,21 +84,27 @@ flowchart TD
     DOMAIN --> PERSISTENCE
     SERVICES --> PERSISTENCE
 
-    PERSISTENCE --> EVENTS
-    EVENTS --> RESULT
+    HANDLER --> NOTIFICATIONS
+    NOTIFICATIONS --> EXECUTION
+    EXECUTION --> NHANDLERS
 
-    classDef dispatcher fill:#ede9fe,stroke:#7c3aed,color:#000;
-    classDef pipeline fill:#dbeafe,stroke:#2563eb,color:#000;
-    classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
-    classDef domain fill:#fde68a,stroke:#ca8a04,color:#000;
+    PERSISTENCE --> RESULT
+    NHANDLERS --> RESULT
+
+    classDef dispatcher fill:#ede9fe,stroke:#7c3aed,color:#000,stroke-width:2px;
+    classDef pipeline fill:#dbeafe,stroke:#2563eb,color:#000,stroke-width:2px;
+    classDef application fill:#dcfce7,stroke:#16a34a,color:#000,stroke-width:2px;
+    classDef domain fill:#fde68a,stroke:#ca8a04,color:#000,stroke-width:2px;
+    classDef runtime fill:#fde68a,stroke:#ca8a04,color:#000,stroke-width:2px;
 
     class DISPATCHER dispatcher;
     class VALIDATION,TRANSACTION pipeline;
-    class HANDLER,SERVICES,PERSISTENCE,EVENTS,RESULT application;
+    class HANDLER,SERVICES,PERSISTENCE,RESULT application;
     class DOMAIN domain;
+    class NOTIFICATIONS,EXECUTION,NHANDLERS runtime;
 ```
 
-Queries follow the same lifecycle except that they do not execute inside a transaction and do not publish integration events.
+Queries follow the same lifecycle except that they do not execute inside a transaction and do not publish notifications.
 
 ---
 
@@ -124,7 +134,7 @@ Typical responsibilities include:
 -   Calling Domain behavior.
 -   Calling application services.
 -   Persisting changes.
--   Publishing integration events.
+-   Publishing notifications.
 -   Returning a `Result`.
 
 Handlers should never contain:
@@ -195,7 +205,7 @@ Every command executes inside a single transaction.
 The transaction encompasses:
 
 -   The command handler.
--   All in-process integration event handlers triggered during execution.
+-   All notification handlers executed by the configured execution model.
 -   Persistence of application data.
 
 The transaction commits only after all in-process work completes successfully.
@@ -204,13 +214,15 @@ Queries execute without a transaction.
 
 ---
 
-# Integration Events
+# Notifications
 
-Handlers may publish integration events through the `IDispatcher`.
+Handlers publish notifications through `IDispatcher`.
 
-Integration events are first processed by in-process handlers.
+The configured Runtime Execution Model determines how those notifications are processed.
 
-Once all in-process handlers complete successfully, the events are persisted to the Outbox for asynchronous delivery.
+For the Monolith Execution Model, notifications are executed immediately inside the current transaction.
+
+Other execution models may persist notifications for asynchronous processing.
 
 The complete event lifecycle is described in **07 - Event Processing**.
 
@@ -300,4 +312,4 @@ The Application layer follows these principles:
 -   Unexpected situations raise exceptions.
 -   Commands execute inside a single transaction.
 -   Cross-cutting concerns belong to pipeline behaviors.
--   Communication with other modules occurs through abstractions.
+-   Communication and notification publishing occur exclusively through Runtime abstractions.

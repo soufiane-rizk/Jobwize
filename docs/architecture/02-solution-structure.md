@@ -39,6 +39,10 @@ JobWize.sln
     ├── Shared
     │   ├── JobWize.Shared
     │   └── JobWize.Shared.Contracts
+    |
+    ├── Runtime
+    │   ├── JobWize.Runtime
+    │   └── JobWize.Runtime.Contracts
     │
     ├── Modules
     │   ├── Identity
@@ -56,8 +60,6 @@ JobWize.sln
     │   └── ...
     │
     └── Tests
-        ├── JobWize.ArchitectureTests
-        ├── JobWize.IntegrationTests
         └── JobWize.UnitTests
 ```
 
@@ -121,11 +123,11 @@ Each module exposes a dedicated Contracts project.
 
 Contracts define the public surface of a module and may contain:
 
--   API Request DTOs
--   API Response DTOs
--   Internal Queries
--   Internal Query Responses
--   Integration Events
+-   API request DTOs
+-   API response DTOs
+-   Module Queries
+-   Module Query responses
+-   Notifications (including Integration Events)
 
 Contracts must never contain:
 
@@ -153,15 +155,7 @@ Shared projects should remain generic and must not contain business-specific log
 
 ## Tests
 
-Tests are organized separately from production code.
-
-The solution contains:
-
--   Unit Tests
--   Integration Tests
--   Architecture Tests
-
-Each test project has a clearly defined responsibility and should only test the behavior appropriate to its level.
+The solution contains unit, integration, and architecture tests. Their physical organization may evolve as the project grows.
 
 ---
 
@@ -185,12 +179,16 @@ flowchart TD
     FRONTEND --> FE
 
     API["Api"]
+    RUNTIME["Runtime"]
     SHARED["Shared"]
+    SHAREDC["Shared.Contracts"]
     MODULES["Modules"]
     TESTS["Tests"]
 
     BACKEND --> API
+    BACKEND --> RUNTIME
     BACKEND --> SHARED
+    BACKEND --> SHAREDC
     BACKEND --> MODULES
     BACKEND --> TESTS
 
@@ -214,20 +212,22 @@ flowchart TD
     FE -. Uses Public API DTOs .-> COC
     FE -. Uses Public API DTOs .-> APPC
 
-    classDef solution fill:#ffffff,stroke:#000000,stroke-width:2px;
+    classDef solution fill:#ffffff,stroke:#000000,color:#000,stroke-width:2px;
     classDef folder fill:#e5e7eb,stroke:#6b7280,color:#000,stroke-width:2px;
     classDef frontend fill:#dbeafe,stroke:#2563eb,color:#000,stroke-width:2px;
     classDef api fill:#dcfce7,stroke:#16a34a,color:#000,stroke-width:2px;
+    classDef runtime fill:#fde68a,stroke:#ca8a04,color:#000,stroke-width:2px;
     classDef module fill:#fef3c7,stroke:#d97706,color:#000,stroke-width:2px;
     classDef contracts fill:#ede9fe,stroke:#7c3aed,color:#000,stroke-width:2px;
     classDef tests fill:#fee2e2,stroke:#dc2626,color:#000,stroke-width:2px;
 
     class SOL solution;
-    class FRONTEND,BACKEND,API,SHARED,MODULES,TESTS folder;
+    class FRONTEND,BACKEND,SHARED,SHAREDC,MODULES,TESTS folder;
     class FE frontend;
+    class API api;
+    class RUNTIME runtime;
     class ID,CO,APP module;
     class IDC,COC,APPC contracts;
-
 ```
 
 ❌ Modules must never reference another module's implementation.
