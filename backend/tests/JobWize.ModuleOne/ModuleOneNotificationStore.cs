@@ -4,11 +4,11 @@ using System.Text;
 
 namespace JobWize.ModuleOne
 {
-    public interface INotificationStore
+    public interface IModuleOneNotificationStore
     {
         List<Guid> Published { get; }
     }
-    internal class NotificationStore : INotificationStore
+    internal class ModuleOneNotificationStore : IModuleOneNotificationStore
     {
         public List<Guid> Published { get; } = new List<Guid>();
     }

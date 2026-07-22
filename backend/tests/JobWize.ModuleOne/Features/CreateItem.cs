@@ -1,4 +1,6 @@
-﻿using JobWize.Runtime.Contracts.Notifications;
+﻿using JobWize.ModuleOne.Contracts;
+using JobWize.Runtime.Contracts.Dispatching;
+using JobWize.Runtime.Contracts.Notifications;
 using JobWize.Shared.Application.Results;
 using JobWize.Shared.Runtime.Contracts;
 using System;
@@ -13,18 +15,23 @@ namespace JobWize.ModuleOne.Features
 
         internal sealed class Handler : ICommandHandler<Command, Guid>
         {
-            private readonly IItemRepository _repository;
+            private readonly IItemRepository _repository; 
+            private readonly IDispatcher _dispatcher;
 
-            public Handler(IItemRepository repository)
+
+            public Handler(IItemRepository repository, IDispatcher dispatcher)
             {
                 _repository = repository;
+                _dispatcher = dispatcher;
             }
 
-            public Task<Result<Guid>> HandleAsync(Command request, CancellationToken cancellationToken)
+            public async Task<Result<Guid>> HandleAsync(Command request, CancellationToken cancellationToken)
             {
                 Guid id = _repository.Create(request.Name);
 
-                return Task.FromResult(Result<Guid>.Success(id));
+                await _dispatcher.PublishAsync(new ItemCreated(id), cancellationToken);
+
+                return Result<Guid>.Success(id);
             }
         }
     }

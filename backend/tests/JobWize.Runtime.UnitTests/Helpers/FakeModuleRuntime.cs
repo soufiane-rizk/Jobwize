@@ -1,5 +1,6 @@
 ﻿using JobWize.Runtime.Contracts.Notifications;
 using JobWize.Runtime.Contracts.Requests;
+using JobWize.Runtime.Discovery;
 using JobWize.Runtime.Execution;
 using JobWize.Shared.Application.Results;
 using System;
@@ -8,7 +9,7 @@ using System.Text;
 
 namespace JobWize.Runtime.UnitTests.Helpers
 {
-    internal sealed class FakeModuleRuntime : IModuleRuntime
+    internal class FakeModuleRuntime : IModuleRuntime
     {
         public bool SendCalled { get; private set; }
         public bool PublishCalled { get; private set; }
@@ -26,6 +27,8 @@ namespace JobWize.Runtime.UnitTests.Helpers
         public IServiceProvider? ServiceProvider { get; private set; }
 
         public object? Response { get; set; }
+
+        public IEnumerable<Type> NotificationTypes => [];
 
         public Task<TResponse> SendAsync<TResponse>(IServiceProvider serviceProvider, IRequest<TResponse> request, CancellationToken cancellationToken)
         {
@@ -47,7 +50,7 @@ namespace JobWize.Runtime.UnitTests.Helpers
             return Task.FromResult((TResponse)Response!);
         }
 
-        public Task PublishAsync(IServiceProvider serviceProvider, INotification notification, ExecutionScope executionScope, CancellationToken cancellationToken = default)
+        public virtual Task PublishAsync(IServiceProvider serviceProvider, INotification notification, CancellationToken cancellationToken = default)
         {
             PublishCalled = true;
 

@@ -12,11 +12,11 @@ namespace JobWize.ModuleTwo
 {
     public sealed class ModuleTwoModule : ModuleBase
     {
-        public override string Name => "ModuleOne";
+        public override string Name => "ModuleTwo";
 
         protected override void Configure(IServiceCollection services, IConfiguration configuration)
         {
-            
+            services.AddScoped<IModuleTwoNotificationStore, ModuleTwoNotificationStore>();
         }
     }
 }

@@ -179,16 +179,21 @@ namespace JobWize.Runtime.UnitTests.Execution
         }
 
         [Fact]
-        public async Task PublishAsync_Should_Invoke_Runtime()
+        public async Task PublishAsync_Should_Invoke_Resolved_Runtime()
         {
             // Arrange
             ItemCreated notification = new(Guid.NewGuid());
+
+            _registry.NotificationRuntimes =
+            [
+                _runtime
+            ];
 
             // Act
             await _executionModel.PublishAsync(notification);
 
             // Assert
-            _registry.ResolvedType.Should().Be(typeof(ItemCreated));
+            _registry.NotificationType.Should().Be(typeof(ItemCreated));
 
             _runtime.PublishCalled.Should().BeTrue();
 
@@ -225,6 +230,65 @@ namespace JobWize.Runtime.UnitTests.Execution
 
             // Assert
             _notificationContext.CompleteCalled.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task PublishAsync_Should_Invoke_All_Interested_Runtimes()
+        {
+            // Arrange
+            FakeModuleRuntime runtimeOne = new();
+
+            FakeModuleRuntime runtimeTwo = new();
+
+            _registry.NotificationRuntimes =
+            [
+                runtimeOne,
+                runtimeTwo
+            ];
+
+            ItemCreated notification = new(Guid.NewGuid());
+
+            // Act
+            await _executionModel.PublishAsync(notification);
+
+            // Assert
+            runtimeOne.PublishCalled.Should().BeTrue();
+
+            runtimeTwo.PublishCalled.Should().BeTrue();
+
+            runtimeOne.Notification.Should().BeSameAs(notification);
+
+            runtimeTwo.Notification.Should().BeSameAs(notification);
+        }
+
+        [Fact]
+        public async Task PublishAsync_Should_Resolve_Notification_Runtimes()
+        {
+            // Arrange
+            _registry.NotificationRuntimes = [];
+
+            ItemCreated notification = new(Guid.NewGuid());
+
+            // Act
+            await _executionModel.PublishAsync(notification);
+
+            // Assert
+            _registry.NotificationType.Should().Be(typeof(ItemCreated));
+        }
+
+        [Fact]
+        public async Task PublishAsync_Should_Ignore_Notification_With_No_Interested_Runtime()
+        {
+            // Arrange
+            _registry.NotificationRuntimes = [];
+
+            ItemCreated notification = new(Guid.NewGuid());
+
+            // Act
+            Func<Task> act = () => _executionModel.PublishAsync(notification);
+
+            // Assert
+            await act.Should().NotThrowAsync();
         }
     }
 }

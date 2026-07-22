@@ -3,26 +3,26 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using JobWize.ModuleOne.Contracts;
+using JobWize.Runtime.Contracts.Dispatching;
 
 namespace JobWize.ModuleOne.Features
 {
-    internal static class OnItemCreated
+    internal sealed class ItemCreatedHandler : INotificationHandler<ItemCreated>
     {
-        internal sealed class NotificationHandler : INotificationHandler<ItemCreated>
+        private readonly IModuleOneNotificationStore _store;
+        private readonly IDispatcher _dispatcher;
+
+        public ItemCreatedHandler(IModuleOneNotificationStore store, IDispatcher dispatcher)
         {
-            private readonly INotificationStore _store;
-
-            public NotificationHandler(INotificationStore store)
-            {
-                _store = store;
-            }
-
-            public Task HandleAsync(ItemCreated notification, CancellationToken cancellationToken)
-            {
-                _store.Published.Add(notification.Id);
-
-                return Task.CompletedTask;
-            }
+            _store = store;
+            _dispatcher = dispatcher;
         }
-    }
+
+        public async Task HandleAsync(ItemCreated notification, CancellationToken cancellationToken)
+        {
+            _store.Published.Add(notification.Id);
+
+            await _dispatcher.PublishAsync(new ItemIndexed(notification.Id), cancellationToken);
+        }
+    }  
 }

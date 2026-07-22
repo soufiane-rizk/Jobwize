@@ -3,8 +3,10 @@
 using JobWize.ModuleOne;
 using JobWize.ModuleOne.Contracts;
 using JobWize.ModuleOne.Features;
+using JobWize.Runtime.Contracts.Dispatching;
 using JobWize.Runtime.Execution;
 using JobWize.Runtime.Registration;
+using JobWize.Runtime.UnitTests.Helpers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -76,6 +78,8 @@ public sealed class RuntimeBuilderTests
         ModuleOneModule module = new();
 
         ServiceCollection services = [];
+
+        services.AddSingleton<IDispatcher, FakeDispatcher>();
 
         IConfiguration configuration = new ConfigurationBuilder().Build();
 

@@ -14,7 +14,7 @@ namespace JobWize.ModuleOne
         protected override void Configure(IServiceCollection services, IConfiguration configuration)
         {
             services.AddScoped<IItemRepository, ItemRepository>();
-            services.AddScoped<INotificationStore, NotificationStore>();
+            services.AddScoped<IModuleOneNotificationStore, ModuleOneNotificationStore>();
         }
     }
 }

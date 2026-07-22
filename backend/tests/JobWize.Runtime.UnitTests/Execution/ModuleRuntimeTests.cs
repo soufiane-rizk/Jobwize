@@ -1,7 +1,9 @@
 ﻿using FluentAssertions;
 using JobWize.ModuleOne;
-using JobWize.ModuleOne.Features;
 using JobWize.ModuleOne.Contracts;
+using JobWize.ModuleOne.Features;
+using JobWize.ModuleTwo;
+using JobWize.Runtime.Discovery;
 using JobWize.Runtime.Execution;
 using JobWize.Runtime.UnitTests.Helpers;
 using JobWize.Shared.Application.Results;
@@ -66,18 +68,18 @@ public sealed class ModuleRuntimeTests
     }
 
     [Fact]
-    public async Task PublishAsync_Should_Invoke_Notification_Handler()
+    public async Task PublishAsync_Should_Invoke_Module_Notification_Handlers()
     {
         // Arrange
         Guid itemId = Guid.NewGuid();
 
         ItemCreated notification = new(itemId);
 
-        INotificationStore store = _provider.GetRequiredService<INotificationStore>();
+        IModuleOneNotificationStore store = _provider.GetRequiredService<IModuleOneNotificationStore>();
 
         store.Published.Should().BeEmpty();
 
-        await _runtime.PublishAsync(_provider, notification, ExecutionScope.Global);
+        await _runtime.PublishAsync(_provider, notification);
 
         store.Published.Should().ContainSingle().Which.Should().Be(itemId);
     }

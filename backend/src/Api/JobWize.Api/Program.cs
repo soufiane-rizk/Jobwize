@@ -24,9 +24,6 @@ namespace JobWize.Api
                 {
                     options
                         .AddModule(new IdentityModule());
-
-                    options.NotificationDispatchMode = NotificationDispatchMode.Disabled;
-
                     // options.AddModule(new ProfileModule());
 
                     // options.AddPipeline<ValidationBehavior<,>>();

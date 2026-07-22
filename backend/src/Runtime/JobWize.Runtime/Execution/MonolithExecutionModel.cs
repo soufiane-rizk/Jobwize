@@ -1,5 +1,6 @@
 ﻿using JobWize.Runtime.Contracts.Notifications;
 using JobWize.Runtime.Contracts.Requests;
+using JobWize.Runtime.Discovery;
 using JobWize.Runtime.Dispatching;
 using JobWize.Runtime.Registration;
 using Microsoft.Extensions.DependencyInjection;
@@ -45,15 +46,26 @@ namespace JobWize.Runtime.Execution
             {
                 _notificationContext.Publish(notification);
 
-                IModuleRuntime runtime = _registry.Resolve(notification.GetType());
-
-                await runtime.PublishAsync(_serviceProvider, notification, ExecutionScope.Global, cancellationToken);
-
-                if (isRootPublication)
+                if (!isRootPublication)
                 {
-                    IReadOnlyCollection<INotification> notifications = _notificationContext.GetCurrentWave();
-
+                    return;
                 }
+
+                do
+                {
+                    IReadOnlyCollection<INotification> currentWave = _notificationContext.GetCurrentWave();
+
+                    foreach (INotification currentNotification in currentWave)
+                    {
+                        IReadOnlyCollection<IModuleRuntime> runtimes = _registry.ResolveNotification(currentNotification.GetType());
+
+                        foreach (IModuleRuntime runtime in runtimes)
+                        {
+                            await runtime.PublishAsync(_serviceProvider, currentNotification, cancellationToken);
+                        }
+                    }
+                }
+                while (_notificationContext.MoveToNextWave());
             }
             finally
             {
