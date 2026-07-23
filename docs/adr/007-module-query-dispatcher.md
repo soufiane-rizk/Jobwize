@@ -26,8 +26,9 @@ The architecture therefore requires a mechanism for retrieving data across modul
 
 # Decision
 
-JobWize introduces a dedicated **Module Query Dispatcher** for synchronous cross-module read operations.
+JobWize exposes a dedicated module query API through the `IDispatcher` for synchronous cross-module read operations.
 
+The Dispatcher delegates the request to the owning module's runtime, which resolves and executes the corresponding Module Query Handler.
 Application features request external data by sending a **Module Query** through the dispatcher.
 
 Both the **Module Query** and its **response DTO** belong to the owning module's **Contracts** project.
@@ -51,7 +52,11 @@ flowchart LR
 
     end
 
-    Dispatcher["Module Query Dispatcher"]
+    Dispatcher["IDispatcher"]
+
+    Registry["Module Registry"]
+
+    Runtime["Companies Runtime"]
 
     subgraph Companies["Companies Module"]
 
@@ -61,17 +66,21 @@ flowchart LR
 
     Feature --> Query
     Query --> Dispatcher
-    Dispatcher --> Handler
+    Dispatcher --> Registry
+    Registry --> Runtime
+    Runtime --> Handler
     Handler --> Dto
     Dto --> Feature
 
-    classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
-    classDef contract fill:#fef3c7,stroke:#d97706,color:#000;
-    classDef infrastructure fill:#dbeafe,stroke:#2563eb,color:#000;
+    classDef application fill:#dcfce7,stroke:#16a34a,color:#000,stroke-width:2px;
+    classDef contract fill:#fef3c7,stroke:#d97706,color:#000,stroke-width:2px;
+    classDef runtime fill:#ede9fe,stroke:#7c3aed,color:#000,stroke-width:2px;
+    classDef infrastructure fill:#dbeafe,stroke:#2563eb,color:#000,stroke-width:2px;
 
     class Feature,Handler application;
     class Query,Dto contract;
-    class Dispatcher infrastructure;
+    class Dispatcher,Registry infrastructure;
+    class Runtime runtime;
 ```
 
 The dispatcher exposes a dedicated API for cross-module queries.

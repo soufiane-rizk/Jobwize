@@ -2,7 +2,7 @@
 
 ## Status
 
-**Accepted**
+**Superseded by ADR-011**
 
 ---
 
@@ -150,16 +150,3 @@ Each request is therefore executed by the runtime of the module that owns it.
 
 -   Additional framework code must be maintained by the project.
 -   Runtime infrastructure becomes part of the application's architecture and therefore requires testing and documentation.
-
----
-
-## Future Work
-
-The runtime establishes the foundation for additional capabilities, including:
-
--   Pipeline behaviors.
--   Cross-module in-process request dispatching.
--   Out-of-process module communication.
--   Inbox and Outbox processing.
--   Runtime metrics and diagnostics.
--   Advanced startup validation.

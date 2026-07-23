@@ -4,10 +4,10 @@
 
 Accepted
 
-> **Superseded in part by ADR-010 – Introduce a Custom Module Runtime.**
+> **Related ADRs**
 >
-> This ADR remains the source of truth for JobWize's communication strategy.
-> ADR-010 replaces the MediatR-based request execution mechanism described here with the custom module runtime while preserving the communication model and dispatcher abstractions defined in this document.
+> -   ADR-010 – Introduce a Custom Module Runtime
+> -   ADR-011 – Introduce Runtime Execution Models
 
 ---
 
@@ -21,7 +21,9 @@ Different communication scenarios have different requirements.
 
 Some interactions execute business logic, others retrieve data, while others simply notify other modules that something has happened.
 
-Using a single communication mechanism for every scenario would blur architectural boundaries and make the intent of the code less explicit.
+While the communication mechanisms remain stable, the runtime is responsible for determining how requests and notifications are executed.
+
+The execution strategy itself is documented separately in ADR-011.
 
 ---
 
@@ -37,24 +39,26 @@ flowchart LR
     Feature --> Dispatcher["IDispatcher"]
 
     Dispatcher --> Send["SendAsync()"]
-
     Dispatcher --> Query["SendModuleQueryAsync()"]
-
     Dispatcher --> Publish["PublishAsync()"]
 
-    Send --> Runtime["Module Runtime"]
+    Send --> Runtime["Runtime"]
 
     Query --> ModuleDispatcher["Module Dispatcher"]
 
     Publish --> Runtime
 
-    Runtime --> Broker["Message Broker"]
+    Runtime --> Execution["Execution Model"]
 
-    classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
-    classDef infrastructure fill:#dbeafe,stroke:#2563eb,color:#000;
+    Execution --> Local["Notification Handlers"]
+
+    classDef application fill:#dcfce7,stroke:#16a34a,color:#000,stroke-width:2px;
+    classDef infrastructure fill:#dbeafe,stroke:#2563eb,color:#000,stroke-width:2px;
+    classDef runtime fill:#fde68a,stroke:#ca8a04,color:#000,stroke-width:2px;
 
     class Feature application;
-    class Dispatcher,Runtime,ModuleDispatcher,Broker infrastructure;
+    class Dispatcher,ModuleDispatcher infrastructure;
+    class Runtime,Execution,Local runtime;
 ```
 
 Each dispatcher method represents a different communication pattern.
@@ -69,6 +73,18 @@ Each mechanism exists because it represents a different architectural responsibi
 
 ---
 
+## Relationship with the Runtime
+
+This ADR defines the communication mechanisms available to application features.
+
+It does not define how those mechanisms are executed.
+
+Request execution is provided by the Runtime introduced in ADR-010.
+
+Notification execution is delegated to Runtime Execution Models introduced in ADR-011.
+
+This separation allows communication semantics to remain stable while execution behavior evolves independently.
+
 # Consequences
 
 ## Positive
@@ -77,7 +93,7 @@ Each mechanism exists because it represents a different architectural responsibi
 -   Module boundaries remain well defined.
 -   Synchronous and asynchronous communication are clearly separated.
 -   Different communication patterns can evolve independently.
--   Future implementation changes do not affect application features.
+-   Future execution models do not affect application features.
 
 ## Trade-offs
 
@@ -125,11 +141,11 @@ Another option would have been to route every communication pattern through the 
 
 ### Reasons Not Chosen
 
-MediatR is intended for internal application communication.
+Routing every communication pattern through a single execution mechanism would couple communication semantics to one runtime implementation.
 
-Using it for cross-module interactions would blur module boundaries and make it difficult to distinguish internal requests from interactions between business modules.
+JobWize intentionally separates communication intent from execution strategy.
 
-Cross-module communication deserves its own abstraction.
+Communication patterns remain stable while the Runtime determines how requests and notifications are executed.
 
 ---
 
@@ -173,8 +189,12 @@ Using events for synchronous communication would unnecessarily complicate workfl
 
 Different communication scenarios require different architectural solutions.
 
-By exposing dedicated methods through a single dispatcher abstraction, JobWize makes communication intent explicit while keeping application features independent of the underlying implementation.
+By exposing dedicated methods through a single dispatcher abstraction, JobWize keeps communication intent explicit while allowing execution strategies to evolve independently.
 
-This approach favors clarity over uniformity.
+The Dispatcher defines how modules communicate.
 
-Rather than forcing every interaction through a single communication mechanism, each mechanism is designed for one specific responsibility and can evolve independently as the architecture grows.
+The Runtime determines how requests are executed.
+
+Execution Models determine how published notifications are orchestrated.
+
+Each responsibility evolves independently without affecting application features.

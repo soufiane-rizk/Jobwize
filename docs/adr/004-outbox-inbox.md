@@ -4,11 +4,16 @@
 
 Accepted
 
+> **Related ADRs**
+>
+> -   ADR-010 – Introduce a Custom Module Runtime
+> -   ADR-011 – Introduce an Execution Model for Request Processing
+
 ---
 
 # Context
 
-Business modules communicate asynchronously through Integration Events.
+Business modules communicate through Notifications. The active Execution Model determines how those notifications are delivered. In the current modular monolith, notifications are processed in-process. When modules execute out-of-process, notifications may be delivered through reliable messaging using the Outbox and Inbox patterns.
 
 The architecture must ensure that events are delivered reliably without creating inconsistencies between the application's database and the message broker.
 
@@ -36,9 +41,33 @@ Each business module owns:
 
 Application features never publish events directly to the message broker.
 
-Instead, the dispatcher records the event in the module's Outbox as part of the current business transaction.
+Integration Events are first published through the application's notification pipeline. During request execution they are dispatched to in-process notification handlers before being persisted to the Outbox. Only after the transaction successfully commits are Outbox records processed asynchronously and delivered to the external message broker.
 
-Background services then publish pending events to the message broker and process incoming events from each module's Inbox.
+Instead, application features publish Integration Events through the IDispatcher. During command execution, the Execution Model dispatches the event to all registered in-process notification handlers. These handlers execute within the same transaction as the originating command.
+
+After all notification handlers complete successfully, the Integration Event is persisted to the module's Outbox. Background processors later publish pending events to the external message broker and process received events through each module's Inbox.
+
+---
+
+## In-Process Notification Handling
+
+Integration Events are processed twice during their lifecycle.
+
+The first execution occurs **inside the originating module**, before the transaction commits.
+
+When `Dispatcher.Publish()` is called, the Execution Model dispatches the notification to all registered in-process notification handlers. These handlers execute within the same transaction as the originating command.
+
+Typical responsibilities include:
+
+-   Updating local read models.
+-   Coordinating multiple aggregates.
+-   Scheduling additional business work.
+-   Publishing additional notifications.
+-   Preparing data that will later be consumed asynchronously.
+
+Only after every in-process notification handler completes successfully are the notifications intended for other modules persisted to the Outbox.
+
+This guarantees that all business logic inside the originating module completes atomically before asynchronous delivery begins.
 
 ```mermaid
 flowchart LR
@@ -47,21 +76,25 @@ flowchart LR
 
         Feature["Application Feature"]
 
-        Dispatcher["PublishAsync()"]
+        Dispatcher["Dispatcher.Publish()"]
+
+        Notifications["In-Process Notifications"]
+
+        NotificationHandlers["Notification Handlers"]
 
         Outbox["Outbox"]
 
         OutboxProcessor["Outbox Processor"]
 
         Feature --> Dispatcher
-
-        Dispatcher --> Outbox
-
+        Dispatcher --> Notifications
+        Notifications --> NotificationHandlers
+        NotificationHandlers --> Outbox
         Outbox --> OutboxProcessor
 
     end
 
-    Broker["Message Broker"]
+    Broker["RabbitMQ"]
 
     subgraph Companies["Companies Module"]
 
@@ -69,23 +102,23 @@ flowchart LR
 
         InboxProcessor["Inbox Processor"]
 
-        Handler["Integration Event Handler"]
+        Handler["Notification Handler"]
 
         Inbox --> InboxProcessor
-
         InboxProcessor --> Handler
 
     end
 
     OutboxProcessor --> Broker
-
     Broker --> Inbox
 
-    classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
-    classDef infrastructure fill:#dbeafe,stroke:#2563eb,color:#000;
+    classDef application fill:#dcfce7,stroke:#16a34a,color:#000,stroke-width:2px;
+    classDef runtime fill:#ede9fe,stroke:#7c3aed,color:#000,stroke-width:2px;
+    classDef infrastructure fill:#dbeafe,stroke:#2563eb,color:#000,stroke-width:2px;
 
-    class Feature,Handler application;
-    class Dispatcher,Outbox,Inbox,OutboxProcessor,InboxProcessor,Broker infrastructure;
+    class Feature,NotificationHandlers,Handler application;
+    class Dispatcher,Notifications runtime;
+    class Outbox,Inbox,OutboxProcessor,InboxProcessor,Broker infrastructure;
 ```
 
 | Pattern    | Responsibility                                                             |
@@ -176,6 +209,6 @@ Reliable publication requires the event to be durably persisted before publicati
 
 Reliable asynchronous communication should not depend on the availability of external infrastructure during a business transaction.
 
-By persisting Integration Events before publication and independently tracking message processing, JobWize guarantees reliable event delivery while preserving loose coupling between business modules.
+By separating in-process notification handling from asynchronous message delivery, JobWize allows business workflows to complete atomically while still guaranteeing reliable external publication. Notification handlers execute inside the originating transaction, whereas Outbox and Inbox processing provide reliable communication between modules and external systems.
 
 This approach accepts eventual consistency in exchange for significantly improved reliability, resiliency, and fault tolerance.

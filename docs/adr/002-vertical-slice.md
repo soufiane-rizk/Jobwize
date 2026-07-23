@@ -38,8 +38,7 @@ CreateUser.cs
 • Command
 • Validator
 • Handler
-• Request DTOs
-• Response DTOs
+• Endpoint
 ```
 
 or
@@ -49,12 +48,25 @@ GetUserById.cs
 
 • Query
 • Handler
-• Response DTO
+• Endpoint
 ```
 
 Keeping a feature in a single file allows developers to understand its complete behavior without navigating between multiple files.
 
 The goal is to organize the application around business capabilities rather than technical layers.
+
+## Feature Ownership
+
+Each Vertical Slice owns the complete execution flow for a single business capability.
+
+A feature is responsible for:
+
+-   Endpoint
+-   Command or Query
+-   Validation
+-   Handler
+
+Cross-cutting concerns such as transactions, logging, metrics, and execution strategy are provided by the runtime rather than implemented inside the feature.
 
 ---
 
@@ -175,4 +187,4 @@ The project extends this approach by favoring a single source file per feature w
 
 This decision reflects one of the guiding principles of the project:
 
-> **A feature should be understandable by opening a single file.**
+> **A feature should be understandable by opening a single file while relying on the runtime for cross-cutting concerns such as dispatching, transactions, validation pipelines, and execution strategy.**
