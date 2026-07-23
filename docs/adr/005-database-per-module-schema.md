@@ -37,7 +37,7 @@ A module owns:
 -   Its Outbox.
 -   Its Inbox.
 
-No other module may write directly to tables owned by another module.
+Cross-module data access is performed exclusively through Module Queries and Integration Events executed by the custom module runtime.
 
 Although all modules share the same physical database, they remain logically isolated through independent schemas and strict ownership rules.
 
@@ -87,7 +87,7 @@ The database belongs to the modules collectively, but every piece of data belong
 -   Data cannot be shared through direct table access.
 -   Cross-module joins are intentionally avoided.
 -   Some data must be duplicated as projections.
--   Additional synchronization mechanisms are required between modules.
+-   Additional synchronization mechanisms are required between modules through Integration Events and local projections.
 
 These trade-offs are accepted in exchange for stronger modular boundaries and long-term maintainability.
 
@@ -161,3 +161,5 @@ Modules are designed as though they already own independent datastores, even tho
 This preserves strong modular boundaries while avoiding unnecessary operational complexity.
 
 By separating ownership from physical deployment, JobWize remains simple to operate today while maintaining a clear evolution path toward independently deployed modules or microservices if future operational or organizational requirements justify that transition.
+
+Because modules already own their schemas, DbContexts, migrations, and projections, separating a module into an independent database becomes primarily an operational change rather than an architectural rewrite.

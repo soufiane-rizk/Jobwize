@@ -34,9 +34,9 @@ The Contracts project contains only the objects that other projects are allowed 
 A Contracts project may contain:
 
 -   Public API DTOs
--   Internal Queries
--   Internal Query Responses
--   Integration Events
+-   Module Queries
+-   Module Query Responses
+-   Notifications (including Integration Events)
 
 A Contracts project must **never** contain:
 
@@ -46,7 +46,7 @@ A Contracts project must **never** contain:
 -   Infrastructure
 -   Services
 -   Validation
--   MediatR handlers
+-   Request handlers
 
 Contracts should remain lightweight and dependency-free.
 
@@ -60,7 +60,7 @@ flowchart TD
     CONTRACTS["Identity.Contracts"]
 
     PUBLIC["Public"]
-    INTERNAL["Internal"]
+    INTERNAL["Module"]
     EVENTS["Events"]
 
     CONTRACTS --> PUBLIC
@@ -93,7 +93,7 @@ JobWize.Modules.Identity.Contracts
 │       ├── UpdateUser.cs
 │       └── DeleteUser.cs
 │
-├── Internal
+├── Module
 │   └── Users
 │       ├── GetUserById.cs
 │       └── GetUsers.cs
@@ -137,9 +137,9 @@ This guarantees that both projects use the same request and response models.
 
 ---
 
-# Internal Contracts
+# Module Contracts
 
-Internal contracts define synchronous communication between modules.
+Module contracts define synchronous communication between business modules through the Runtime dispatcher.
 
 They are not intended to be used by the frontend.
 
@@ -148,7 +148,7 @@ Example:
 ```csharp
 public static class GetUserById
 {
-    public sealed record Query(Guid UserId);
+    public sealed record ModuleQuery(Guid UserId);
 
     public sealed record Response(
         Guid Id,
@@ -164,9 +164,11 @@ These contracts are shared only between backend modules.
 
 # Integration Events
 
-Integration events notify other modules that something important has happened.
+Notifications represent business events published by application features.
 
-Unlike requests and queries, events are organized independently of application features.
+Some notifications are intended only for in-process module collaboration, while others are Integration Events intended for communication across module boundaries.
+
+Both share the same programming model and are dispatched through the Runtime.
 
 Example:
 
@@ -239,7 +241,7 @@ Public
 ```
 
 ```text
-Internal
+Module
 └── Users
     ├── GetUserById.cs
     └── GetUsers.cs

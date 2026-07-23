@@ -36,24 +36,24 @@ Managing a job search shouldn't require multiple spreadsheets, browser bookmarks
 
 JobWize provides a centralized workspace where candidates can:
 
-- Track job applications
-- Manage companies and recruiters
-- Schedule interviews and follow-ups
-- Store resumes and supporting documents
-- Monitor progress with dashboards and analytics
+-   Track job applications
+-   Manage companies and recruiters
+-   Schedule interviews and follow-ups
+-   Store resumes and supporting documents
+-   Monitor progress with dashboards and analytics
 
-At the same time, JobWize serves as a real-world open-source project built using modern Software Engineering, DevOps, and Cloud Native practices.
----
+## At the same time, JobWize serves as a real-world open-source project built using modern Software Engineering, DevOps, and Cloud Native practices.
+
 ## 📚 Table of Contents
 
-- [✨ Features](#-features)
-- [🏗️ Architecture](#-architecture)
-- [⚙️ Technology Stack](#-technology-stack)
-- [🚀 Getting Started](#-getting-started)
-- [📖 Documentation](#-documentation)
-- [🗺️ Roadmap](#-roadmap)
-- [🤝 Contributing](#-contributing)
-- [📜 License](#-license)
+-   [✨ Features](#-features)
+-   [🏗️ Architecture](#-architecture)
+-   [⚙️ Technology Stack](#-technology-stack)
+-   [🚀 Getting Started](#-getting-started)
+-   [📖 Documentation](#-documentation)
+-   [🗺️ Roadmap](#-roadmap)
+-   [🤝 Contributing](#-contributing)
+-   [📜 License](#-license)
 
 ## 🎯 Mission
 
@@ -72,16 +72,16 @@ Every feature is designed, documented, reviewed, tested, automated, deployed, an
 
 ### Version 1 – MVP
 
-- 🔐 Authentication & Authorization
-- 📊 Dashboard
-- 🏢 Companies Management
-- 👥 Contacts Management
-- 💼 Job Applications Tracking
-- 📅 Interview Management
-- 🔔 Follow-ups & Reminders
-- 📄 Document Management
-- 📈 Statistics & Analytics
-- 🔔 Notifications
+-   🔐 Authentication & Authorization
+-   📊 Dashboard
+-   🏢 Companies Management
+-   👥 Contacts Management
+-   💼 Job Applications Tracking
+-   📅 Interview Management
+-   🔔 Follow-ups & Reminders
+-   📄 Document Management
+-   📈 Statistics & Analytics
+-   🔔 Notifications
 
 ---
 
@@ -110,34 +110,34 @@ The project follows a **Modular Monolith** architecture built on **Clean Archite
 
 ### Frontend
 
-- Blazor WebAssembly
-- MudBlazor
-- .NET
+-   Blazor WebAssembly
+-   MudBlazor
+-   .NET
 
 ### Backend
 
-- ASP.NET Core Web API
-- Entity Framework Core
-- PostgreSQL
-- MediatR
-- FluentValidation
+-   ASP.NET Core Web API
+-   Entity Framework Core
+-   PostgreSQL
+-   Custom Module Runtime
+-   FluentValidation
 
 ### Infrastructure
 
-- Docker
-- Docker Compose
-- Kubernetes (K3s)
-- Terraform
-- Ansible
+-   Docker
+-   Docker Compose
+-   Kubernetes (K3s)
+-   Terraform
+-   Ansible
 
 ### DevOps
 
-- GitHub
-- GitLab CI/CD
-- Prometheus
-- Grafana
-- Loki
-- AlertManager
+-   GitHub
+-   GitLab CI/CD
+-   Prometheus
+-   Grafana
+-   Loki
+-   AlertManager
 
 ---
 
@@ -194,30 +194,30 @@ Production
 
 ### Version 1 — Job Application Management
 
-- Authentication
-- Companies
-- Contacts
-- Applications
-- Interviews
-- Documents
-- Dashboard
-- Analytics
+-   Authentication
+-   Companies
+-   Contacts
+-   Applications
+-   Interviews
+-   Documents
+-   Dashboard
+-   Analytics
 
 ### Version 2 — Discovery & Automation
 
-- Company Discovery
-- Contact Discovery
-- Data Import
-- AI Enrichment
-- Python Workers
+-   Company Discovery
+-   Contact Discovery
+-   Data Import
+-   AI Enrichment
+-   Python Workers
 
 ### Version 3 — AI Career Platform
 
-- Job Aggregation
-- AI Matching
-- Career Assistant
-- Interview Preparation
-- Career Analytics
+-   Job Aggregation
+-   AI Matching
+-   Career Assistant
+-   Interview Preparation
+-   Career Analytics
 
 ---
 
@@ -237,10 +237,10 @@ This project is licensed under the MIT License.
 
 ## 👥 Team
 
-| Role | Responsibilities |
-|------|------------------|
-| Software Developer | Frontend, Backend, Database |
-| DevOps Engineer | Infrastructure, CI/CD, Kubernetes, Monitoring |
+| Role               | Responsibilities                              |
+| ------------------ | --------------------------------------------- |
+| Software Developer | Frontend, Backend, Database                   |
+| DevOps Engineer    | Infrastructure, CI/CD, Kubernetes, Monitoring |
 
 ---
 

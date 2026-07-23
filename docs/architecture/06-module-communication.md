@@ -1,124 +1,109 @@
 # Module Communication
 
-## Purpose
+## Overview
 
-This document describes how business modules communicate with each other while preserving module boundaries.
+Business modules in JobWize collaborate without referencing one another directly.
 
-JobWize follows a modular monolith architecture where each module owns its business logic, persistence, and public contracts.
+Each module owns its business logic, persistence, and application features. Other modules interact with it exclusively through publicly exposed contracts and the shared `IDispatcher` abstraction.
 
-Modules never reference another module's implementation directly.
+The runtime coordinates all communication between modules, allowing application code to remain independent from the underlying execution strategy.
 
-Instead, communication occurs through well-defined contracts and a shared dispatcher abstraction.
+As a result, modules describe **what** they want to communicate, while the configured execution model determines **how** that communication is performed.
 
 ---
 
-# Communication Principles
+## Communication Principles
 
-The communication architecture follows these principles.
+Module communication follows a small number of architectural principles.
 
--   Modules own their data.
+-   Every module owns its own business logic and persistence.
 -   Modules expose contracts, never implementations.
--   Commands never cross module boundaries.
--   Queries may retrieve data from another module.
--   Integration events notify modules that something has happened.
--   Communication infrastructure is hidden behind a shared dispatcher abstraction.
+-   Modules never access another module's database.
+-   Modules communicate exclusively through the shared `IDispatcher`.
+-   Communication semantics are determined by the configured execution model.
+-   Business code remains unaware of the underlying communication infrastructure.
+
+These principles preserve module independence while allowing modules to collaborate as a single application.
 
 ---
 
-# Communication Types
+## Communication Model
 
-Modules communicate in three different ways.
+Application code never communicates directly with another module.
 
-| Type                     | Purpose                                          | Transport         |
-| ------------------------ | ------------------------------------------------ | ----------------- |
-| Local Commands / Queries | Execute business logic inside the current module | MediatR           |
-| Module Queries           | Read information from another module             | Module Dispatcher |
-| Integration Events       | Notify other modules about business events       | Message Broker    |
+Instead, every interaction passes through the Dispatcher.
 
 ```mermaid
 flowchart TD
 
-    A["Application Handler"]
+    ModuleA["Application Module"]
 
-    D["IDispatcher"]
+    Dispatcher["IDispatcher"]
 
-    M["MediatR"]
+    Execution["Execution Model"]
 
-    Q["Module Dispatcher"]
+    ModuleB["Owning Module"]
 
-    B["Message Broker"]
+    ModuleA --> Dispatcher
 
-    A --> D
+    Dispatcher --> Execution
 
-    D --> M
-    D --> Q
-    D --> B
+    Execution --> ModuleB
 
-    classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
-    classDef infrastructure fill:#dbeafe,stroke:#2563eb,color:#000;
+    classDef module fill:#dcfce7,stroke:#16a34a,color:#000;
+    classDef runtime fill:#fde68a,stroke:#ca8a04,color:#000;
 
-    class A application;
-    class D,M,Q,B infrastructure;
+    class ModuleA,ModuleB module;
+    class Dispatcher,Execution runtime;
 ```
+
+The Dispatcher provides a stable programming model for business modules.
+
+The configured execution model determines how requests and notifications are ultimately processed.
+
+This separation allows communication strategies to evolve without affecting application code.
 
 ---
 
-# Dispatcher
+## Communication Patterns
 
-The Application layer never communicates directly with MediatR, the message broker, or another module.
+Modules communicate using three different interaction patterns.
 
-Instead, every feature depends on a shared dispatcher abstraction.
+Each pattern represents a different intent and should be chosen according to the business operation being performed.
 
-```csharp
-public interface IDispatcher
-{
-    Task<TResponse> SendAsync<TResponse>(
-        IRequest<TResponse> request,
-        CancellationToken cancellationToken = default);
+| Pattern      | Purpose                                      | Expected Outcome             |
+| ------------ | -------------------------------------------- | ---------------------------- |
+| Command      | Modify application state                     | Changes data                 |
+| Module Query | Retrieve information owned by another module | Returns data                 |
+| Notification | Announce that something has happened         | Triggers additional behavior |
 
-    Task<TResponse> SendAsync<TResponse>(
-        IModuleQuery<TResponse> query,
-        CancellationToken cancellationToken = default);
-
-    Task PublishAsync(
-        IIntegrationEvent integrationEvent,
-        CancellationToken cancellationToken = default);
-}
-```
-
-The dispatcher hides the communication mechanism from the business logic.
-
-This allows the communication infrastructure to evolve without affecting application features.
+Although these patterns share the same communication infrastructure, they represent fundamentally different responsibilities.
 
 ---
 
-# Local Communication
+## Commands
 
-Commands and Queries executed inside the current module are processed through MediatR.
+Commands represent business operations that modify application state.
 
-```mermaid
-flowchart LR
+A command always belongs to exactly one module and is handled by a single command handler.
 
-    Endpoint --> Command
+Typical examples include:
 
-    Command --> Dispatcher
+-   Register Candidate
+-   Create Company
+-   Schedule Interview
 
-    Dispatcher --> MediatR
+Each command is owned and handled by a single module.
 
-    MediatR --> Handler
-
-    classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
-
-    class Endpoint,Command,Dispatcher,MediatR,Handler application;
-```
-
-The Application layer remains unaware of MediatR.
+If another module needs to initiate a business operation, it does so by communicating through the owning module's public contracts rather than invoking internal application logic.
 
 ---
 
-# Module Queries
+## Module Queries
 
-Modules frequently require information owned by another module.
+Module Queries allow one module to retrieve information owned by another module.
+
+They provide synchronous read access without exposing another module's persistence model.
 
 For example:
 
@@ -134,200 +119,250 @@ GetUserById
 Identity Module
 ```
 
-Rather than accessing another module's database, a synchronous Module Query is executed.
+Only public contracts are shared between modules.
 
-```mermaid
-flowchart LR
-
-    A["Applications"]
-
-    D["IDispatcher"]
-
-    Q["GetUserById.ModuleQuery"]
-
-    I["Identity"]
-
-    A --> D
-
-    D --> Q
-
-    Q --> I
-
-    classDef module fill:#dcfce7,stroke:#16a34a,color:#000;
-    classDef infrastructure fill:#dbeafe,stroke:#2563eb,color:#000;
-
-    class A,I module;
-    class D,Q infrastructure;
-```
-
-Only contracts are shared between modules.
-
-Module implementations remain encapsulated.
+Each module remains responsible for its own persistence and determines which information may be exposed to other modules.
 
 ---
 
-# Public Queries vs Module Queries
+## Notifications
 
-A feature may be exposed through both the public HTTP API and module-to-module communication.
+Notifications represent facts that have occurred during application execution.
 
-Although they may represent the same business capability, they are considered different application entry points.
+Unlike commands and queries, notifications are not directed toward a single module.
+
+Instead, they allow multiple modules to react independently to the same business event.
 
 For example:
 
 ```text
-GetUserById.cs
-
-GetUserById
-├── Query
-├── ModuleQuery
-├── QueryHandler
-├── ModuleQueryHandler
-└── Endpoint
-```
-
-This allows both use cases to evolve independently.
-
-Typical differences include:
-
--   Authorization rules.
--   Visibility of soft-deleted entities.
--   Returned data.
--   Business validations.
-
-The small amount of duplicated code is intentional and keeps architectural boundaries explicit.
-
----
-
-# Integration Events
-
-Integration Events represent business events that have occurred within a module.
-
-They serve two purposes:
-
--   Notify handlers inside the current module to complete local business orchestration.
--   Notify other modules that a business event has occurred.
-
-Integration Events are never used to request information from another module.
-
-Example:
-
-```text
-UserCreated
+Candidate Registered
 
 ↓
 
 Identity Module
-├── Generate Refresh Token
-├── Send Welcome Email
-└── Audit Logging
-
-↓
-
-Notifications
-Applications
-Companies
+Applications Module
+Notifications Module
 ```
 
-Application features publish integration events through the dispatcher.
+Modules publish notifications without knowing which other modules may respond.
 
-The feature remains completely unaware of how notifications are processed or delivered.
-
-```mermaid
-flowchart LR
-
-    Handler --> Dispatcher
-
-    Dispatcher --> MediatR
-
-    MediatR --> LocalHandlers["Local Notification Handlers"]
-
-    LocalHandlers --> Outbox
-
-    Outbox --> MessageBroker["Message Broker"]
-
-    MessageBroker --> Notifications
-
-    MessageBroker --> Applications
-
-    MessageBroker --> Companies
-
-    classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
-    classDef infrastructure fill:#dbeafe,stroke:#2563eb,color:#000;
-
-    class Handler,LocalHandlers,Notifications,Applications,Companies application;
-    class Dispatcher,MediatR,Outbox,MessageBroker infrastructure;
-```
+The configured execution model is responsible for coordinating notification execution while preserving module boundaries.
 
 ---
 
-# Event Publishing
+## Choosing the Right Communication Pattern
 
-Application features publish an integration event only once.
+Each communication pattern serves a different purpose.
 
-```csharp
-await dispatcher.PublishAsync(
-    new UserCreated(...),
-    cancellationToken);
-```
-
-The dispatcher is responsible for the complete publishing workflow:
-
-1. Publishing the event inside the current module using MediatR.
-2. Waiting for all local notification handlers (including nested notifications) to complete.
-3. Recording the event in the Outbox.
-4. Allowing the Outbox Processor to publish the event to the message broker after the surrounding transaction has been committed.
-
-This guarantees that local business orchestration always completes before other modules are notified.
-
-Application features remain completely unaware of these implementation details.
-
-> **Note**
->
-> The dispatcher does **not** publish directly to the message broker. Its responsibility is to coordinate the publishing workflow. Reliable delivery to other modules is handled asynchronously by the Outbox Processor, ensuring events are only published after a successful transaction commit.
-
----
-
-# Choosing the Communication Pattern
+Selecting the appropriate pattern depends on the intent of the interaction rather than the implementation details.
 
 ```mermaid
 flowchart TD
 
-    A["Need another module?"]
+    Start["Need to communicate?"]
 
-    B{"Need data?"}
+    Modify{"Need to modify<br/>another module's state?"}
 
-    C["Module Query"]
+    Read{"Need information<br/>owned by another module?"}
 
-    D{"Business event occurred?"}
+    Event{"Need to announce<br/>that something happened?"}
 
-    E["Publish Integration Event"]
+    Command["Command"]
 
-    A --> B
+    Query["Module Query"]
 
-    B -->|Yes| C
+    Notification["Notification"]
 
-    B -->|No| D
+    Start --> Modify
 
-    D -->|Yes| E
+    Modify -->|Yes| Command
 
-    classDef decision fill:#fde68a,stroke:#d97706,color:#000;
+    Modify -->|No| Read
+
+    Read -->|Yes| Query
+
+    Read -->|No| Event
+
+    Event -->|Yes| Notification
+
+    classDef decision fill:#fde68a,stroke:#ca8a04,color:#000;
     classDef action fill:#dcfce7,stroke:#16a34a,color:#000;
 
-    class B,D decision;
-    class C,E action;
+    class Modify,Read,Event decision;
+    class Command,Query,Notification action;
 ```
+
+### Use a Command when...
+
+-   a business operation modifies application state
+-   a single module owns the operation
+-   a response is expected
+
+Examples:
+
+-   Register Candidate
+-   Create Company
+-   Update Profile
 
 ---
 
-# Design Principles
+### Use a Module Query when...
 
-The communication architecture follows these rules.
+-   information is owned by another module
+-   no state should be modified
+-   a synchronous response is required
 
--   Modules never reference another module's implementation.
--   Modules never access another module's database.
--   Commands never cross module boundaries.
--   Queries retrieve information synchronously.
--   Integration events notify other modules asynchronously.
--   Application features communicate only through the shared dispatcher.
--   Communication infrastructure remains hidden from business logic.
--   Public and module queries may evolve independently when their responsibilities differ.
+Examples:
+
+-   Get User
+-   Get Company
+-   Get Candidate Profile
+
+---
+
+### Use a Notification when...
+
+-   a business operation has completed
+-   multiple modules may need to react
+-   the publisher should remain unaware of subscribers
+
+Examples:
+
+-   Candidate Registered
+-   Company Created
+-   Interview Scheduled
+
+Notifications describe facts rather than requests.
+
+They announce that something has happened without specifying what other modules should do in response.
+
+---
+
+## Execution Models
+
+Business modules communicate exclusively through the Dispatcher.
+
+The Dispatcher itself does not determine how requests or notifications are executed.
+
+Instead, it delegates execution to the configured **Execution Model**.
+
+This separation allows the communication model to remain stable while the execution strategy evolves independently.
+
+```mermaid
+flowchart TD
+
+    Module["Business Module"]
+
+    Dispatcher["IDispatcher"]
+
+    Execution["Execution Model"]
+
+    Strategy["Execution Strategy"]
+
+    Module --> Dispatcher
+
+    Dispatcher --> Execution
+
+    Execution --> Strategy
+
+    classDef module fill:#dcfce7,stroke:#16a34a,color:#000;
+    classDef runtime fill:#fde68a,stroke:#ca8a04,color:#000;
+
+    class Module module;
+    class Dispatcher,Execution,Strategy runtime;
+```
+
+Application code does not depend on a specific execution strategy.
+
+Instead, it expresses an intention to:
+
+-   send a command
+-   execute a module query
+-   publish a notification
+
+The execution model determines how those operations are performed.
+
+---
+
+### Monolith Execution
+
+The current implementation provides a monolithic execution model.
+
+All communication occurs inside the same application process.
+
+Commands and module queries are executed synchronously by the owning module.
+
+Notifications are coordinated through the runtime using notification waves.
+
+From the perspective of application code, this behavior is completely transparent.
+
+---
+
+### Future Execution Models
+
+The communication architecture has been designed so that additional execution models can be introduced without affecting business modules.
+
+For example, a future execution model could coordinate communication through external infrastructure while preserving the same programming model.
+
+Because application code depends only on the Dispatcher, business features remain independent from the underlying execution strategy.
+
+The execution model therefore becomes responsible for **how** communication occurs, while business modules remain responsible only for **what** they want to communicate.
+
+---
+
+## Design Principles
+
+Module communication in JobWize is governed by a small number of architectural principles.
+
+### Explicit Module Ownership
+
+Every business capability belongs to exactly one module.
+
+Commands and module queries are always handled by the module that owns the corresponding business functionality.
+
+Modules never execute another module's internal application logic directly.
+
+---
+
+### Communication Through Contracts
+
+Modules communicate exclusively through shared contracts.
+
+Implementations remain private to the owning module, allowing modules to evolve independently while preserving a stable public interface.
+
+---
+
+### Infrastructure Transparency
+
+Business modules communicate through the Dispatcher without knowing how requests or notifications are ultimately executed.
+
+Routing, handler resolution, notification processing, and execution strategies remain runtime concerns.
+
+This separation allows business logic to remain focused entirely on application behavior.
+
+---
+
+### Stable Programming Model
+
+The communication model remains consistent regardless of the configured execution strategy.
+
+Application code continues to send commands, execute module queries, and publish notifications through the same Dispatcher API.
+
+Execution models determine how communication is performed without requiring changes to business modules.
+
+---
+
+## Summary
+
+The JobWize communication architecture enables independently developed modules to collaborate while preserving strict architectural boundaries.
+
+Modules communicate through a small set of well-defined interaction patterns:
+
+-   Commands modify application state.
+-   Module Queries retrieve information owned by another module.
+-   Notifications announce completed business events.
+
+All communication passes through the Dispatcher, allowing the configured Execution Model to coordinate execution independently of business logic.
+
+This separation keeps modules loosely coupled, preserves ownership boundaries, and provides a communication model capable of evolving without affecting application code.

@@ -37,7 +37,11 @@ Each module owns its:
 
 Modules communicate exclusively through well-defined contracts rather than direct implementation dependencies.
 
+While all modules execute within a single process today, communication always occurs through the module runtime and dispatcher abstractions rather than direct method calls. The underlying execution model is selected by the runtime and may execute requests in-process or through a distributed transport without changing application code.
+
 The modular monolith is considered the primary architecture of the system rather than a temporary step toward microservices.
+
+Within the current deployment model, every module executes using the Monolith Execution Model, meaning all requests are dispatched inside the same process. The architecture intentionally separates the communication abstractions from the execution mechanism so that future execution models (such as HTTP, gRPC, or messaging) can be introduced for individual modules without changing the application layer.
 
 Individual modules may be extracted into independently deployable services only when operational or organizational requirements justify doing so.
 
@@ -53,11 +57,12 @@ Individual modules may be extracted into independently deployable services only 
 -   Simple deployment and operational model.
 -   Reduced infrastructure complexity compared to microservices.
 -   Independent module extraction remains possible without redesigning the application architecture.
+-   Communication mechanisms remain stable even if modules later move to different execution models.
 
 ## Trade-offs
 
 -   The application is deployed as a single executable.
--   All modules share the same application process.
+-   All modules currently share the same application process and therefore execute using the Monolith Execution Model.
 -   Infrastructure failures may affect the entire application.
 -   Individual modules cannot be deployed independently until they are extracted.
 
@@ -112,8 +117,18 @@ The Modular Monolith provides a balance between maintainability and operational 
 
 It enables the application to be developed as a cohesive system while preserving clear business boundaries and reducing long-term coupling.
 
-By designing modules as independent units from the beginning, the architecture supports gradual evolution toward independently deployable services without requiring major architectural changes.
+By designing modules as independent units from the beginning, and by separating communication abstractions from execution mechanisms, the architecture supports gradual evolution toward independently deployable services without requiring major architectural changes to business code.
 
 This approach follows one of the guiding principles of JobWize:
 
 > **Architectural complexity should be introduced only when it solves a concrete problem.**
+
+---
+
+# Related ADRs
+
+-   ADR-002 – Vertical Slice Feature Organization
+-   ADR-003 – Module Communication Strategy
+-   ADR-004 – Reliable Integration Event Delivery with Outbox and Inbox
+-   ADR-010 – Introduce a Custom Module Runtime
+-   ADR-012 – Pluggable Execution Models

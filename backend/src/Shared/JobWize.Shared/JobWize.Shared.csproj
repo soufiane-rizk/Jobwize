@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.9" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Runtime\JobWize.Runtime.Contracts\JobWize.Runtime.Contracts.csproj" />
+    <ProjectReference Include="..\..\Runtime\JobWize.Runtime\JobWize.Runtime.csproj" />
+    <ProjectReference Include="..\JobWize.Shared.Contracts\JobWize.Shared.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Infrastructure\Dispatching\" />
+  </ItemGroup>
+</Project>
+

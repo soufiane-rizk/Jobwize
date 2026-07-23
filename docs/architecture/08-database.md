@@ -65,12 +65,15 @@ Modules never access another module's tables directly.
 
 Each module owns:
 
--   Its schema.
--   Its tables.
--   Its migrations.
--   Its DbContext.
--   Its Outbox.
--   Its Inbox.
+-   Schema
+-   Tables
+-   Migrations
+-   DbContext
+
+Depending on the configured execution model, modules may additionally own:
+
+-   Inbox
+-   Outbox
 
 Example:
 
@@ -130,7 +133,7 @@ For example, the Applications module never executes queries against the Identity
 Instead, cross-module communication occurs through one of two mechanisms:
 
 -   Module Queries.
--   Integration Events.
+-   Notifications.
 
 This preserves module boundaries and prevents tight database coupling.
 
@@ -174,14 +177,14 @@ Database transactions are scoped to a single module.
 
 Each application request executes within a transaction that affects only the current module.
 
-Cross-module consistency is achieved through Integration Events rather than distributed transactions.
+Cross-module consistency is coordinated through Runtime notifications. Distributed execution models may implement this using Integration Events.
 
 ```mermaid
 flowchart LR
 
     Identity["Identity Transaction"]
 
-    Event["Integration Event"]
+    Event["Notification"]
 
     Applications["Applications Transaction"]
 
@@ -281,7 +284,7 @@ They are appropriate when:
 -   Fast local queries are required.
 -   The module benefits from owning its own read model.
 
-Projections are synchronized through Integration Events and refreshed using Module Queries.
+Projections are synchronized through notifications and refreshed using Module Queries.
 
 ---
 
@@ -392,9 +395,9 @@ The database architecture follows these principles.
 -   Modules never access another module's tables directly.
 -   Foreign keys are allowed only within a module.
 -   Transactions are scoped to a single module.
--   Cross-module consistency is achieved through Integration Events.
+-   Cross-module consistency is coordinated through Runtime notifications.
 -   Projections are owned by the consuming module.
--   Integration Events communicate business facts rather than complete aggregate state.
+-   Notifications communicate business facts rather than complete aggregate state.
 -   Projections are refreshed using Module Queries to retrieve authoritative data.
 -   Soft deletion is applied only when required by the business domain.
 -   Optimistic concurrency is handled by the persistence layer.

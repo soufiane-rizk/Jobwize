@@ -4,6 +4,11 @@
 
 Accepted
 
+> **Implementation updated by ADR-010 – Introduce a Custom Module Runtime.**
+>
+> This ADR remains the source of truth for JobWize's transaction boundaries.
+> ADR-010 replaces the MediatR execution pipeline referenced here with the custom module runtime while preserving the transactional guarantees described in this document.
+
 ---
 
 # Context
@@ -25,9 +30,11 @@ The architecture therefore requires clearly defined transaction boundaries that 
 
 # Decision
 
-The **Application Handler** defines the transactional boundary.
+The execution of a Command by the module runtime defines the transactional boundary.
 
-Each application request executes inside a single database transaction managed by the MediatR pipeline.
+The transaction encompasses the Command Handler and every in-process notification handler executed through `Dispatcher.Publish()` before the transaction commits.
+
+Each application request executes inside a single database transaction coordinated by the application execution pipeline provided by the module runtime.
 
 Within that transaction, a handler may:
 
@@ -38,31 +45,41 @@ Within that transaction, a handler may:
 
 All these operations succeed or fail together.
 
+This transactional boundary also includes every in-process notification handler executed by the module runtime before the transaction commits.
+
 ```mermaid
 flowchart TD
 
-    Handler["Application Handler"]
+    Handler["Command Handler"]
 
     Transaction["Database Transaction"]
 
-    Aggregates["Aggregate(s)"]
+    Domain["Domain Models"]
+
+    Notifications["Dispatcher.Publish()"]
+
+    NotificationHandlers["Notification Handlers"]
 
     Db["Persist Changes"]
 
-    Outbox["Write Outbox Messages"]
+    Outbox["Persist Outbox Messages"]
 
     Commit["Commit Transaction"]
 
     Handler --> Transaction
-    Transaction --> Aggregates
-    Aggregates --> Db
+    Transaction --> Domain
+    Domain --> Notifications
+    Notifications --> NotificationHandlers
+    NotificationHandlers --> Db
     Db --> Outbox
     Outbox --> Commit
 
-    classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
-    classDef infrastructure fill:#dbeafe,stroke:#2563eb,color:#000;
+    classDef application fill:#dcfce7,stroke:#16a34a,color:#000,stroke-width:2px;
+    classDef runtime fill:#ede9fe,stroke:#7c3aed,color:#000,stroke-width:2px;
+    classDef infrastructure fill:#dbeafe,stroke:#2563eb,color:#000,stroke-width:2px;
 
-    class Handler,Aggregates application;
+    class Handler,Domain,NotificationHandlers application;
+    class Notifications runtime;
     class Transaction,Db,Outbox,Commit infrastructure;
 ```
 
@@ -79,19 +96,25 @@ Integration Events are produced during the transaction but are **not** published
 Instead, calling:
 
 ```csharp
-dispatcher.PublishAsync(...)
+dispatcher.Publish(...)
 ```
 
-stores the Integration Event in the module's Outbox as part of the current transaction.
+creates an in-process notification that is immediately dispatched to all registered notification handlers within the current transaction.
 
-Only after the transaction has successfully committed does the Outbox background service publish the event to the message broker.
+Notification handlers may perform additional business work and schedule integration events for external modules.
+
+Only after all in-process notification handlers complete successfully are the resulting integration events persisted to the module's Outbox as part of the same transaction.
 
 ```mermaid
 flowchart TD
 
-    Handler["Application Handler"]
+    Handler["Command Handler"]
 
-    Event["dispatcher.PublishAsync()"]
+    Publish["Dispatcher.Publish()"]
+
+    Notifications["Notification"]
+
+    NotificationHandlers["Notification Handlers"]
 
     Outbox["Outbox"]
 
@@ -99,20 +122,22 @@ flowchart TD
 
     Publisher["Outbox Publisher"]
 
-    Broker["Message Broker"]
+    Broker["RabbitMQ"]
 
-    Handler --> Event
-    Event --> Outbox
+    Handler --> Publish
+    Publish --> Notifications
+    Notifications --> NotificationHandlers
+    NotificationHandlers --> Outbox
     Outbox --> Commit
     Commit --> Publisher
     Publisher --> Broker
 
-    classDef application fill:#dcfce7,stroke:#16a34a,color:#000;
-    classDef infrastructure fill:#dbeafe,stroke:#2563eb,color:#000;
-    classDef event fill:#f3e8ff,stroke:#7e22ce,color:#000;
+    classDef application fill:#dcfce7,stroke:#16a34a,color:#000,stroke-width:2px;
+    classDef runtime fill:#ede9fe,stroke:#7c3aed,color:#000,stroke-width:2px;
+    classDef infrastructure fill:#dbeafe,stroke:#2563eb,color:#000,stroke-width:2px;
 
-    class Handler application;
-    class Event event;
+    class Handler,NotificationHandlers application;
+    class Publish,Notifications runtime;
     class Outbox,Commit,Publisher,Broker infrastructure;
 ```
 
@@ -227,7 +252,7 @@ Writing Integration Events to the Outbox inside the transaction guarantees that 
 
 # Rationale
 
-JobWize defines the **Application Handler** as the unit of work.
+JobWize defines the execution of an **Application Handler** as the unit of work.
 
 Within a module, business operations execute atomically inside a single transaction.
 

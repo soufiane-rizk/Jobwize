@@ -86,7 +86,7 @@ No module may directly access another module's internal implementation.
 
 ## Contract-First Communication
 
-Modules communicate exclusively through published contracts.
+Modules communicate through shared contracts using the Runtime communication abstractions.
 
 A module may depend on another module's **Contracts** project, but never on its implementation.
 
@@ -118,19 +118,27 @@ This improves discoverability and keeps related code together.
 
 ## Module Communication
 
-Communication between modules is intentionally explicit.
+Business modules never communicate directly with one another.
 
-### Synchronous Communication
+Instead, all communication passes through the shared IDispatcher, allowing the configured Runtime Execution Model to coordinate execution while preserving module boundaries.
 
-Modules obtain information from other modules using synchronous queries through a module dispatcher.
+### Commands
 
-This is the preferred mechanism for retrieving business data.
+Commands execute business operations owned by a single module.
 
-### Asynchronous Communication
+Each command is handled exactly once by its owning module.
 
-Business events are published as Integration Events.
+### Module Queries
 
-These events notify other modules that a business action has occurred and are intended for notifications, projections, auditing, analytics, and other asynchronous workflows.
+Module Queries allow one module to synchronously retrieve information owned by another module without exposing implementation details or persistence.
+
+### Notifications
+
+Notifications announce completed business events.
+
+Modules publish notifications without knowledge of interested subscribers.
+
+The configured Execution Model determines how notifications are coordinated.
 
 ---
 
@@ -146,15 +154,16 @@ Although modules share the same physical database, they never access each other'
 
 ## Reliability
 
-Integration Events are processed using reliable messaging patterns.
+The Runtime separates communication intent from communication strategy through configurable Execution Models.
 
-The architecture incorporates:
+Execution Models may provide additional reliability guarantees depending on their implementation.
 
--   Outbox Pattern for reliable publishing.
--   Inbox Pattern for reliable consumption.
--   Idempotent event handlers.
--   Controlled retry policies.
--   Failure tracking for business exceptions.
+For example, distributed execution strategies may employ patterns such as:
 
-These mechanisms ensure that transient failures can recover automatically while permanent failures remain observable and manageable.
-yment architecture and infrastructure.
+-   Outbox
+-   Inbox
+-   Idempotent handlers
+-   Retry policies
+-   Failure tracking
+
+The current monolithic execution model performs all communication in-process while preserving the same programming model.

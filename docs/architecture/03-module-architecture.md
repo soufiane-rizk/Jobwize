@@ -22,7 +22,7 @@ Each module owns:
 -   Infrastructure
 -   Public contracts
 
-Modules communicate only through their Contracts project.
+Modules expose their public surface through their Contracts project and communicate through the shared Runtime abstractions.
 
 They must never reference another module's implementation directly.
 
@@ -69,34 +69,42 @@ flowchart TD
 # Folder Structure
 
 ```text
-JobWize.Modules.Identity
+Identity
 │
-├── Application
-│   ├── Authentication
-│   │   ├── Login.cs
-│   │   ├── Logout.cs
-│   │   ├── RefreshToken.cs
-│   │   └── ResetPassword.cs
+├── JobWize.Modules.Identity
+│   |
+│   ├── Application
+│   │   ├── Authentication
+│   │   │   ├── Login.cs
+│   │   │   ├── Logout.cs
+│   │   │   ├── RefreshToken.cs
+│   │   │   └── ResetPassword.cs
+│   │   │
+│   │   ├── Users
+│   │   │   ├── CreateUser.cs
+│   │   │   ├── UpdateUser.cs
+│   │   │   ├── DeleteUser.cs
+│   │   │   ├── GetUser.cs
+│   │   │   └── GetUsers.cs
+│   │   │
+│   │   └── Administration
+│   │       ├── CreateAdministrator.cs
+│   │       ├── UpdateAdministrator.cs
+│   │       └── DeleteAdministrator.cs
 │   │
-│   ├── Users
-│   │   ├── CreateUser.cs
-│   │   ├── UpdateUser.cs
-│   │   ├── DeleteUser.cs
-│   │   ├── GetUser.cs
-│   │   └── GetUsers.cs
+│   ├── Domain
 │   │
-│   └── Administration
-│       ├── CreateAdministrator.cs
-│       ├── UpdateAdministrator.cs
-│       └── DeleteAdministrator.cs
+│   ├── Infrastructure
+│   │
+│   ├── Persistence
+│   │
+│   └── DependencyInjection.cs
 │
-├── Domain
-│
-├── Infrastructure
-│
-├── Persistence
-│
-└── DependencyInjection.cs
+└── JobWize.Modules.Identity.Contracts
+    │
+    ├── Public
+    ├── Module
+    └── Events
 ```
 
 ---
@@ -115,10 +123,13 @@ Application code is responsible for:
 -   Queries
 -   Validation
 -   Request mapping
--   Endpoint registration
+-   Endpoint definitions
 -   Business orchestration
+-   Notification handlers
 
 Application code should not contain persistence details.
+
+Request and Response contracts are defined in the module's Contracts project. The endpoint is responsible for mapping the request contract to the application command and returning the response contract.
 
 ---
 
@@ -209,12 +220,9 @@ Example:
 ```text
 CreateUser.cs
 
-├── Request
 ├── Command
-├── Response
 ├── Validator
 ├── Handler
-├── Mapping
 └── Endpoint
 ```
 
@@ -233,23 +241,36 @@ flowchart LR
 
     API["HTTP Endpoint"]
 
-    CMD["Command / Query"]
+    REQUEST["Command / Query"]
 
     HANDLER["Handler"]
+
+    NOTIF["Notification(s)<br/>(optional)"]
+
+    EXEC["Execution Model"]
+
+    NHANDLERS["Notification Handler(s)"]
 
     RESPONSE["Response"]
 
     CLIENT --> API
-    API --> CMD
-    CMD --> HANDLER
+    API --> REQUEST
+    REQUEST --> HANDLER
+
     HANDLER --> RESPONSE
     RESPONSE --> CLIENT
 
-    classDef frontend fill:#dbeafe,stroke:#2563eb,color:#000;
-    classDef backend fill:#dcfce7,stroke:#16a34a,color:#000;
+    HANDLER -. Publish .-> NOTIF
+    NOTIF --> EXEC
+    EXEC --> NHANDLERS
+
+    classDef frontend fill:#dbeafe,stroke:#2563eb,color:#000,stroke-width:2px;
+    classDef backend fill:#dcfce7,stroke:#16a34a,color:#000,stroke-width:2px;
+    classDef runtime fill:#fde68a,stroke:#ca8a04,color:#000,stroke-width:2px;
 
     class CLIENT frontend;
-    class API,CMD,HANDLER,RESPONSE backend;
+    class API,REQUEST,HANDLER,RESPONSE backend;
+    class NOTIF,EXEC,NHANDLERS runtime;
 ```
 
 ---
@@ -258,9 +279,7 @@ flowchart LR
 
 Within a module:
 
--   Application may access Domain.
--   Application may access Persistence.
--   Application may access Infrastructure through abstractions.
+-   Application may depend on repository abstractions and other module abstractions defined within the module.
 -   Infrastructure may depend on Domain.
 -   Persistence may depend on Domain.
 
