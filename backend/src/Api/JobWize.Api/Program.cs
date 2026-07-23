@@ -6,6 +6,8 @@ using JobWize.Runtime.Execution;
 using JobWize.Runtime.Registration;
 using JobWize.Shared;
 using JobWize.Shared.Endpoints;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using System.Text.Json;
 
 namespace JobWize.Api
 {
@@ -31,7 +33,7 @@ namespace JobWize.Api
                 });
 
             services.AddShared();
-            services.AddApi();
+            services.AddApi(configuration);
 
             WebApplication app = builder.Build();
 
@@ -40,6 +42,8 @@ namespace JobWize.Api
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
+
+            app.MapApi();
 
             app.UseHttpsRedirection();
 
