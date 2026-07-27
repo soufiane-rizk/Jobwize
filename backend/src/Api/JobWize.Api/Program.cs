@@ -41,11 +41,13 @@ namespace JobWize.Api
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
+
+                app.UseHttpsRedirection();
             }
 
             app.MapApi();
 
-            app.UseHttpsRedirection();
+            app.UseForwardedHeaders();
 
             app.MapEndpoints();
 
