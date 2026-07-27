@@ -2,7 +2,6 @@
 using JobWize.ModuleTwo;
 using JobWize.Runtime.Contracts.Dispatching;
 using JobWize.Runtime.Execution;
-using JobWize.Runtime.Pipeline;
 using JobWize.Runtime.Registration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

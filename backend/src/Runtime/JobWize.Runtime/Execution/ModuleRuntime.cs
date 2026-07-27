@@ -3,7 +3,6 @@ using JobWize.Runtime.Contracts.Notifications;
 using JobWize.Runtime.Contracts.Pipelines;
 using JobWize.Runtime.Contracts.Requests;
 using JobWize.Runtime.Discovery;
-using JobWize.Runtime.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;

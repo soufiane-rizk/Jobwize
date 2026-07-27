@@ -5,16 +5,16 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace JobWize.Runtime.Pipeline
+namespace JobWize.Runtime.Execution
 {
-    public interface IPipelineExecutor
+    internal interface IPipelineExecutor
     {
         Task<TResponse> ExecuteAsync<TRequest, TResponse>(ExecutionContext<TRequest, TResponse> context, RequestExecutionDelegate<TResponse> handler)
             where TRequest : IRequest<TResponse>;
     }
-    
 
-    public sealed class PipelineExecutor : IPipelineExecutor
+
+    internal sealed class PipelineExecutor : IPipelineExecutor
     {
         public Task<TResponse> ExecuteAsync<TRequest, TResponse>(ExecutionContext<TRequest, TResponse> context, RequestExecutionDelegate<TResponse> handler)
             where TRequest : IRequest<TResponse>
