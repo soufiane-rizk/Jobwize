@@ -11,15 +11,16 @@ namespace JobWize.Runtime.UnitTests.Helpers;
 
 internal static class RuntimeTestFactory
 {
-    private static (ModuleRuntime Runtime, ServiceProvider Provider) Create()
+    private static (ModuleRuntime Runtime, ServiceProvider Provider) Create(Action<IServiceCollection>? configureServices = null)
     {
         ModuleOneModule module = new();
 
         ServiceCollection services = [];
 
         services.AddSingleton<IDispatcher, FakeDispatcher>();
-
         services.AddScoped<IPipelineExecutor, PipelineExecutor>();
+
+        configureServices?.Invoke(services);
 
         IConfiguration configuration = new ConfigurationBuilder().Build();
 
@@ -39,9 +40,9 @@ internal static class RuntimeTestFactory
         return Create().Runtime;
     }
 
-    public static (ModuleRuntime Runtime, ServiceProvider Provider) CreateModuleOneRuntimeWithProvider()
+    public static (ModuleRuntime Runtime, ServiceProvider Provider) CreateModuleOneRuntimeWithProvider(Action<IServiceCollection>? configureServices = null)
     {
-        return Create();
+        return Create(configureServices);
     }
 
     public static (ModuleRuntime Runtime, ServiceProvider Provider) CreateModuleOneRuntimeWithAllModules()
