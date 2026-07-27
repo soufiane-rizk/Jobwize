@@ -2,6 +2,7 @@
 using JobWize.ModuleTwo;
 using JobWize.Runtime.Contracts.Dispatching;
 using JobWize.Runtime.Execution;
+using JobWize.Runtime.Pipeline;
 using JobWize.Runtime.Registration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,6 +18,8 @@ internal static class RuntimeTestFactory
         ServiceCollection services = [];
 
         services.AddSingleton<IDispatcher, FakeDispatcher>();
+
+        services.AddScoped<IPipelineExecutor, PipelineExecutor>();
 
         IConfiguration configuration = new ConfigurationBuilder().Build();
 
@@ -50,6 +53,8 @@ internal static class RuntimeTestFactory
         IConfiguration configuration = new ConfigurationBuilder().Build();
 
         services.AddSingleton<IDispatcher, FakeDispatcher>();
+
+        services.AddScoped<IPipelineExecutor, PipelineExecutor>();
 
         moduleOne.ConfigureServices(services, configuration);
         moduleTwo.ConfigureServices(services, configuration);
