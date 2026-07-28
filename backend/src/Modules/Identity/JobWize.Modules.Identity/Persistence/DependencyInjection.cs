@@ -1,4 +1,5 @@
 ﻿using JobWize.Modules.Identity.Infrastructure.Authentication;
+using JobWize.Runtime.Contracts.Transactions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,11 +17,16 @@ namespace JobWize.Modules.Identity.Persistence
                 ?? throw new InvalidOperationException("Connection string 'Identity' was not found.");
 
             services.AddDbContext<IdentityDbContext>(options =>
+            {
                 options.UseNpgsql(connectionString, npgsql =>
                 {
                     npgsql.MigrationsAssembly(typeof(IdentityDbContext).Assembly.FullName);
                     npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "identity");
-                }));
+                });
+            });
+
+            services.AddScoped<ITransactionContext>(
+                provider => provider.GetRequiredService<IdentityDbContext>());
 
             services.AddScoped<IUserRepository, UserRepository>();
 

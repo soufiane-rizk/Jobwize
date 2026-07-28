@@ -28,11 +28,8 @@ namespace JobWize.Runtime.UnitTests.Execution
                     services =>
                     {
                         services.AddSingleton(recorder);
-
-                        services.AddScoped<
-                            IPipelineBehavior<CreateItem.Command, Result<Guid>>,
-                            RecordingRequestBehavior<CreateItem.Command, Result<Guid>>>();
-                    });
+                    },
+                    typeof(RecordingRequestBehavior<,>));
 
             recorder.Events.Should().BeEmpty();
 
@@ -53,7 +50,7 @@ namespace JobWize.Runtime.UnitTests.Execution
 
 
         [Fact]
-        public async Task SendAsync_Should_Execute_Command_Pipeline()
+        public async Task SendAsync_Should_Resolve_And_Execute_Command_Pipeline()
         {
             // Arrange
             PipelineExecutionRecorder recorder = new();
@@ -63,11 +60,8 @@ namespace JobWize.Runtime.UnitTests.Execution
                     services =>
                     {
                         services.AddSingleton(recorder);
-
-                        services.AddScoped<
-                            IPipelineBehavior<CreateItem.Command, Result<Guid>>,
-                            RecordingCommandBehavior<CreateItem.Command, Guid>>();
-                    });
+                    },
+                    typeof(RecordingCommandBehavior<,>));
 
             recorder.Events.Should().BeEmpty();
 
@@ -97,11 +91,8 @@ namespace JobWize.Runtime.UnitTests.Execution
                     services =>
                     {
                         services.AddSingleton(recorder);
-
-                        services.AddScoped<
-                            IPipelineBehavior<ModuleOne.Features.GetItem.Query, Result<ModuleOne.Contracts.GetItem.Response>>,
-                            RecordingQueryBehavior<ModuleOne.Features.GetItem.Query, ModuleOne.Contracts.GetItem.Response>>();
-                    });
+                    },
+                    typeof(RecordingQueryBehavior<,>));
 
             recorder.Events.Should().BeEmpty();
 
@@ -126,19 +117,13 @@ namespace JobWize.Runtime.UnitTests.Execution
             PipelineExecutionRecorder recorder = new();
 
             (ModuleRuntime runtime, ServiceProvider provider) =
-                RuntimeTestFactory.CreateModuleOneRuntimeWithProvider(
-                    services =>
-                    {
-                        services.AddSingleton(recorder);
-
-                        services.AddScoped<
-                            IPipelineBehavior<CreateItem.Command, Result<Guid>>,
-                            RecordingRequestBehavior<CreateItem.Command, Result<Guid>>>();
-
-                        services.AddScoped<
-                            IPipelineBehavior<CreateItem.Command, Result<Guid>>,
-                            RecordingCommandBehavior<CreateItem.Command, Guid>>();
-                    });
+                 RuntimeTestFactory.CreateModuleOneRuntimeWithProvider(
+                     services =>
+                     {
+                         services.AddSingleton(recorder);
+                     },
+                     typeof(RecordingRequestBehavior<,>),
+                     typeof(RecordingCommandBehavior<,>));
 
             CreateItem.Command command = new("Test Item");
 
@@ -167,15 +152,9 @@ namespace JobWize.Runtime.UnitTests.Execution
                     services =>
                     {
                         services.AddSingleton(recorder);
-
-                        services.AddScoped<
-                            IPipelineBehavior<ModuleOne.Features.GetItem.Query, Result<ModuleOne.Contracts.GetItem.Response>>,
-                            RecordingRequestBehavior<ModuleOne.Features.GetItem.Query, Result<ModuleOne.Contracts.GetItem.Response>>>();
-
-                        services.AddScoped<
-                            IPipelineBehavior<ModuleOne.Features.GetItem.Query, Result<ModuleOne.Contracts.GetItem.Response>>,
-                            RecordingQueryBehavior<ModuleOne.Features.GetItem.Query, ModuleOne.Contracts.GetItem.Response>>();
-                    });
+                    },
+                    typeof(RecordingRequestBehavior<,>),
+                    typeof(RecordingQueryBehavior<,>));
 
             ModuleOne.Features.GetItem.Query query = new(Guid.NewGuid());
 
@@ -204,15 +183,9 @@ namespace JobWize.Runtime.UnitTests.Execution
                     services =>
                     {
                         services.AddSingleton(recorder);
-
-                        services.AddScoped<
-                            IPipelineBehavior<ModuleOne.Features.GetItem.Query, Result<ModuleOne.Contracts.GetItem.Response>>,
-                            RecordingRequestBehavior<ModuleOne.Features.GetItem.Query, Result<ModuleOne.Contracts.GetItem.Response>>>();
-
-                        services.AddScoped<
-                            IPipelineBehavior<CreateItem.Command, Result<Guid>>,
-                            RecordingCommandBehavior<CreateItem.Command, Guid>>();
-                    });
+                    },
+                    typeof(RecordingRequestBehavior<,>),
+                    typeof(RecordingCommandBehavior<,>));
 
             ModuleOne.Features.GetItem.Query query = new(Guid.NewGuid());
 
@@ -239,15 +212,9 @@ namespace JobWize.Runtime.UnitTests.Execution
                     services =>
                     {
                         services.AddSingleton(recorder);
-
-                        services.AddScoped<
-                            IPipelineBehavior<CreateItem.Command, Result<Guid>>,
-                            RecordingRequestBehavior<CreateItem.Command, Result<Guid>>>();
-
-                        services.AddScoped<
-                            IPipelineBehavior<ModuleOne.Features.GetItem.Query, Result<ModuleOne.Contracts.GetItem.Response>>,
-                            RecordingQueryBehavior<ModuleOne.Features.GetItem.Query, ModuleOne.Contracts.GetItem.Response>>();
-                    });
+                    },
+                    typeof(RecordingRequestBehavior<,>),
+                    typeof(RecordingQueryBehavior<,>));
 
             CreateItem.Command command = new("Test Item");
 
@@ -274,11 +241,8 @@ namespace JobWize.Runtime.UnitTests.Execution
                     services =>
                     {
                         services.AddSingleton(recorder);
-
-                        services.AddScoped<
-                            IPipelineBehavior<CreateItem.Command, Result<Guid>>,
-                            BlockingCommandBehavior<CreateItem.Command, Guid>>();
-                    });
+                    },
+                    typeof(BlockingCommandBehavior<,>));
 
             CreateItem.Command command = new("Test Item");
 
@@ -299,12 +263,8 @@ namespace JobWize.Runtime.UnitTests.Execution
             // Arrange
             (ModuleRuntime runtime, ServiceProvider provider) =
                 RuntimeTestFactory.CreateModuleOneRuntimeWithProvider(
-                    services =>
-                    {
-                        services.AddScoped<
-                            IPipelineBehavior<ThrowException.Command, Result<Guid>>,
-                            ExceptionHandlingCommandBehavior<ThrowException.Command, Guid>>();
-                    });
+                    services => { },
+                    typeof(ExceptionHandlingCommandBehavior<,>));
 
             ThrowException.Command command = new();
 
@@ -330,19 +290,10 @@ namespace JobWize.Runtime.UnitTests.Execution
                     services =>
                     {
                         services.AddSingleton(recorder);
-
-                        services.AddScoped<
-                            IPipelineBehavior<CreateItem.Command, Result<Guid>>,
-                            RequestBehaviorA<CreateItem.Command, Result<Guid>>>();
-
-                        services.AddScoped<
-                            IPipelineBehavior<CreateItem.Command, Result<Guid>>,
-                            RequestBehaviorB<CreateItem.Command, Result<Guid>>>();
-
-                        services.AddScoped<
-                            IPipelineBehavior<CreateItem.Command, Result<Guid>>,
-                            RequestBehaviorC<CreateItem.Command, Result<Guid>>>();
-                    });
+                    },
+                    typeof(RequestBehaviorA<,>),
+                    typeof(RequestBehaviorB<,>),
+                    typeof(RequestBehaviorC<,>));
 
             CreateItem.Command command = new("Test Item");
 

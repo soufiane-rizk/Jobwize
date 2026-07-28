@@ -1,4 +1,5 @@
 ﻿using JobWize.Modules.Identity.Domain;
+using JobWize.Shared.Persistence;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -7,7 +8,7 @@ using System.Text;
 
 namespace JobWize.Modules.Identity.Persistence
 {
-    public sealed class IdentityDbContext : DbContext
+    public sealed class IdentityDbContext : ModuleDbContext
     {
         public DbSet<User> Users => Set<User>();
 

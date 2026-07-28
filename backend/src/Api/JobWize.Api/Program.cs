@@ -6,6 +6,7 @@ using JobWize.Runtime.Execution;
 using JobWize.Runtime.Registration;
 using JobWize.Shared;
 using JobWize.Shared.Endpoints;
+using JobWize.Shared.Runtime.Behaviors;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using System.Text.Json;
 
@@ -25,11 +26,9 @@ namespace JobWize.Api
                 options =>
                 {
                     options
-                        .AddModule(new IdentityModule());
-                    // options.AddModule(new ProfileModule());
+                        .AddModule(new IdentityModule())
 
-                    // options.AddPipeline<ValidationBehavior<,>>();
-                    // options.AddPipeline<TransactionBehavior<,>>();
+                        .AddPipeline(typeof(TransactionBehavior<,>));
                 });
 
             services.AddShared();
