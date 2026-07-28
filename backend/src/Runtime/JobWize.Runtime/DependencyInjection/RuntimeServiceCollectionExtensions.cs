@@ -1,6 +1,7 @@
 ﻿using JobWize.Runtime.Contracts.DependencyInjection;
 using JobWize.Runtime.Contracts.Dispatching;
 using JobWize.Runtime.Contracts.Modules;
+using JobWize.Runtime.Contracts.Pipelines;
 using JobWize.Runtime.Dispatching;
 using JobWize.Runtime.Execution;
 using JobWize.Runtime.Registration;
@@ -21,6 +22,8 @@ namespace JobWize.Runtime.DependencyInjection
             configure(options);
 
             AddDispatching(services);
+
+            AddPipelines(services, options);
 
             RuntimeBuilder runtimeBuilder = new();
 
@@ -47,6 +50,16 @@ namespace JobWize.Runtime.DependencyInjection
             services.AddScoped<INotificationContext, NotificationContext>();
 
             services.AddScoped<IExecutionModel, MonolithExecutionModel>();
+        }
+
+        private static void AddPipelines(IServiceCollection services, RuntimeOptions options)
+        {
+            foreach (Type behavior in options.PipelineBehaviors)
+            {
+                services.AddScoped(typeof(IPipelineBehavior<,>), behavior);
+            }
+
+            services.AddScoped<IPipelineExecutor, PipelineExecutor>();
         }
 
     }

@@ -1,5 +1,6 @@
 ﻿
 using JobWize.Runtime.Contracts.Notifications;
+using JobWize.Runtime.Contracts.Pipelines;
 using JobWize.Runtime.Contracts.Requests;
 using JobWize.Runtime.Discovery;
 using Microsoft.Extensions.DependencyInjection;
@@ -45,23 +46,23 @@ namespace JobWize.Runtime.Execution
 
         public Task<TResponse> SendAsync<TResponse>(IServiceProvider serviceProvider, IRequest<TResponse> request, CancellationToken cancellationToken)
         {
-            return SendCoreAsync<TResponse>(serviceProvider, request, cancellationToken);
+            HandlerDescriptor descriptor = _handlerCatalog.GetRequestHandler(request.GetType());
+
+            var pipelineInvoker = (IPipelineInvoker<TResponse>)descriptor.PipelineInvoker!;
+
+            return pipelineInvoker.InvokeAsync(descriptor, serviceProvider, request, cancellationToken);
+
         }
 
         public Task<TResponse> SendAsync<TResponse>(IServiceProvider serviceProvider, IModuleQuery<TResponse> query, CancellationToken cancellationToken)
         {
-            return SendCoreAsync<TResponse>(serviceProvider, query, cancellationToken);
-        }
+            HandlerDescriptor descriptor = _handlerCatalog.GetRequestHandler(query.GetType());
 
-        private Task<TResponse> SendCoreAsync<TResponse>(IServiceProvider serviceProvider, object message, CancellationToken cancellationToken)
-        {
-            HandlerDescriptor descriptor = _handlerCatalog.GetRequestHandler(message.GetType());
+            var handler = serviceProvider.GetRequiredService(descriptor.HandlerType);
 
-            object handler = serviceProvider.GetRequiredService(descriptor.HandlerType);
+            var invoker = (IHandlerInvoker<TResponse>)descriptor.HandlerInvoker;
 
-            var invoker = (IHandlerInvoker<TResponse>)descriptor.Invoker;
-
-            return invoker.InvokeAsync(handler, message, cancellationToken);
+            return invoker.InvokeAsync(handler, query, cancellationToken);
         }
 
         public async Task PublishAsync(IServiceProvider serviceProvider, INotification notification, CancellationToken cancellationToken = default)
@@ -72,7 +73,7 @@ namespace JobWize.Runtime.Execution
             {
                 object handler = serviceProvider.GetRequiredService(descriptor.HandlerType);
 
-                var invoker = (IHandlerInvoker<object?>)descriptor.Invoker;
+                var invoker = (IHandlerInvoker<object?>)descriptor.HandlerInvoker;
 
                 await invoker.InvokeAsync(handler, notification, cancellationToken);
             }

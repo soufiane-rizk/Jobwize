@@ -1,42 +1,36 @@
 ﻿using JobWize.Runtime.Contracts.Pipelines;
 using JobWize.Runtime.Contracts.Requests;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace JobWize.Runtime.Pipeline
+namespace JobWize.Runtime.Execution
 {
-    public interface IPipelineExecutor
+    internal interface IPipelineExecutor
     {
-        public interface IPipelineExecutor
-        {
-            Task<TResponse> ExecuteAsync<TRequest, TResponse>(
-                ExecutionContext<TRequest, TResponse> context,
-                IEnumerable<IPipelineBehavior<TRequest, TResponse>> behaviors,
-                RequestExecutionDelegate<TResponse> handlerDelegate)
-                where TRequest : IRequest<TResponse>;
-        }
+        Task<TResponse> ExecuteAsync<TRequest, TResponse>(ExecutionContext<TRequest, TResponse> context, RequestExecutionDelegate<TResponse> handler)
+            where TRequest : IRequest<TResponse>;
     }
 
-    public sealed class PipelineExecutor : IPipelineExecutor
+
+    internal sealed class PipelineExecutor : IPipelineExecutor
     {
-        public Task<TResponse> ExecuteAsync<TRequest, TResponse>(
-            ExecutionContext<TRequest, TResponse> context,
-            IEnumerable<IPipelineBehavior<TRequest, TResponse>> behaviors,
-            RequestExecutionDelegate<TResponse> handlerDelegate)
+        public Task<TResponse> ExecuteAsync<TRequest, TResponse>(ExecutionContext<TRequest, TResponse> context, RequestExecutionDelegate<TResponse> handler)
             where TRequest : IRequest<TResponse>
         {
-            RequestExecutionDelegate<TResponse> pipeline = handlerDelegate;
+            IEnumerable<IPipelineBehavior<TRequest, TResponse>> behaviors = context.ServiceProvider.GetServices<IPipelineBehavior<TRequest, TResponse>>();
 
-            foreach (var behavior in behaviors.Reverse())
+            RequestExecutionDelegate<TResponse> next = handler;
+
+            foreach (IPipelineBehavior<TRequest, TResponse> behavior in behaviors.Reverse())
             {
-                var next = pipeline;
+                RequestExecutionDelegate<TResponse> current = next;
 
-                pipeline = () =>
-                    behavior.HandleAsync(context, next);
+                next = () => behavior.HandleAsync(context, current);
             }
 
-            return pipeline();
+            return next();
         }
     }
 }

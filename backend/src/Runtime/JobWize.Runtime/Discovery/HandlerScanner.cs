@@ -104,19 +104,16 @@ namespace JobWize.Runtime.Discovery
             Type requestType = genericArguments[0];
             Type responseType = genericArguments[1];
 
-            Type invokerType =
-                typeof(HandlerInvoker<,,>).MakeGenericType(
-                    handlerType,
-                    requestType,
-                    responseType);
+            object handlerInvoker = Activator.CreateInstance(typeof(HandlerInvoker<,,>).MakeGenericType(handlerType, requestType, responseType))!;
 
-            object invoker = Activator.CreateInstance(invokerType)!;
+            object pipelineInvoker = Activator.CreateInstance(typeof(PipelineInvoker<,,>).MakeGenericType(handlerType, requestType, responseType))!;
 
             handlers.Add(
                 new HandlerDescriptor(
                     requestType,
                     handlerType,
-                    invoker));
+                    handlerInvoker,
+                    pipelineInvoker));
         }
 
         private static void RegisterModuleQueryHandler(Type handlerType, Type implementedInterface, List<HandlerDescriptor> handlers)
@@ -138,7 +135,8 @@ namespace JobWize.Runtime.Discovery
                 new HandlerDescriptor(
                     requestType,
                     handlerType,
-                    invoker));
+                    invoker,
+                    null));
         }
 
         private static void RegisterNotificationHandler(Type handlerType, Type implementedInterface, List<HandlerDescriptor> notificationHandlers)
@@ -156,7 +154,8 @@ namespace JobWize.Runtime.Discovery
                 new HandlerDescriptor(
                     requestType,
                     handlerType,
-                    invoker));
+                    invoker,
+                    null));
         }
     }
 }
