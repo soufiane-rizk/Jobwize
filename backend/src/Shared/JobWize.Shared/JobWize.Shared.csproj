@@ -15,8 +15,5 @@
     <ProjectReference Include="..\..\Runtime\JobWize.Runtime\JobWize.Runtime.csproj" />
     <ProjectReference Include="..\JobWize.Shared.Contracts\JobWize.Shared.Contracts.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Infrastructure\Dispatching\" />
-  </ItemGroup>
 </Project>
 

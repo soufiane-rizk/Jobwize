@@ -2,9 +2,12 @@
 using JobWize.Runtime.Contracts.Dispatching;
 using JobWize.Runtime.Contracts.Modules;
 using JobWize.Runtime.Contracts.Pipelines;
+using JobWize.Runtime.Contracts.Transactions;
 using JobWize.Runtime.Dispatching;
 using JobWize.Runtime.Execution;
+using JobWize.Runtime.Pipelines;
 using JobWize.Runtime.Registration;
+using JobWize.Runtime.Transactions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -40,6 +43,8 @@ namespace JobWize.Runtime.DependencyInjection
 
             services.AddSingleton(options);
 
+            services.AddScoped<ITransactionManager, MonolithTransactionManager>();
+
             return services;
         }
 
@@ -54,11 +59,12 @@ namespace JobWize.Runtime.DependencyInjection
 
         private static void AddPipelines(IServiceCollection services, RuntimeOptions options)
         {
-            foreach (Type behavior in options.PipelineBehaviors)
-            {
-                services.AddScoped(typeof(IPipelineBehavior<,>), behavior);
-            }
+            //foreach (Type behavior in options.PipelineBehaviors)
+            //{
+            //    services.AddScoped(typeof(IPipelineBehavior<,>), behavior);
+            //}
 
+            services.AddScoped<IPipelineResolver, PipelineResolver>();
             services.AddScoped<IPipelineExecutor, PipelineExecutor>();
         }
 

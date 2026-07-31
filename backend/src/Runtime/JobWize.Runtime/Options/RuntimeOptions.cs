@@ -1,4 +1,5 @@
 ﻿using JobWize.Runtime.Contracts.DependencyInjection;
+using JobWize.Runtime.Contracts.Pipelines;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
@@ -21,9 +22,32 @@ namespace JobWize.Runtime.Contracts.Modules
             return this;
         }
 
-        public RuntimeOptions AddPipeline<TBehavior>()
+        public RuntimeOptions AddPipeline(Type behaviorType)
         {
-            _pipelineBehaviors.Add(typeof(TBehavior));
+            ArgumentNullException.ThrowIfNull(behaviorType);
+
+            if (!behaviorType.IsGenericTypeDefinition)
+            {
+                throw new ArgumentException(
+                    $"Pipeline behavior '{behaviorType.Name}' must be an open generic type.",
+                    nameof(behaviorType));
+            }
+
+            Type pipelineBehavior = typeof(IPipelineBehavior<,>);
+
+            bool implementsPipeline = behaviorType
+                .GetInterfaces()
+                .Any(i => i.IsGenericType &&
+                          i.GetGenericTypeDefinition() == pipelineBehavior);
+
+            if (!implementsPipeline)
+            {
+                throw new ArgumentException(
+                    $"Pipeline behavior '{behaviorType.Name}' must implement {pipelineBehavior.Name}.",
+                    nameof(behaviorType));
+            }
+
+            _pipelineBehaviors.Add(behaviorType);
 
             return this;
         }

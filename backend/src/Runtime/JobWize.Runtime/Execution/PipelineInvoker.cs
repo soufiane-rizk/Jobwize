@@ -1,6 +1,7 @@
 ﻿using JobWize.Runtime.Contracts.Pipelines;
 using JobWize.Runtime.Contracts.Requests;
 using JobWize.Runtime.Discovery;
+using JobWize.Runtime.Pipelines;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;

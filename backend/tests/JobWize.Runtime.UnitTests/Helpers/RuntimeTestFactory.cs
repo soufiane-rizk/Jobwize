@@ -1,7 +1,9 @@
 ﻿using JobWize.ModuleOne;
 using JobWize.ModuleTwo;
 using JobWize.Runtime.Contracts.Dispatching;
+using JobWize.Runtime.Contracts.Modules;
 using JobWize.Runtime.Execution;
+using JobWize.Runtime.Pipelines;
 using JobWize.Runtime.Registration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,13 +12,26 @@ namespace JobWize.Runtime.UnitTests.Helpers;
 
 internal static class RuntimeTestFactory
 {
-    private static (ModuleRuntime Runtime, ServiceProvider Provider) Create(Action<IServiceCollection>? configureServices = null)
+    private static (ModuleRuntime Runtime, ServiceProvider Provider) Create(Action<IServiceCollection>? configureServices = null, params Type[] pipelineBehaviors)
     {
         ModuleOneModule module = new();
 
         ServiceCollection services = [];
 
+        RuntimeOptions options = new();
+
+        options.AddModule(module);
+
+        foreach (Type pipeline in pipelineBehaviors)
+        {
+            options.AddPipeline(pipeline);
+        }
+
+        services.AddSingleton(options);
+
         services.AddSingleton<IDispatcher, FakeDispatcher>();
+
+        services.AddScoped<IPipelineResolver, PipelineResolver>();
         services.AddScoped<IPipelineExecutor, PipelineExecutor>();
 
         configureServices?.Invoke(services);
@@ -39,9 +54,9 @@ internal static class RuntimeTestFactory
         return Create().Runtime;
     }
 
-    public static (ModuleRuntime Runtime, ServiceProvider Provider) CreateModuleOneRuntimeWithProvider(Action<IServiceCollection>? configureServices = null)
+    public static (ModuleRuntime Runtime, ServiceProvider Provider) CreateModuleOneRuntimeWithProvider(Action<IServiceCollection>? configureServices = null, params Type[] pipelineBehaviors)
     {
-        return Create(configureServices);
+        return Create(configureServices, pipelineBehaviors);
     }
 
     public static (ModuleRuntime Runtime, ServiceProvider Provider) CreateModuleOneRuntimeWithAllModules()
@@ -53,7 +68,7 @@ internal static class RuntimeTestFactory
         IConfiguration configuration = new ConfigurationBuilder().Build();
 
         services.AddSingleton<IDispatcher, FakeDispatcher>();
-
+        services.AddScoped<IPipelineResolver, PipelineResolver>();
         services.AddScoped<IPipelineExecutor, PipelineExecutor>();
 
         moduleOne.ConfigureServices(services, configuration);
