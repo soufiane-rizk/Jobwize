@@ -8,7 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace JobWize.Runtime.UnitTests.Transactions
+namespace JobWize.Runtime.UnitTests.Behaviors
 {
     public sealed class TransactionBehaviorTests
     {
