@@ -51,11 +51,35 @@ namespace JobWize.Shared.Endpoints
 
         private static ProblemDetails CreateProblem(Error error)
         {
-            return new ProblemDetails
+            ProblemDetails problem = new()
             {
-                Title = error.Code,
+                Title = GetTitle(error.Type),
                 Detail = error.Message
             };
+
+            problem.Extensions["code"] = error.Code;
+
+            if (error.Details is not null && error.Details is { Count: > 0 })
+            {
+                problem.Extensions["errors"] = error.Details
+                    .GroupBy(x => x.Field)
+                    .ToDictionary(
+                        group => group.Key,
+                        group => group.Select(x => x.Message).ToArray());
+            }
+
+            return problem;
         }
+
+        private static string GetTitle(ErrorType type) =>
+            type switch
+            {
+                ErrorType.Validation => "Validation failed",
+                ErrorType.Conflict => "Conflict",
+                ErrorType.NotFound => "Resource not found",
+                ErrorType.Unauthorized => "Unauthorized",
+                ErrorType.Forbidden => "Forbidden",
+                _ => "Unexpected error"
+            };
     }
 }

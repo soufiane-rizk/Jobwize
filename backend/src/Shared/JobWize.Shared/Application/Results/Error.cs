@@ -4,5 +4,5 @@ using System.Text;
 
 namespace JobWize.Shared.Application.Results
 {
-    public sealed record Error(string Code, string Message, ErrorType Type);
+    public sealed record Error(string Code, string Message, ErrorType Type, IReadOnlyCollection<ErrorDetail>? Details = null);
 }
