@@ -32,7 +32,7 @@ The Application layer is **not** responsible for:
 
 ---
 
-# Request Execution
+# Request Processing
 
 Application requests enter through the `IDispatcher`.
 
@@ -53,9 +53,9 @@ flowchart TD
 
     DISPATCHER["IDispatcher"]
 
-    VALIDATION["Validation Pipeline"]
+    VALIDATION["ValidationBehavior"]
 
-    TRANSACTION["Transaction Pipeline"]
+    TRANSACTION["TransactionBehavior"]
 
     HANDLER["Handler"]
 
@@ -108,6 +108,73 @@ Queries follow the same lifecycle except that they do not execute inside a trans
 
 ---
 
+# Request Pipeline
+
+Every request passes through a configurable pipeline before reaching its handler.
+
+Pipeline behaviors encapsulate cross-cutting concerns independently of business logic. Each behavior has a single responsibility and may either continue execution or terminate the pipeline early.
+
+The current pipeline consists of:
+
+-   ValidationBehavior
+-   TransactionBehavior
+
+Additional behaviors, such as authorization, logging, metrics or caching, can be introduced without modifying existing handlers.
+
+---
+
+## ValidationBehavior
+
+Validation executes before any business logic.
+
+Its responsibility is to verify that a request is structurally valid before the use case begins.
+
+Typical validation rules include:
+
+-   Required fields.
+-   Email format.
+-   String length.
+-   Numeric ranges.
+-   Enumeration values.
+
+If validation fails:
+
+-   The handler is never executed.
+-   No transaction is started.
+-   A failed `Result` containing all validation errors is returned.
+
+Validation rules should only verify the structure of a request.
+
+Business rules belong to the Domain Model.
+
+Examples that are **not** validation:
+
+-   Email already exists.
+-   User is already suspended.
+-   Company has already been deleted.
+
+---
+
+## TransactionBehavior
+
+Every command executes inside a single transaction.
+
+The transaction begins only after validation succeeds.
+
+The transaction encompasses:
+
+-   The command handler.
+-   Persistence of application data.
+-   All notification handlers executed by the configured Runtime Execution Model.
+
+The transaction commits only after the entire in-process execution completes successfully.
+
+If the handler returns a failed `Result`, or an exception is thrown, the transaction is rolled back.
+
+Queries execute without a transaction.
+
+---
+
 # Use Cases
 
 Each handler implements exactly one business use case.
@@ -147,39 +214,13 @@ Handlers should never contain:
 
 ---
 
-# Validation
-
-Validation is performed before the handler executes.
-
-Validation verifies that a request is structurally valid.
-
-Examples include:
-
--   Required fields.
--   Email format.
--   String length.
--   Numeric ranges.
--   Enumeration values.
-
-Validation should not perform business rule verification.
-
-Business rules belong to the Domain Model.
-
-Examples that are **not** validation:
-
--   Email already exists.
--   User is already suspended.
--   Company has already been deleted.
-
----
-
 # Domain Models
 
 Business behavior belongs to Domain Models.
 
 Handlers coordinate Domain Models but do not implement their business invariants.
 
-When a business rule is violated, the Domain Model throws a `BusinessRuleViolationException`.
+Domain Models are responsible for protecting the consistency of the business model and enforcing business rules.
 
 ---
 
@@ -195,22 +236,6 @@ Examples include:
 -   Accessing the current authenticated user.
 
 These responsibilities belong to application services that are injected into the handler through abstractions.
-
----
-
-# Transactions
-
-Every command executes inside a single transaction.
-
-The transaction encompasses:
-
--   The command handler.
--   All notification handlers executed by the configured execution model.
--   Persistence of application data.
-
-The transaction commits only after all in-process work completes successfully.
-
-Queries execute without a transaction.
 
 ---
 
@@ -232,11 +257,13 @@ The complete event lifecycle is described in **07 - Event Processing**.
 
 Every handler returns a `Result`.
 
-A `Result` represents the outcome of the use case rather than the HTTP response.
+A `Result` represents the outcome of the business use case rather than the transport protocol.
 
-Future versions may introduce additional result statuses, such as user confirmation, without changing handler implementations.
+The Application layer never returns HTTP responses directly.
 
 The API layer is responsible for translating application results into the appropriate HTTP responses.
+
+Future versions may introduce additional result statuses without changing handler implementations.
 
 ---
 
@@ -244,12 +271,16 @@ The API layer is responsible for translating application results into the approp
 
 Expected failures are represented through predefined `Error` objects.
 
-Each error has a globally unique code.
+Each error contains:
+
+-   A unique error code.
+-   A human-readable message.
+-   An error type.
 
 Example:
 
 ```text
-identity.email_already_exists
+Identity.EmailAlreadyExists
 ```
 
 Errors should be declared once and reused throughout the application.
@@ -262,26 +293,12 @@ Exceptions represent situations that cannot be expressed as expected application
 
 Typical examples include:
 
--   Business rule violations.
 -   Infrastructure failures.
--   Unexpected application errors.
+-   Unexpected runtime errors.
+-   Invalid application state.
+-   Programming errors.
 
-The API layer is responsible for translating exceptions into HTTP error responses.
-
----
-
-# Pipeline Behaviors
-
-Cross-cutting concerns are implemented through pipeline behaviors.
-
-Examples include:
-
--   Validation.
--   Transactions.
--   Logging.
--   Metrics.
-
-Business logic should never be implemented inside pipeline behaviors.
+The API layer is responsible for translating exceptions into appropriate HTTP error responses.
 
 ---
 
@@ -308,8 +325,9 @@ The Application layer follows these principles:
 -   Handlers orchestrate rather than implement business rules.
 -   Business behavior belongs to Domain Models.
 -   Validation verifies structure, not business rules.
+-   Commands are validated before execution.
+-   Commands execute inside a single transaction.
 -   Expected outcomes return `Result`.
 -   Unexpected situations raise exceptions.
--   Commands execute inside a single transaction.
 -   Cross-cutting concerns belong to pipeline behaviors.
 -   Communication and notification publishing occur exclusively through Runtime abstractions.
