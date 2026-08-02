@@ -1,4 +1,5 @@
-﻿using JobWize.ModuleOne.Contracts;
+﻿using FluentValidation;
+using JobWize.ModuleOne.Contracts;
 using JobWize.Runtime.Contracts.Dispatching;
 using JobWize.Runtime.Contracts.Notifications;
 using JobWize.Shared.Application.Results;

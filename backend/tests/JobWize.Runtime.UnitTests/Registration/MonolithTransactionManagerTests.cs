@@ -7,7 +7,7 @@ using System.Text;
 
 namespace JobWize.Runtime.UnitTests.Registration
 {
-    internal sealed class MonolithTransactionManagerTests
+    public sealed class MonolithTransactionManagerTests
     {
         [Fact]
         public async Task BeginAsync_Should_Begin_All_Transaction_Contexts()

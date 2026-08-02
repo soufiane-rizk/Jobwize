@@ -1,4 +1,5 @@
-﻿using JobWize.Modules.Identity.Infrastructure;
+﻿using JobWize.Modules.Identity.Application;
+using JobWize.Modules.Identity.Infrastructure;
 using JobWize.Modules.Identity.Persistence;
 using JobWize.Runtime.Registration;
 using JobWize.Shared.Endpoints;
@@ -17,6 +18,8 @@ namespace JobWize.Modules.Identity
 
         protected override void Configure(IServiceCollection services, IConfiguration configuration)
         {
+            services.AddApplication(configuration);
+
             services.AddPersistence(configuration);
 
             services.AddInfrastructure(configuration);

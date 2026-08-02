@@ -1,3 +1,4 @@
+using FluentValidation;
 using JobWize.Modules.Identity;
 using JobWize.Runtime.Contracts.DependencyInjection;
 using JobWize.Runtime.Contracts.Modules;
@@ -8,6 +9,7 @@ using JobWize.Shared;
 using JobWize.Shared.Endpoints;
 using JobWize.Shared.Runtime.Behaviors;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using System.Globalization;
 using System.Text.Json;
 
 namespace JobWize.Api
@@ -28,11 +30,15 @@ namespace JobWize.Api
                     options
                         .AddModule(new IdentityModule())
 
+                        .AddPipeline(typeof(ValidationBehavior<,>))
                         .AddPipeline(typeof(TransactionBehavior<,>));
                 });
 
             services.AddShared();
             services.AddApi(configuration);
+
+            ValidatorOptions.Global.LanguageManager.Enabled = true;
+            ValidatorOptions.Global.LanguageManager.Culture = new CultureInfo("en");
 
             WebApplication app = builder.Build();
 
