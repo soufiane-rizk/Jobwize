@@ -1,0 +1,68 @@
+﻿html,
+body {
+    margin: 0;
+    height: 100%;
+}
+
+#app {
+    height: 100%;
+}
+
+.loading-progress {
+    position: absolute;
+    width: 8rem;
+    height: 8rem;
+    inset: 18vh 0 auto;
+    margin: auto;
+}
+
+    .loading-progress circle {
+        fill: none;
+        stroke-width: 0.55rem;
+        transform-origin: center;
+        transform: rotate(-90deg);
+    }
+
+        .loading-progress circle:first-child {
+            stroke: #e5e7eb;
+        }
+
+        .loading-progress circle:last-child {
+            stroke: #2563eb;
+            stroke-linecap: round;
+            stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
+            transition: stroke-dasharray .05s linear;
+        }
+
+.loading-progress-text {
+    position: absolute;
+    inset: calc(18vh + 3rem) 0 auto;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+    .loading-progress-text::after {
+        content: var(--blazor-load-percentage-text, "Loading");
+    }
+
+.loading-title {
+    position: absolute;
+    inset: calc(18vh + 8.8rem) 0 auto;
+    text-align: center;
+    font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #2563eb;
+}
+
+.loading-subtitle {
+    position: absolute;
+    inset: calc(18vh + 11.2rem) 0 auto;
+    text-align: center;
+    font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 400;
+    color: #6b7280;
+}

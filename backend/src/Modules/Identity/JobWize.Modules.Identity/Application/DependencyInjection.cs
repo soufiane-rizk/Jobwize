@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using JobWize.Modules.Identity.Application.Authentication;
 using JobWize.Modules.Identity.Persistence;
 using JobWize.Runtime.Contracts.Transactions;
 using Microsoft.Extensions.Configuration;
@@ -14,6 +15,9 @@ namespace JobWize.Modules.Identity.Application
         public static IServiceCollection AddApplication(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly, includeInternalTypes: true);
+
+            services.AddScoped<IAuthenticationSessionService, AuthenticationSessionService>();
+
             return services;
         }
     }

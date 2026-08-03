@@ -16,17 +16,7 @@ namespace JobWize.Shared.Endpoints
                 return Results.NoContent();
             }
 
-            return result.Error.Type switch
-            {
-                ErrorType.Validation => Results.BadRequest(CreateProblem(result.Error)),
-                ErrorType.Conflict => Results.Conflict(CreateProblem(result.Error)),
-                ErrorType.NotFound => Results.NotFound(CreateProblem(result.Error)),
-                ErrorType.Unauthorized => Results.Unauthorized(),
-                ErrorType.Forbidden => Results.Forbid(),
-                _ => Results.Problem(
-                    title: result.Error.Code,
-                    detail: result.Error.Message)
-            };
+            return ToFailureResult(result.Error);
         }
 
         public static IResult ToApiResult<T>(this Result<T> result)
@@ -36,17 +26,30 @@ namespace JobWize.Shared.Endpoints
                 return Results.Ok(result.Value);
             }
 
-            return result.Error.Type switch
+            return ToFailureResult(result.Error);
+        }
+
+        private static IResult ToFailureResult(Error error)
+        {
+            return error.Type switch
             {
-                ErrorType.Validation => Results.BadRequest(CreateProblem(result.Error)),
-                ErrorType.Conflict => Results.Conflict(CreateProblem(result.Error)),
-                ErrorType.NotFound => Results.NotFound(CreateProblem(result.Error)),
-                ErrorType.Unauthorized => Results.Unauthorized(),
-                ErrorType.Forbidden => Results.Forbid(),
+                ErrorType.Validation => Problem(error, StatusCodes.Status400BadRequest),
+                ErrorType.Conflict => Problem(error, StatusCodes.Status409Conflict),
+                ErrorType.NotFound => Problem(error, StatusCodes.Status404NotFound),
+                ErrorType.Unauthorized => Problem(error, StatusCodes.Status401Unauthorized),
+                ErrorType.Forbidden => Problem(error, StatusCodes.Status403Forbidden),
+
                 _ => Results.Problem(
-                    title: result.Error.Code,
-                    detail: result.Error.Message)
+                    title: error.Code,
+                    detail: error.Message)
             };
+        }
+
+        private static IResult Problem(Error error, int statusCode)
+        {
+            return Results.Json(
+                CreateProblem(error),
+                statusCode: statusCode);
         }
 
         private static ProblemDetails CreateProblem(Error error)
@@ -59,7 +62,7 @@ namespace JobWize.Shared.Endpoints
 
             problem.Extensions["code"] = error.Code;
 
-            if (error.Details is not null && error.Details is { Count: > 0 })
+            if (error.Details is not null && error.Details.Count > 0)
             {
                 problem.Extensions["errors"] = error.Details
                     .GroupBy(x => x.Field)

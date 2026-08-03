@@ -1,0 +1,100 @@
+﻿@attribute [Route(IdentityRoutes.Login)]
+
+@using JobWize.Frontend.Modules.Identity
+@using JobWize.Modules.Identity.Contracts.Public.Authentication
+@using LoginContract = JobWize.Modules.Identity.Contracts.Public.Authentication.Login
+
+@inject AuthenticationService AuthenticationService
+
+<PageTitle>Login</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="mt-12">
+
+    <MudPaper Class="pa-6">
+
+        <MudText Typo="Typo.h4" Class="mb-4">
+            Login
+        </MudText>
+
+        <MudForm>
+
+            <MudTextField @bind-Value="_model.Username"
+                          Label="Username"
+                          Variant="Variant.Outlined"
+                          FullWidth="true"
+                          Class="mb-3" />
+
+            <MudTextField @bind-Value="_model.Password"
+                          Label="Password"
+                          InputType="InputType.Password"
+                          Variant="Variant.Outlined"
+                          FullWidth="true"
+                          Class="mb-4" />
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       FullWidth="true"
+                       Loading="_isLoading"
+                       OnClick="LoginAsync">
+
+                Login
+
+            </MudButton>
+
+        </MudForm>
+
+        @if (_result is not null)
+        {
+            <MudAlert Severity="@(_result.IsSuccess ? Severity.Success : Severity.Error)"
+                      Class="mt-4">
+
+                @if (_result.IsSuccess)
+                {
+                    <MudText>
+                        Welcome @_result.Value!.FirstName!
+                    </MudText>
+                }
+                else
+                {
+                    <MudText>
+                        @_result.Error!.Message
+                    </MudText>
+                }
+
+            </MudAlert>
+        }
+
+    </MudPaper>
+
+</MudContainer>
+
+@code
+{
+    private sealed class Model
+    {
+        public string Username { get; set; } = string.Empty;
+
+        public string Password { get; set; } = string.Empty;
+    }
+
+    private readonly Model _model = new();
+
+    private bool _isLoading;
+
+    private Result<AuthenticationResponse>? _result;
+
+
+    private async Task LoginAsync()
+    {
+        _isLoading = true;
+
+        try
+        {
+            _result = await AuthenticationService.LoginAsync(_model.Username, _model.Password);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

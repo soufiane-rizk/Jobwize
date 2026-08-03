@@ -1,0 +1,100 @@
+﻿@using Microsoft.AspNetCore.Components
+@using JobWize.Frontend.Shared.Api
+
+@inherits ErrorBoundaryBase
+
+@if (CurrentException is null)
+{
+    @ChildContent
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+
+        <MudPaper Class="pa-6">
+
+            <MudText Typo="Typo.h4" Color="Color.Error">
+                Unhandled exception
+            </MudText>
+
+            <MudDivider Class="my-4" />
+
+            <MudText Typo="Typo.subtitle1">
+                <b>Type</b>
+            </MudText>
+
+            <MudText Class="mb-4">
+                @CurrentException.GetType().FullName
+            </MudText>
+
+            <MudText Typo="Typo.subtitle1">
+                <b>Message</b>
+            </MudText>
+
+            <MudText Class="mb-4">
+                @CurrentException.Message
+            </MudText>
+
+            @if (CurrentException is ApiRequestException apiException)
+            {
+                <MudText Typo="Typo.subtitle1">
+                    <b>HTTP Method</b>
+                </MudText>
+
+                <MudText Class="mb-2">
+                    @apiException.HttpMethod
+                </MudText>
+
+                <MudText Typo="Typo.subtitle1">
+                    <b>Route</b>
+                </MudText>
+
+                <MudText Class="mb-4">
+                    @apiException.Route
+                </MudText>
+            }
+
+            @if (CurrentException.InnerException is not null)
+            {
+                <MudText Typo="Typo.subtitle1">
+                    <b>Inner Exception</b>
+                </MudText>
+
+                <MudPaper Outlined="true" Class="pa-3 mb-4">
+
+                    <MudText>
+                        @CurrentException.InnerException.GetType().FullName
+                    </MudText>
+
+                    <MudText>
+                        @CurrentException.InnerException.Message
+                    </MudText>
+
+                </MudPaper>
+            }
+
+            <MudExpansionPanels>
+
+                <MudExpansionPanel Text="Stack trace">
+
+                    <MudText Style="white-space: pre-wrap">
+                        @CurrentException
+                    </MudText>
+
+                </MudExpansionPanel>
+
+            </MudExpansionPanels>
+
+            <MudButton Class="mt-6"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="Reload">
+
+                Reload
+
+            </MudButton>
+
+        </MudPaper>
+
+    </MudContainer>
+}

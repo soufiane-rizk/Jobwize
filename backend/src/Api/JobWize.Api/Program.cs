@@ -40,6 +40,23 @@ namespace JobWize.Api
             ValidatorOptions.Global.LanguageManager.Enabled = true;
             ValidatorOptions.Global.LanguageManager.Culture = new CultureInfo("en");
 
+            string[] allowedOrigins =
+                builder.Configuration
+                    .GetSection("Cors:AllowedOrigins")
+                    .Get<string[]>()
+                ?? [];
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("Frontend", policy =>
+                {
+                    policy
+                        .WithOrigins(allowedOrigins)
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                });
+            });
+
             WebApplication app = builder.Build();
 
             if (app.Environment.IsDevelopment())
@@ -47,6 +64,8 @@ namespace JobWize.Api
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
+
+            app.UseCors("Frontend");
 
             app.MapApi();
 
