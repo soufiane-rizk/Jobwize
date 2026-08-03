@@ -1,5 +1,7 @@
 using JobWize.Frontend;
 using JobWize.Frontend.Modules.Identity;
+using JobWize.Frontend.Shared.Authentication;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
@@ -19,6 +21,11 @@ builder.Services.AddScoped(
     {
         BaseAddress = new Uri(apiBaseAddress)
     });
+
+builder.Services.AddAuthorizationCore();
+builder.Services.AddScoped<ITokenStorage, LocalStorageTokenStorage>();
+builder.Services.AddScoped<JobWizeAuthenticationStateProvider>();
+builder.Services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredService<JobWizeAuthenticationStateProvider>());
 
 builder.Services.AddIdentityModule();
 

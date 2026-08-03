@@ -1,88 +1,90 @@
 ﻿@attribute [Route(IdentityRoutes.Login)]
 
+@using Microsoft.AspNetCore.Components.Authorization
 @using JobWize.Frontend.Modules.Identity
+@using JobWize.Frontend.Modules.Identity.Authentication
 @using JobWize.Modules.Identity.Contracts.Public.Authentication
-@using LoginContract = JobWize.Modules.Identity.Contracts.Public.Authentication.Login
 
 @inject AuthenticationService AuthenticationService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
 
 <PageTitle>Login</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="mt-12">
-
-    <MudPaper Class="pa-6">
+@if (!_initialized)
+{
+    <MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="mt-12 d-flex justify-center">
+        <MudProgressCircular Indeterminate="true" />
+    </MudContainer>
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="mt-12">
 
         <MudText Typo="Typo.h4" Class="mb-4">
             Login
         </MudText>
 
-        <MudForm>
+        <MudTextField @bind-Value="_model.Username"
+                      Label="Username"
+                      Variant="Variant.Outlined"
+                      FullWidth="true"
+                      Class="mb-3" />
 
-            <MudTextField @bind-Value="_model.Username"
-                          Label="Username"
-                          Variant="Variant.Outlined"
-                          FullWidth="true"
-                          Class="mb-3" />
+        <MudTextField @bind-Value="_model.Password"
+                      Label="Password"
+                      InputType="InputType.Password"
+                      Variant="Variant.Outlined"
+                      FullWidth="true"
+                      Class="mb-4" />
 
-            <MudTextField @bind-Value="_model.Password"
-                          Label="Password"
-                          InputType="InputType.Password"
-                          Variant="Variant.Outlined"
-                          FullWidth="true"
-                          Class="mb-4" />
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   FullWidth="true"
+                   Disabled="_isLoading"
+                   OnClick="LoginAsync">
 
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       FullWidth="true"
-                       Loading="_isLoading"
-                       OnClick="LoginAsync">
+            Login
 
-                Login
-
-            </MudButton>
-
-        </MudForm>
+        </MudButton>
 
         @if (_result is not null)
         {
             <MudAlert Severity="@(_result.IsSuccess ? Severity.Success : Severity.Error)"
                       Class="mt-4">
 
-                @if (_result.IsSuccess)
-                {
-                    <MudText>
-                        Welcome @_result.Value!.FirstName!
-                    </MudText>
-                }
-                else
-                {
-                    <MudText>
-                        @_result.Error!.Message
-                    </MudText>
-                }
+                @(_result.IsSuccess
+                    ? $"Welcome {_result.Value?.FirstName}"
+                    : _result.Error?.Message)
 
             </MudAlert>
         }
 
-    </MudPaper>
-
-</MudContainer>
+    </MudContainer>
+}
 
 @code
 {
-    private sealed class Model
-    {
-        public string Username { get; set; } = string.Empty;
+    private readonly LoginModel _model = new();
 
-        public string Password { get; set; } = string.Empty;
-    }
-
-    private readonly Model _model = new();
-
+    private bool _initialized;
     private bool _isLoading;
 
     private Result<AuthenticationResponse>? _result;
 
+    protected override async Task OnInitializedAsync()
+    {
+        AuthenticationState authenticationState =
+            await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+        if (authenticationState.User.Identity?.IsAuthenticated == true)
+        {
+            Navigation.NavigateTo("/", replace: true);
+            return;
+        }
+
+        _initialized = true;
+    }
 
     private async Task LoginAsync()
     {
@@ -90,11 +92,25 @@
 
         try
         {
-            _result = await AuthenticationService.LoginAsync(_model.Username, _model.Password);
+            _result = await AuthenticationService.LoginAsync(
+                _model.Username,
+                _model.Password);
+
+            if (_result.IsSuccess)
+            {
+                Navigation.NavigateTo("/", replace: true);
+            }
         }
         finally
         {
             _isLoading = false;
         }
+    }
+
+    private sealed class LoginModel
+    {
+        public string Username { get; set; } = string.Empty;
+
+        public string Password { get; set; } = string.Empty;
     }
 }

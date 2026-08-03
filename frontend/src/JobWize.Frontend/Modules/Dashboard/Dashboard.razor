@@ -1,0 +1,42 @@
+﻿@page "/"
+@using JobWize.Frontend.Modules.Identity
+@using JobWize.Frontend.Modules.Identity.Authentication
+@attribute [Authorize]
+
+@inject AuthenticationService AuthenticationService
+@inject NavigationManager Navigation
+
+<PageTitle>Dashboard</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+
+    <MudStack Spacing="3">
+
+        <MudText Typo="Typo.h4">
+            Welcome
+        </MudText>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Error"
+                   OnClick="LogoutAsync">
+
+            Logout
+
+        </MudButton>
+
+    </MudStack>
+
+</MudContainer>
+
+@code
+{
+    private async Task LogoutAsync()
+    {
+        Result result = await AuthenticationService.LogoutAsync();
+
+        if (result.IsSuccess)
+        {
+            Navigation.NavigateTo(IdentityRoutes.Login, replace: true);
+        }
+    }
+}

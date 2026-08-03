@@ -1,10 +1,32 @@
-﻿<ApplicationErrorBoundary>
+﻿@using JobWize.Frontend.Shared.Authentication
 
-    <Router AppAssembly="@typeof(App).Assembly">
-        <Found Context="routeData">
-            <RouteView RouteData="@routeData" DefaultLayout="@typeof(Shared.Layout.MainLayout)" />
-            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-        </Found>
-    </Router>
+<ApplicationErrorBoundary>
+    <CascadingAuthenticationState>
+        <Router AppAssembly="@typeof(App).Assembly">
+            <Found Context="routeData">
+                <AuthorizeRouteView
+                    RouteData="@routeData"
+                    DefaultLayout="@typeof(Shared.Layout.MainLayout)">
 
+                    <NotAuthorized>
+                        <RedirectToLogin />
+                    </NotAuthorized>
+
+                </AuthorizeRouteView>
+
+                <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+            </Found>
+
+            <NotFound>
+                <LayoutView Layout="@typeof(Shared.Layout.MainLayout)">
+                    <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+                        <MudAlert Severity="Severity.Error">
+                            The requested page could not be found.
+                        </MudAlert>
+                    </MudContainer>
+                </LayoutView>
+            </NotFound>
+
+        </Router>
+    </CascadingAuthenticationState>
 </ApplicationErrorBoundary>

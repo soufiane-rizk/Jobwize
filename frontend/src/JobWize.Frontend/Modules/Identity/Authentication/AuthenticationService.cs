@@ -1,4 +1,5 @@
 ﻿using JobWize.Frontend.Shared.Api;
+using JobWize.Frontend.Shared.Authentication;
 using JobWize.Frontend.Shared.Results;
 using JobWize.Modules.Identity.Contracts.Public.Authentication;
 
@@ -9,36 +10,60 @@ namespace JobWize.Frontend.Modules.Identity.Authentication
 {
     public class AuthenticationService : ApiService
     {
-        public AuthenticationService(HttpClient httpClient)
+        private readonly JobWizeAuthenticationStateProvider _authenticationStateProvider;
+
+        public AuthenticationService(HttpClient httpClient, JobWizeAuthenticationStateProvider authenticationStateProvider)
             : base(httpClient)
         {
+            _authenticationStateProvider = authenticationStateProvider;
         }
-    
 
-        public Task<Result<AuthenticationResponse>> LoginAsync(string username, string password, CancellationToken cancellationToken = default)
+        public async Task<Result<AuthenticationResponse>> LoginAsync(string username, string password, CancellationToken cancellationToken = default)
         {
             var request = new LoginContract.Request(username, password);
 
-            return PostAsync<LoginContract.Request, AuthenticationResponse>(
-                LoginContract.Route,
-                request,
-                cancellationToken);
+            var result = await PostAsync<LoginContract.Request, AuthenticationResponse>(LoginContract.Route, request, cancellationToken);
+
+            if (result.IsSuccess && result.Value != null)
+            {
+                await _authenticationStateProvider.AuthenticateAsync(
+                    new AuthenticationTokens(
+                        result.Value.AccessToken,
+                        result.Value.RefreshToken));
+            }
+
+            return result;
         }
 
-        public Task<Result<AuthenticationResponse>> RegisterCandidateAsync(RegisterCandidateContract.Request request, CancellationToken cancellationToken = default)
+        public async Task<Result<AuthenticationResponse>> RegisterCandidateAsync(RegisterCandidateContract.Request request, CancellationToken cancellationToken = default)
         {
-            return PostAsync<RegisterCandidateContract.Request, AuthenticationResponse>(
-                RegisterCandidateContract.Route,
-                request,
-                cancellationToken);
+            var result = await PostAsync<RegisterCandidateContract.Request, AuthenticationResponse>(RegisterCandidateContract.Route, request, cancellationToken);
+
+            if (result.IsSuccess && result.Value != null)
+            {
+                await _authenticationStateProvider.AuthenticateAsync(
+                    new AuthenticationTokens(
+                        result.Value.AccessToken,
+                        result.Value.RefreshToken));
+            }
+
+            return result;
         }
 
-        public Task<Result> LogoutAsync(CancellationToken cancellationToken = default)
+        public async Task<Result> LogoutAsync(CancellationToken cancellationToken = default)
         {
-            return PostAsync(
-                "/api/identity/authentication/logout",
-                new { },
-                cancellationToken);
+            //var result = await PostAsync("/api/identity/authentication/logout", new { }, cancellationToken);
+
+            //if (result.IsSuccess)
+            //{
+            //    await _authenticationStateProvider.LogoutAsync();
+            //}
+
+            //return result;
+
+            await _authenticationStateProvider.LogoutAsync();
+
+            return Result.Success();
         }
     }
 }
