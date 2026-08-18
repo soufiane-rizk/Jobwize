@@ -9,9 +9,7 @@ namespace JobWize.Modules.Identity.Persistence
     public interface IUserRepository
     {
         Task<User?> GetByIdAsync(Guid userId, CancellationToken cancellationToken = default);
-
         Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
-
         Task SaveAsync(User user, CancellationToken cancellationToken = default);
     }
 

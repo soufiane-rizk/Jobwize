@@ -15,7 +15,7 @@ namespace JobWize.Modules.Identity.Application
                 $"The email is already registered.",
                 ErrorType.Conflict);
 
-        public static readonly Error InvalidCredentials =
+        public static Error InvalidCredentials =
             new(
                 $"{Prefix}.InvalidCredentials",
                 "The email or password is incorrect.",

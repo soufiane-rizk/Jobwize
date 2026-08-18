@@ -1,5 +1,4 @@
 ﻿using FluentValidation;
-using JobWize.Modules.Identity.Application.Authentication;
 using JobWize.Modules.Identity.Contracts.Events.Authentication;
 using JobWize.Modules.Identity.Contracts.Public.Authentication;
 using JobWize.Modules.Identity.Infrastructure.Authentication;
@@ -13,42 +12,23 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Options;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using static JobWize.Modules.Identity.Contracts.Public.Authentication.RegisterCandidate;
+using static JobWize.Modules.Identity.Contracts.Public.Authentication.Login;
 
-namespace JobWize.Modules.Identity.Application.User
+namespace JobWize.Modules.Identity.Application.Authentication
 {
-    public static class RegisterCandidate
+    public static class Login
     {
-        internal sealed record Command(
-            string Email,
-            string Password,
-            string FirstName,
-            string LastName) : ICommand<AuthenticationResponse>;
+        internal sealed record Command(string Username, string Password) : ICommand<AuthenticationResponse>;
 
         internal sealed class Validator : AbstractValidator<Command>
         {
             public Validator()
             {
-                RuleFor(command => command.Email)
-                    .NotEmpty()
-                    .EmailAddress()
-                    .MaximumLength(255);
+                RuleFor(x => x.Username)
+                    .NotEmpty();
 
-                RuleFor(command => command.Password)
-                    .NotEmpty()
-                    .MinimumLength(8)
-                    .MaximumLength(100);
-
-                RuleFor(command => command.FirstName)
-                    .NotEmpty()
-                    .MaximumLength(100);
-
-                RuleFor(command => command.LastName)
-                    .NotEmpty()
-                    .MaximumLength(100);
+                RuleFor(x => x.Password)
+                    .NotEmpty();
             }
         }
 
@@ -57,23 +37,15 @@ namespace JobWize.Modules.Identity.Application.User
             public void MapEndpoint(IEndpointRouteBuilder app)
             {
                 app.MapPost(
-                    Contracts.Public.Authentication.RegisterCandidate.Route,
-                    async (
-                        Request request,
-                        IDispatcher dispatcher,
-                        CancellationToken cancellationToken) =>
+                    Contracts.Public.Authentication.Login.Route,
+                    async (Request request, IDispatcher dispatcher, CancellationToken cancellationToken) =>
                     {
-                        var command = new Command(
-                            request.Email,
-                            request.Password,
-                            request.FirstName,
-                            request.LastName);
-
+                        var command = new Command(request.Username, request.Password);
                         var result = await dispatcher.SendAsync(command, cancellationToken);
 
                         return result.ToApiResult();
                     })
-                    .WithName("RegisterCandidate")
+                    .WithName("Login")
                     .WithTags("Authentication");
             }
         }
@@ -95,24 +67,19 @@ namespace JobWize.Modules.Identity.Application.User
 
             public async Task<Result<AuthenticationResponse>> HandleAsync(Command command, CancellationToken cancellationToken)
             {
-                var existingUser = await _userRepository.GetByEmailAsync(command.Email, cancellationToken);
+                var user = await _userRepository.GetByEmailAsync(command.Username, cancellationToken);
 
-                if (existingUser is not null)
-                    return Result<AuthenticationResponse>.Failure(IdentityErrors.EmailAlreadyExists(command.Email));
+                if (user is null)
+                    return Result<AuthenticationResponse>.Failure(IdentityErrors.InvalidCredentials);
 
-                var passwordHash = _passwordHasher.Hash(command.Password);
+                if (!_passwordHasher.Verify(command.Password, user.PasswordHash))
+                    return Result<AuthenticationResponse>.Failure(IdentityErrors.InvalidCredentials);
 
-                var user = Domain.User.CreateCandidate(
-                    command.Email,
-                    passwordHash,
-                    command.FirstName,
-                    command.LastName);
-
-                var session = await _authenticationSessionService.AuthenticateAsync(
+                    var session = await _authenticationSessionService.AuthenticateAsync(
                     user,
                     cancellationToken);
 
-                await _dispatcher.PublishAsync(new CandidateRegistered(user.Id), cancellationToken);
+                await _dispatcher.PublishAsync(new UserLoggedIn(user.Id), cancellationToken);
 
                 return Result<AuthenticationResponse>.Success(new AuthenticationResponse(
                     session.UserId,

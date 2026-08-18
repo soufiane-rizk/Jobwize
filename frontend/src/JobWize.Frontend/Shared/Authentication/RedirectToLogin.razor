@@ -1,0 +1,16 @@
+﻿@using JobWize.Frontend.Modules.Identity
+@inject NavigationManager Navigation
+
+@code
+{
+    protected override void OnInitialized()
+    {
+        string current =
+            Navigation.ToBaseRelativePath(Navigation.Uri);
+
+        if (!current.StartsWith("login", StringComparison.OrdinalIgnoreCase))
+        {
+            Navigation.NavigateTo(IdentityRoutes.Login, replace: true);
+        }
+    }
+}
