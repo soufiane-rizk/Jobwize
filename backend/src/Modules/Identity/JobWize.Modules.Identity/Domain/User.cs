@@ -64,5 +64,18 @@ namespace JobWize.Modules.Identity.Domain
 
             return refreshToken;
         }
+
+        public void RevokeRefreshToken(string token, DateTime revokedAt)
+        {
+            RefreshToken? refreshToken =
+                _refreshTokens.SingleOrDefault(x => x.Token == token);
+
+            if (refreshToken is null)
+            {
+                return;
+            }
+
+            refreshToken.Revoke(revokedAt);
+        }
     }
 }

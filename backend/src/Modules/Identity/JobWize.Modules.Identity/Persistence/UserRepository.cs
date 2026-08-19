@@ -24,7 +24,9 @@ namespace JobWize.Modules.Identity.Persistence
 
         public async Task<User?> GetByIdAsync(Guid userId, CancellationToken cancellationToken = default)
         {
-            return await _dbContext.Users.FindAsync([userId], cancellationToken);
+            return await _dbContext.Users
+               .Include(x => x.RefreshTokens)
+               .SingleOrDefaultAsync(x => x.Id == userId, cancellationToken);
         }
 
         public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)

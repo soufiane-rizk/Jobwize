@@ -37,6 +37,8 @@ namespace JobWize.Api
             services.AddShared();
             services.AddApi(configuration);
 
+            builder.Services.AddAuthorization();
+
             ValidatorOptions.Global.LanguageManager.Enabled = true;
             ValidatorOptions.Global.LanguageManager.Culture = new CultureInfo("en");
 
@@ -70,6 +72,9 @@ namespace JobWize.Api
             app.MapApi();
 
             app.UseHttpsRedirection();
+
+            app.UseAuthentication();
+            app.UseAuthorization();
 
             app.MapEndpoints();
 
