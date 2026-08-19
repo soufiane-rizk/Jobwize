@@ -6,6 +6,7 @@ namespace JobWize.Frontend.Shared.Authentication
     {
         private readonly ITokenStorage _tokenStorage;
 
+
         public JobWizeAuthenticationStateProvider(ITokenStorage tokenStorage)
         {
             _tokenStorage = tokenStorage;
@@ -21,6 +22,13 @@ namespace JobWize.Frontend.Shared.Authentication
             }
 
             return new AuthenticationState(JwtParser.Parse(tokens.AccessToken));
+        }
+
+        public async Task<string?> GetRefreshTokenAsync()
+        {
+            AuthenticationTokens? tokens = await _tokenStorage.GetAsync();
+
+            return tokens?.RefreshToken;
         }
 
         public async Task AuthenticateAsync(AuthenticationTokens tokens)

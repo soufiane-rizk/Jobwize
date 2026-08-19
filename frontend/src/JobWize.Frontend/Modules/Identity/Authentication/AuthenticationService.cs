@@ -1,4 +1,4 @@
-﻿using JobWize.Frontend.Shared.Api;
+using JobWize.Frontend.Shared.Api;
 using JobWize.Frontend.Shared.Authentication;
 using JobWize.Frontend.Shared.Results;
 using JobWize.Modules.Identity.Contracts.Public.Authentication;
@@ -12,8 +12,8 @@ namespace JobWize.Frontend.Modules.Identity.Authentication
     {
         private readonly JobWizeAuthenticationStateProvider _authenticationStateProvider;
 
-        public AuthenticationService(HttpClient httpClient, JobWizeAuthenticationStateProvider authenticationStateProvider)
-            : base(httpClient)
+        public AuthenticationService(IHttpClientFactory httpClientFactory, JobWizeAuthenticationStateProvider authenticationStateProvider, MudBlazor.ISnackbar snackbar)
+            : base(httpClientFactory, snackbar, authenticationStateProvider)
         {
             _authenticationStateProvider = authenticationStateProvider;
         }
@@ -52,18 +52,23 @@ namespace JobWize.Frontend.Modules.Identity.Authentication
 
         public async Task<Result> LogoutAsync(CancellationToken cancellationToken = default)
         {
-            //var result = await PostAsync("/api/identity/authentication/logout", new { }, cancellationToken);
+            string? refreshToken = await _authenticationStateProvider.GetRefreshTokenAsync();
+            if (refreshToken is null)
+            {
+                await _authenticationStateProvider.LogoutAsync();
+                return Result.Success();
+            }
 
-            //if (result.IsSuccess)
-            //{
-            //    await _authenticationStateProvider.LogoutAsync();
-            //}
+            var request = new Logout.Request(refreshToken);
 
-            //return result;
+            var result = await PostAsync("/api/identity/authentication/logout", request, cancellationToken);
 
-            await _authenticationStateProvider.LogoutAsync();
+            if (result.IsSuccess)
+            {
+                await _authenticationStateProvider.LogoutAsync();
+            }
 
-            return Result.Success();
+            return result;
         }
     }
 }

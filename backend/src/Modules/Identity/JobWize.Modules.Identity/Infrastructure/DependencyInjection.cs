@@ -1,4 +1,4 @@
-﻿using JobWize.Modules.Identity.Infrastructure.Authentication;
+using JobWize.Modules.Identity.Infrastructure.Authentication;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;

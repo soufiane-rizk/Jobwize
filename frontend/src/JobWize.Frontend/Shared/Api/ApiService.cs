@@ -1,11 +1,12 @@
-﻿using JobWize.Frontend.Shared.Results;
+using JobWize.Frontend.Shared.Authentication;
+using JobWize.Frontend.Shared.Results;
 using JobWize.Shared.Contracts.Http.Attributes;
+using MudBlazor;
 using System.Net;
 using System.Net.Http.Json;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-
 using Error = JobWize.Frontend.Shared.Results.Error;
 
 namespace JobWize.Frontend.Shared.Api
@@ -13,11 +14,15 @@ namespace JobWize.Frontend.Shared.Api
     public abstract class ApiService
     {
         protected readonly HttpClient HttpClient;
+        protected readonly ISnackbar Snackbar;
+        private readonly JobWizeAuthenticationStateProvider _authenticationStateProvider;
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-        protected ApiService(HttpClient httpClient)
+        protected ApiService(IHttpClientFactory httpClientFactory, ISnackbar snackbar, JobWizeAuthenticationStateProvider authenticationStateProvider)
         {
-            HttpClient = httpClient;
+            HttpClient = httpClientFactory.CreateClient("Api");
+            Snackbar = snackbar;
+            _authenticationStateProvider = authenticationStateProvider;
         }
 
         protected async Task<Result<TResponse>> GetAsync<TRequest, TResponse>(string route, TRequest request, CancellationToken cancellationToken = default)
@@ -405,14 +410,23 @@ namespace JobWize.Frontend.Shared.Api
                 validationErrors);
         }
 
-        protected virtual Task OnResultReceivedAsync(Result result)
+        protected virtual async Task OnResultReceivedAsync(Result result)
         {
-            return Task.CompletedTask;
+            if (!result.IsFailure)
+                return;
+
+            if (result.Error?.Type == ErrorType.Unauthorized)
+            {
+                await _authenticationStateProvider.LogoutAsync();
+                return;
+            }
+
+            Snackbar.Add(result.Error?.Message ?? "An unknown error occurred.", Severity.Error);
         }
 
         protected virtual Task OnResultReceivedAsync<TResponse>(Result<TResponse> result)
         {
-            return Task.CompletedTask;
+            return OnResultReceivedAsync((Result)result);
         }
     }
 }

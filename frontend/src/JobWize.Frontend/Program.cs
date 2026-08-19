@@ -16,11 +16,16 @@ string apiBaseAddress =
     ?? throw new InvalidOperationException(
         "The API base address is not configured.");
 
-builder.Services.AddScoped(
-    _ => new HttpClient
+
+builder.Services.AddTransient<AuthenticationHandler>();
+
+builder.Services
+    .AddHttpClient("Api", client =>
     {
-        BaseAddress = new Uri(apiBaseAddress)
-    });
+        client.BaseAddress = new Uri(apiBaseAddress);
+    })
+    .AddHttpMessageHandler<AuthenticationHandler>();
+
 
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<ITokenStorage, LocalStorageTokenStorage>();
