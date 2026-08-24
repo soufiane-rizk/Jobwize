@@ -1,0 +1,18 @@
+﻿@if (Loading)
+{
+    <MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="mt-12 d-flex justify-center">
+        <MudProgressCircular Indeterminate="true" />
+    </MudContainer>
+}
+else
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter]
+    public bool Loading { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

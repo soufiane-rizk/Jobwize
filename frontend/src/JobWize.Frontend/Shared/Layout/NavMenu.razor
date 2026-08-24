@@ -1,0 +1,18 @@
+﻿@using JobWize.Frontend.Shared.Navigation
+
+@inject IEnumerable<INavItem> NavItems
+
+<MudNavMenu>
+
+    @foreach (INavItem item in NavItems.OrderBy(x => x.Order))
+    {
+        <MudNavLink Href="@item.Href"
+                    Icon="@item.Icon"
+                    Match="NavLinkMatch.All">
+
+            @item.Label
+
+        </MudNavLink>
+    }
+
+</MudNavMenu>

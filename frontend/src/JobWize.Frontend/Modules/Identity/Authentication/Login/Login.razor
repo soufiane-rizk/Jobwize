@@ -1,6 +1,7 @@
 ﻿@attribute [Route(IdentityRoutes.Login)]
 
 @using Microsoft.AspNetCore.Components.Authorization
+@using JobWize.Frontend.Modules.Dashboard
 @using JobWize.Frontend.Modules.Identity
 @using JobWize.Frontend.Modules.Identity.Authentication
 @using JobWize.Modules.Identity.Contracts.Public.Authentication
@@ -9,59 +10,76 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
 
+@layout Shared.Layout.AuthenticationLayout
+
 <PageTitle>Login</PageTitle>
 
-@if (!_initialized)
-{
-    <MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="mt-12 d-flex justify-center">
-        <MudProgressCircular Indeterminate="true" />
-    </MudContainer>
-}
-else
-{
-    <MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="mt-12">
+<LoadingIndicator Loading="!_initialized">
 
-        <MudText Typo="Typo.h4" Class="mb-4">
-            Login
-        </MudText>
+    <MudPaper Elevation="8" Class="pa-8" Style="width: min(100%, 27rem);">
 
-        <MudTextField @bind-Value="_model.Username"
-                      Label="Username"
-                      Variant="Variant.Outlined"
-                      FullWidth="true"
-                      Class="mb-3" />
+        <MudStack Spacing="3">
 
-        <MudTextField @bind-Value="_model.Password"
-                      Label="Password"
-                      InputType="InputType.Password"
-                      Variant="Variant.Outlined"
-                      FullWidth="true"
-                      Class="mb-4" />
+            <MudStack Spacing="1" AlignItems="AlignItems.Center">
+                <MudAvatar Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           Size="Size.Large"
+                           Style="color: white;">
+                    <MudIcon Icon="@Icons.Material.Filled.Work" />
+                </MudAvatar>
 
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   FullWidth="true"
-                   Disabled="_isLoading"
-                   OnClick="LoginAsync">
+                <MudText Typo="Typo.h4" Align="Align.Center">
+                    Welcome back
+                </MudText>
 
-            Login
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
+                    Sign in to continue to JobWize.
+                </MudText>
+            </MudStack>
 
-        </MudButton>
+            @if (_result?.IsFailure == true)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">
+                    @_result.Error?.Message
+                </MudAlert>
+            }
 
-        @if (_result is not null)
-        {
-            <MudAlert Severity="@(_result.IsSuccess ? Severity.Success : Severity.Error)"
-                      Class="mt-4">
+            <MudTextField @bind-Value="_model.Username"
+                          Label="Username"
+                          Variant="Variant.Outlined"
+                          FullWidth="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Person" />
 
-                @(_result.IsSuccess
-                    ? $"Welcome {_result.Value?.FirstName}"
-                    : _result.Error?.Message)
+            <MudTextField @bind-Value="_model.Password"
+                          Label="Password"
+                          InputType="InputType.Password"
+                          Variant="Variant.Outlined"
+                          FullWidth="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Lock" />
 
-            </MudAlert>
-        }
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       FullWidth="true"
+                       Size="Size.Large"
+                       Disabled="_isLoading"
+                       OnClick="LoginAsync">
 
-    </MudContainer>
-}
+                @if (_isLoading)
+                {
+                    <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Inherit" Class="mr-2" />
+                }
+
+                Sign in
+
+            </MudButton>
+
+        </MudStack>
+
+    </MudPaper>
+
+</LoadingIndicator>
 
 @code
 {
@@ -79,7 +97,7 @@ else
 
         if (authenticationState.User.Identity?.IsAuthenticated == true)
         {
-            Navigation.NavigateTo("/", replace: true);
+            Navigation.NavigateTo(DashboardRoutes.Home, replace: true);
             return;
         }
 
@@ -98,7 +116,7 @@ else
 
             if (_result.IsSuccess)
             {
-                Navigation.NavigateTo("/", replace: true);
+                Navigation.NavigateTo(DashboardRoutes.Home, replace: true);
             }
         }
         finally

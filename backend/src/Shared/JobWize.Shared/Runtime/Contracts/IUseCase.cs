@@ -6,7 +6,7 @@ using System.Text;
 
 namespace JobWize.Shared.Runtime.Contracts
 {
-    public interface IQuery<T> : IUseCase<T>
+    public interface IUseCase<T> : IRequest<Result<T>>
     {
     }
 }

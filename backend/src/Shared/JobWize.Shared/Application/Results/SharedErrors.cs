@@ -10,5 +10,10 @@ namespace JobWize.Shared.Application.Results
             string.Empty,
             string.Empty,
             ErrorType.Failure);
+
+        public static readonly Error Unexpected = new(
+           "Shared.UnexpectedError",
+           "An unexpected error occurred while processing the request.",
+           ErrorType.Failure);
     }
 }

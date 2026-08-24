@@ -30,6 +30,7 @@ namespace JobWize.Api
                     options
                         .AddModule(new IdentityModule())
 
+                        .AddPipeline(typeof(ExceptionHandlingBehavior<,>))
                         .AddPipeline(typeof(ValidationBehavior<,>))
                         .AddPipeline(typeof(TransactionBehavior<,>));
                 });

@@ -1,5 +1,12 @@
 ﻿@using JobWize.Frontend.Shared.Authentication
 
+@using JobWize.Frontend.Shared.Theme
+
+<MudThemeProvider Theme="@JobWizeTheme.Default" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
 <ApplicationErrorBoundary>
     <CascadingAuthenticationState>
         <Router AppAssembly="@typeof(App).Assembly">

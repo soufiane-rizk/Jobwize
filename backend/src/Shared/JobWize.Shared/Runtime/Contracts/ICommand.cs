@@ -6,7 +6,7 @@ using System.Text;
 
 namespace JobWize.Shared.Runtime.Contracts
 {
-    public interface ICommand<T> : IRequest<Result<T>>
+    public interface ICommand<T> : IUseCase<T>
     {
     }
 }
