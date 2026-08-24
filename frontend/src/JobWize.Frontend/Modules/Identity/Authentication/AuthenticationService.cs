@@ -12,8 +12,8 @@ namespace JobWize.Frontend.Modules.Identity.Authentication
     {
         private readonly JobWizeAuthenticationStateProvider _authenticationStateProvider;
 
-        public AuthenticationService(IHttpClientFactory httpClientFactory, JobWizeAuthenticationStateProvider authenticationStateProvider, MudBlazor.ISnackbar snackbar)
-            : base(httpClientFactory, snackbar, authenticationStateProvider)
+        public AuthenticationService(IHttpClientFactory httpClientFactory, JobWizeAuthenticationStateProvider authenticationStateProvider)
+            : base(httpClientFactory, authenticationStateProvider)
         {
             _authenticationStateProvider = authenticationStateProvider;
         }
@@ -59,16 +59,18 @@ namespace JobWize.Frontend.Modules.Identity.Authentication
                 return Result.Success();
             }
 
-            var request = new Logout.Request(refreshToken);
-
-            var result = await PostAsync("/api/identity/authentication/logout", request, cancellationToken);
-
-            if (result.IsSuccess)
+            try
             {
+                var request = new Logout.Request(refreshToken);
+
+                return await PostAsync("/api/identity/authentication/logout", request, cancellationToken);
+            }
+            finally
+            {
+                // A local logout must not depend on the API being reachable.
+                // The server-side session is revoked whenever the request succeeds.
                 await _authenticationStateProvider.LogoutAsync();
             }
-
-            return result;
         }
     }
 }

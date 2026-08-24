@@ -182,6 +182,42 @@ The execution of application use cases—including execution pipelines, command 
 
 ---
 
+# Error Responses
+
+Application failures are returned as RFC 7807-style problem details with the content type `application/problem+json`.
+
+Every failure contains:
+
+-   `title` — a stable, user-safe category label.
+-   `status` — the HTTP status code.
+-   `detail` — the error message.
+-   `code` — the application error code.
+-   `errors` — field-level validation errors when applicable.
+
+`ResultExtensions.ToApiResult()` maps expected `Result` failures as follows:
+
+| Error type | HTTP status |
+| --- | --- |
+| Validation | 400 Bad Request |
+| Conflict | 409 Conflict |
+| Not found | 404 Not Found |
+| Unauthorized | 401 Unauthorized |
+| Forbidden | 403 Forbidden |
+| Unexpected or other failure | 500 Internal Server Error |
+
+The frontend reads this contract and maps it back to its client-side `Result` abstraction. The `code` extension is therefore part of the API contract and must remain available when error handling evolves.
+
+## Unexpected Exceptions
+
+Unexpected exceptions are handled at two boundaries:
+
+1. `ExceptionHandlingBehavior` converts an exception raised while dispatching a use case into the shared unexpected-failure result. This preserves the normal result contract for application execution.
+2. `GlobalExceptionHandler` is the final HTTP safety net for exceptions outside the dispatcher scope, such as middleware or endpoint failures. It logs the exception and returns the same safe problem-details shape with a 500 status when the response has not already started.
+
+Exception details must not be exposed to API consumers. Diagnostic information belongs in server-side logs.
+
+---
+
 # Design Principles
 
 The API layer follows these principles:

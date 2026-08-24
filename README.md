@@ -190,6 +190,16 @@ Production
 
 ---
 
+## 📖 Documentation
+
+-   [Project context](docs/project-context.md) — a concise current-state reference for contributors.
+-   [Architecture overview](docs/architecture/00-overview.md) — system and backend architecture.
+-   [Frontend architecture](docs/architecture/12-frontend.md) — frontend structure and conventions.
+-   [Local development](docs/setup/local-development.md) — run the API, frontend, and tests locally.
+-   [Contributing](CONTRIBUTING.md) — development and commit conventions.
+
+---
+
 ## 🗺 Roadmap
 
 ### Version 1 — Job Application Management

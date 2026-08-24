@@ -1,4 +1,5 @@
 using JobWize.Frontend;
+using JobWize.Frontend.Modules.Dashboard;
 using JobWize.Frontend.Modules.Identity;
 using JobWize.Frontend.Shared.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -33,6 +34,7 @@ builder.Services.AddScoped<JobWizeAuthenticationStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredService<JobWizeAuthenticationStateProvider>());
 
 builder.Services.AddIdentityModule();
+builder.Services.AddDashboardModule();
 
 builder.Services.AddMudServices();
 

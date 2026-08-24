@@ -53,6 +53,8 @@ flowchart TD
 
     DISPATCHER["IDispatcher"]
 
+    EXCEPTIONS["ExceptionHandlingBehavior"]
+
     VALIDATION["ValidationBehavior"]
 
     TRANSACTION["TransactionBehavior"]
@@ -74,7 +76,8 @@ flowchart TD
     RESULT["Result"]
 
     REQUEST --> DISPATCHER
-    DISPATCHER --> VALIDATION
+    DISPATCHER --> EXCEPTIONS
+    EXCEPTIONS --> VALIDATION
     VALIDATION --> TRANSACTION
     TRANSACTION --> HANDLER
 
@@ -98,7 +101,7 @@ flowchart TD
     classDef runtime fill:#fde68a,stroke:#ca8a04,color:#000,stroke-width:2px;
 
     class DISPATCHER dispatcher;
-    class VALIDATION,TRANSACTION pipeline;
+    class EXCEPTIONS,VALIDATION,TRANSACTION pipeline;
     class HANDLER,SERVICES,PERSISTENCE,RESULT application;
     class DOMAIN domain;
     class NOTIFICATIONS,EXECUTION,NHANDLERS runtime;
@@ -116,10 +119,19 @@ Pipeline behaviors encapsulate cross-cutting concerns independently of business 
 
 The current pipeline consists of:
 
+-   ExceptionHandlingBehavior
 -   ValidationBehavior
 -   TransactionBehavior
 
 Additional behaviors, such as authorization, logging, metrics or caching, can be introduced without modifying existing handlers.
+
+---
+
+## ExceptionHandlingBehavior
+
+`ExceptionHandlingBehavior` is the outermost application behavior. It catches unexpected exceptions raised while a use case is being dispatched, logs them, and returns the shared unexpected-failure `Result`.
+
+This behavior does not replace ASP.NET Core exception handling. The API's global exception handler remains the final safety net for failures that occur outside the dispatcher scope.
 
 ---
 
@@ -298,7 +310,7 @@ Typical examples include:
 -   Invalid application state.
 -   Programming errors.
 
-The API layer is responsible for translating exceptions into appropriate HTTP error responses.
+Exceptions raised during dispatcher execution are converted into the shared unexpected-failure `Result` by `ExceptionHandlingBehavior`. Exceptions outside that scope are handled by the API's global exception handler. In both cases, clients receive the same safe problem-details error contract rather than exception details.
 
 ---
 

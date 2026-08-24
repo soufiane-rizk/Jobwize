@@ -1,7 +1,6 @@
 using JobWize.Frontend.Shared.Authentication;
 using JobWize.Frontend.Shared.Results;
 using JobWize.Shared.Contracts.Http.Attributes;
-using MudBlazor;
 using System.Net;
 using System.Net.Http.Json;
 using System.Reflection;
@@ -14,14 +13,12 @@ namespace JobWize.Frontend.Shared.Api
     public abstract class ApiService
     {
         protected readonly HttpClient HttpClient;
-        protected readonly ISnackbar Snackbar;
         private readonly JobWizeAuthenticationStateProvider _authenticationStateProvider;
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-        protected ApiService(IHttpClientFactory httpClientFactory, ISnackbar snackbar, JobWizeAuthenticationStateProvider authenticationStateProvider)
+        protected ApiService(IHttpClientFactory httpClientFactory, JobWizeAuthenticationStateProvider authenticationStateProvider)
         {
             HttpClient = httpClientFactory.CreateClient("Api");
-            Snackbar = snackbar;
             _authenticationStateProvider = authenticationStateProvider;
         }
 
@@ -415,13 +412,11 @@ namespace JobWize.Frontend.Shared.Api
             if (!result.IsFailure)
                 return;
 
-            if (result.Error?.Type == ErrorType.Unauthorized)
+            if (result.Error?.Type == ErrorType.Unauthorized &&
+                await _authenticationStateProvider.HasTokensAsync())
             {
                 await _authenticationStateProvider.LogoutAsync();
-                return;
             }
-
-            Snackbar.Add(result.Error?.Message ?? "An unknown error occurred.", Severity.Error);
         }
 
         protected virtual Task OnResultReceivedAsync<TResponse>(Result<TResponse> result)

@@ -31,6 +31,11 @@ namespace JobWize.Frontend.Shared.Authentication
             return tokens?.RefreshToken;
         }
 
+        public async Task<bool> HasTokensAsync()
+        {
+            return await _tokenStorage.GetAsync() is not null;
+        }
+
         public async Task AuthenticateAsync(AuthenticationTokens tokens)
         {
             await _tokenStorage.SaveAsync(tokens);

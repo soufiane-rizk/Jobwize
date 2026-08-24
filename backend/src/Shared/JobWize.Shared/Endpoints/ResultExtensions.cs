@@ -31,33 +31,34 @@ namespace JobWize.Shared.Endpoints
 
         private static IResult ToFailureResult(Error error)
         {
-            return error.Type switch
+            int statusCode = error.Type switch
             {
-                ErrorType.Validation => Problem(error, StatusCodes.Status400BadRequest),
-                ErrorType.Conflict => Problem(error, StatusCodes.Status409Conflict),
-                ErrorType.NotFound => Problem(error, StatusCodes.Status404NotFound),
-                ErrorType.Unauthorized => Problem(error, StatusCodes.Status401Unauthorized),
-                ErrorType.Forbidden => Problem(error, StatusCodes.Status403Forbidden),
-
-                _ => Results.Problem(
-                    title: error.Code,
-                    detail: error.Message)
+                ErrorType.Validation => StatusCodes.Status400BadRequest,
+                ErrorType.Conflict => StatusCodes.Status409Conflict,
+                ErrorType.NotFound => StatusCodes.Status404NotFound,
+                ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
+                ErrorType.Forbidden => StatusCodes.Status403Forbidden,
+                _ => StatusCodes.Status500InternalServerError
             };
+
+            return Problem(error, statusCode);
         }
 
         private static IResult Problem(Error error, int statusCode)
         {
             return Results.Json(
-                CreateProblem(error),
+                CreateProblem(error, statusCode),
+                contentType: "application/problem+json",
                 statusCode: statusCode);
         }
 
-        private static ProblemDetails CreateProblem(Error error)
+        private static ProblemDetails CreateProblem(Error error, int statusCode)
         {
             ProblemDetails problem = new()
             {
                 Title = GetTitle(error.Type),
-                Detail = error.Message
+                Detail = error.Message,
+                Status = statusCode
             };
 
             problem.Extensions["code"] = error.Code;
