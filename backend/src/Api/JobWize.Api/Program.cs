@@ -1,5 +1,6 @@
 using FluentValidation;
 using JobWize.Modules.Identity;
+using JobWize.Api.Exceptions;
 using JobWize.Runtime.Contracts.DependencyInjection;
 using JobWize.Runtime.Contracts.Modules;
 using JobWize.Runtime.DependencyInjection;
@@ -37,6 +38,7 @@ namespace JobWize.Api
 
             services.AddShared();
             services.AddApi(configuration);
+            services.AddExceptionHandler<GlobalExceptionHandler>();
 
             builder.Services.AddAuthorization();
 
@@ -62,21 +64,22 @@ namespace JobWize.Api
 
             WebApplication app = builder.Build();
 
+            app.UseExceptionHandler();
+
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
 
-            app.UseCors("Frontend");
-
-            app.MapApi();
-
             app.UseHttpsRedirection();
+
+            app.UseCors("Frontend");
 
             app.UseAuthentication();
             app.UseAuthorization();
 
+            app.MapApi();
             app.MapEndpoints();
 
             app.Run();

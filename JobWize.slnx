@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/Api/">
     <Project Path="backend/src/Api/JobWize.Api/JobWize.Api.csproj" Id="defa1a52-fdf0-4209-9c86-ed217ad712c0" />
+    <Project Path="backend/tests/JobWize.Api.UnitTests/JobWize.Api.UnitTests.csproj" />
   </Folder>
   <Folder Name="/Frontend/">
     <Project Path="frontend/src/JobWize.Frontend/JobWize.Frontend.csproj" Id="56dd8bcc-9bbd-4b7a-a2f2-5bdf68623634" />
