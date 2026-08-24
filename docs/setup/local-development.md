@@ -62,11 +62,41 @@ The `UserSecretsId` is already configured in the API project, so no additional i
 
 ## Run the application
 
-Start the API:
+Start the API in one terminal:
 
 ```bash
 dotnet run --project backend/src/Api/JobWize.Api
 ```
+
+Start the Blazor WebAssembly frontend in another terminal:
+
+```bash
+dotnet run --project frontend/src/JobWize.Frontend
+```
+
+The frontend API base address is configured in:
+
+```text
+frontend/src/JobWize.Frontend/wwwroot/appsettings.json
+```
+
+Its origin must be allowed by the API CORS configuration. The local development origin is configured in:
+
+```text
+backend/src/Api/JobWize.Api/appsettings.Development.json
+```
+
+If either local URL changes, update the frontend `Api:BaseAddress` and the API `Cors:AllowedOrigins` entries so that they continue to match.
+
+## Run the tests
+
+From the repository root, run:
+
+```bash
+dotnet test
+```
+
+This executes the API, Runtime, and Shared unit-test projects.
 
 ## Current local configuration
 

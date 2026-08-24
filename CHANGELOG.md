@@ -20,6 +20,10 @@ The format is based on **Keep a Changelog** and this project follows **Semantic 
 - README
 - CONTRIBUTING guide
 - SECURITY policy
+- Blazor WebAssembly frontend foundation with MudBlazor layouts, navigation, and protected routing
+- JWT authentication flow with client authentication state and server-side refresh-token revocation on logout
+- Standard API problem-details error contract and global HTTP exception handling
+- Unit-test coverage for Shared, Runtime, and API cross-cutting behavior
 
 ### Changed
 

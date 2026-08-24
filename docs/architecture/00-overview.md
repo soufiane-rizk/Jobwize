@@ -106,7 +106,7 @@ Every architectural decision documented throughout this guide should support one
 
 This document provides a high-level overview of the system.
 
-The following documents describe the backend architecture in greater detail.
+The following documents describe the architecture in greater detail.
 
 | Document                      | Description                                                                                 |
 | ----------------------------- | ------------------------------------------------------------------------------------------- |
@@ -121,3 +121,4 @@ The following documents describe the backend architecture in greater detail.
 | **09 - Runtime**              | Runtime architecture, request execution, notification processing, and execution models.     |
 | **10 - Domain Model**         | Domain modeling principles, entities, value objects, business rules, and aggregate design.  |
 | **11 - Application Layer**    | Application use cases, handlers, validation, transactions, results, and execution pipeline. |
+| **12 - Frontend**             | Frontend structure, routing, authentication, API consumption, and UI conventions.            |

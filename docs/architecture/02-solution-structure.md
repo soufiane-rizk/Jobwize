@@ -26,7 +26,7 @@ The backend follows a Modular Monolith architecture, while the frontend is imple
 # Solution Structure
 
 ```text
-JobWize.sln
+JobWize.slnx
 │
 ├── Frontend
 │   └── JobWize.Frontend
@@ -60,7 +60,9 @@ JobWize.sln
     │   └── ...
     │
     └── Tests
-        └── JobWize.UnitTests
+        ├── JobWize.Api.UnitTests
+        ├── JobWize.Runtime.UnitTests
+        └── JobWize.Shared.UnitTests
 ```
 
 ---
@@ -166,7 +168,7 @@ The following dependency rules must always be respected.
 ```mermaid
 flowchart TD
 
-    SOL["JobWize.sln"]
+    SOL["JobWize.slnx"]
 
     FRONTEND["Frontend"]
     BACKEND["Backend"]
