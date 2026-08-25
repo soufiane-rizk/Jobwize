@@ -27,11 +27,17 @@ builder.Services
     })
     .AddHttpMessageHandler<AuthenticationHandler>();
 
+builder.Services.AddHttpClient("AnonymousApi", client =>
+{
+    client.BaseAddress = new Uri(apiBaseAddress);
+});
+
 
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<ITokenStorage, LocalStorageTokenStorage>();
 builder.Services.AddScoped<JobWizeAuthenticationStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredService<JobWizeAuthenticationStateProvider>());
+builder.Services.AddScoped<TokenRefreshService>();
 
 builder.Services.AddIdentityModule();
 builder.Services.AddDashboardModule();

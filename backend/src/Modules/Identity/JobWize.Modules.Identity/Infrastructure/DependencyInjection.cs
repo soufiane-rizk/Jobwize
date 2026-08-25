@@ -20,6 +20,7 @@ namespace JobWize.Modules.Identity.Infrastructure
             services.AddScoped<IPasswordHasher, PasswordHasher>();
             services.AddScoped<IJwtProvider, JwtProvider>();
             services.AddScoped<IRefreshTokenGenerator, RefreshTokenGenerator>();
+            services.AddSingleton<IRefreshTokenHasher, RefreshTokenHasher>();
 
             // Configure JwtOptions
 

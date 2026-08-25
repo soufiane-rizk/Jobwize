@@ -1,4 +1,4 @@
-﻿using JobWize.Modules.Identity.Domain.Entities;
+using JobWize.Modules.Identity.Domain.Entities;
 using JobWize.Modules.Identity.Domain.Enums;
 using JobWize.Shared.Domain;
 using System;
@@ -56,19 +56,23 @@ namespace JobWize.Modules.Identity.Domain
             };
         }
 
-        public RefreshToken CreateRefreshToken(string token, DateTime expiresAt)
+        public RefreshToken CreateRefreshToken(string tokenHash, DateTime expiresAt)
         {
-            var refreshToken = RefreshToken.Create(Id, token, expiresAt);
+            var refreshToken = RefreshToken.Create(Id, tokenHash, expiresAt);
 
             _refreshTokens.Add(refreshToken);
 
             return refreshToken;
         }
 
-        public void RevokeRefreshToken(string token, DateTime revokedAt)
+        public RefreshToken? FindRefreshToken(string tokenHash)
         {
-            RefreshToken? refreshToken =
-                _refreshTokens.SingleOrDefault(x => x.Token == token);
+            return _refreshTokens.SingleOrDefault(x => x.TokenHash == tokenHash);
+        }
+
+        public void RevokeRefreshToken(string tokenHash, DateTime revokedAt)
+        {
+            RefreshToken? refreshToken = FindRefreshToken(tokenHash);
 
             if (refreshToken is null)
             {

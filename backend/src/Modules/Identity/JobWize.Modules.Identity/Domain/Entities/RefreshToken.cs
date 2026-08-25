@@ -9,7 +9,7 @@ namespace JobWize.Modules.Identity.Domain.Entities
     {
         public Guid UserId { get; private set; }
 
-        public string Token { get; private set; } = default!;
+        public string TokenHash { get; private set; } = default!;
 
         public DateTime ExpiresAt { get; private set; }
 
@@ -19,12 +19,12 @@ namespace JobWize.Modules.Identity.Domain.Entities
         {
         }
 
-        public static RefreshToken Create(Guid userId, string token, DateTime expiresAt)
+        public static RefreshToken Create(Guid userId, string tokenHash, DateTime expiresAt)
         {
             return new RefreshToken
             {
                 UserId = userId,
-                Token = token,
+                TokenHash = tokenHash,
                 ExpiresAt = expiresAt
             };
         }
@@ -34,10 +34,10 @@ namespace JobWize.Modules.Identity.Domain.Entities
             RevokedAt = revokedAt;
         }
 
-        public bool IsExpired => ExpiresAt <= DateTime.UtcNow;
+        public bool IsExpired(DateTime utcNow) => ExpiresAt <= utcNow;
 
         public bool IsRevoked => RevokedAt is not null;
 
-        public bool IsActive => !IsExpired && !IsRevoked;
+        public bool IsActive(DateTime utcNow) => !IsExpired(utcNow) && !IsRevoked;
     }
 }

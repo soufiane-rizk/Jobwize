@@ -1,4 +1,4 @@
-﻿using JobWize.Modules.Identity.Domain;
+using JobWize.Modules.Identity.Domain;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -10,6 +10,7 @@ namespace JobWize.Modules.Identity.Persistence
     {
         Task<User?> GetByIdAsync(Guid userId, CancellationToken cancellationToken = default);
         Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
+        Task<User?> GetByRefreshTokenHashAsync(string tokenHash, CancellationToken cancellationToken = default);
         Task SaveAsync(User user, CancellationToken cancellationToken = default);
     }
 
@@ -34,6 +35,15 @@ namespace JobWize.Modules.Identity.Persistence
             return await _dbContext.Users
                 .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(user => user.Email == email, cancellationToken);
+        }
+
+        public async Task<User?> GetByRefreshTokenHashAsync(string tokenHash, CancellationToken cancellationToken = default)
+        {
+            return await _dbContext.Users
+                .Include(x => x.RefreshTokens)
+                .SingleOrDefaultAsync(
+                    user => user.RefreshTokens.Any(token => token.TokenHash == tokenHash),
+                    cancellationToken);
         }
 
         public Task SaveAsync(User user, CancellationToken cancellationToken = default)
