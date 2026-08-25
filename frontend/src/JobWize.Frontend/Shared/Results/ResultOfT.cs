@@ -1,6 +1,6 @@
 ﻿using JobWize.Frontend.Shared.Results;
 
-namespace JobWize.Frontend.Shared.Api
+namespace JobWize.Frontend.Shared.Results
 {
     public sealed class Result<T> : Result
     {
