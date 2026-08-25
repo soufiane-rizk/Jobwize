@@ -60,6 +60,16 @@ The JWT signing key must be generated using a cryptographically secure random ge
 
 The `UserSecretsId` is already configured in the API project, so no additional initialization step is required.
 
+## Apply database migrations
+
+Database migrations are not applied automatically when the API starts. Apply them locally with:
+
+```bash
+dotnet ef database update --project backend/src/Modules/Identity/JobWize.Modules.Identity --startup-project backend/src/Api/JobWize.Api
+```
+
+The refresh-token hashing migration invalidates existing local refresh-token sessions. Log in again after applying it.
+
 ## Run the application
 
 Start the API in one terminal:
