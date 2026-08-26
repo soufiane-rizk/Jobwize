@@ -1,6 +1,7 @@
 using JobWize.Modules.Identity.Infrastructure.Authentication;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -22,7 +23,14 @@ namespace JobWize.Modules.Identity.Infrastructure
             services.AddScoped<IRefreshTokenGenerator, RefreshTokenGenerator>();
             services.AddSingleton<IRefreshTokenHasher, RefreshTokenHasher>();
 
-            // Configure JwtOptions
+            services
+                .AddOptions<InitialSuperAdminOptions>()
+                .Bind(configuration.GetSection(InitialSuperAdminOptions.SectionName))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+
+            services.AddScoped<InitialSuperAdminBootstrapper>();
+            services.AddHostedService<InitialSuperAdminBootstrapHostedService>();
 
             return services;
         }
