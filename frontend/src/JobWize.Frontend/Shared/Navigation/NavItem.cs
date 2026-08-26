@@ -1,4 +1,4 @@
-﻿namespace JobWize.Frontend.Shared.Navigation
+namespace JobWize.Frontend.Shared.Navigation
 {
     /// <summary>
     /// A single entry in the application's main navigation.
@@ -17,7 +17,9 @@
         string Icon { get; }
 
         int Order { get; }
+
+        string? Roles { get; }
     }
 
-    public sealed record NavItem(string Label, string Href, string Icon, int Order = 0) : INavItem;
+    public sealed record NavItem(string Label, string Href, string Icon, int Order = 0, string? Roles = null) : INavItem;
 }

@@ -83,6 +83,24 @@ namespace JobWize.Modules.Identity.Domain
             return refreshToken;
         }
 
+        public static User CreateAdmin(string email, string passwordHash, string firstName, string lastName)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(email);
+            ArgumentException.ThrowIfNullOrWhiteSpace(passwordHash);
+            ArgumentException.ThrowIfNullOrWhiteSpace(firstName);
+            ArgumentException.ThrowIfNullOrWhiteSpace(lastName);
+
+            return new User { Id = Guid.NewGuid(), Email = email, PasswordHash = passwordHash, FirstName = firstName, LastName = lastName, Role = UserRole.Admin, Status = UserStatus.Active, MustChangePassword = true };
+        }
+
+        public void Suspend(DateTime revokedAt)
+        {
+            Status = UserStatus.Suspended;
+            RevokeAllRefreshTokens(revokedAt);
+        }
+
+        public void Reactivate() => Status = UserStatus.Active;
+
         public RefreshToken? FindRefreshToken(string tokenHash)
         {
             return _refreshTokens.SingleOrDefault(x => x.TokenHash == tokenHash);

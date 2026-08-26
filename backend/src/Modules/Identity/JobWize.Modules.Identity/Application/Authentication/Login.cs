@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using JobWize.Modules.Identity.Contracts.Events.Authentication;
 using JobWize.Modules.Identity.Contracts.Public.Authentication;
 using JobWize.Modules.Identity.Infrastructure.Authentication;
@@ -71,6 +71,9 @@ namespace JobWize.Modules.Identity.Application.Authentication
 
                 if (user is null)
                     return Result<AuthenticationResponse>.Failure(IdentityErrors.InvalidCredentials);
+
+                if (user.Status == Domain.Enums.UserStatus.Suspended)
+                    return Result<AuthenticationResponse>.Failure(IdentityErrors.AccountSuspended);
 
                 if (!_passwordHasher.Verify(command.Password, user.PasswordHash))
                     return Result<AuthenticationResponse>.Failure(IdentityErrors.InvalidCredentials);

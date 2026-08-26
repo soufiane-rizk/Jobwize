@@ -1,4 +1,4 @@
-﻿using JobWize.Modules.Identity.Persistence;
+using JobWize.Modules.Identity.Persistence;
 using JobWize.Runtime.Contracts.Dispatching;
 using JobWize.Shared.Application.Results;
 using JobWize.Shared.Endpoints;
@@ -18,25 +18,26 @@ namespace JobWize.Modules.Identity.Application.Users
 {
     public static class GetUsers
     {
-        public sealed record Query : IQuery<Response>;
+        public sealed record Query(bool IsSuperAdmin) : IQuery<Response>;
 
         internal sealed class Endpoint : IEndpoint
         {
             public void MapEndpoint(IEndpointRouteBuilder app)
             {
                 app.MapGet(
-                    "/api/users",
+                    Contracts.Public.Users.GetUsers.Route,
                     async (
-                        //[FromQuery] Request request,
+                        HttpContext httpContext,
                         IDispatcher dispatcher,
                         CancellationToken cancellationToken) =>
                     {
-                        var query = new Query();
+                        var query = new Query(httpContext.User.IsInRole("SuperAdmin"));
 
                         var result = await dispatcher.SendAsync(query, cancellationToken);
 
                         return result.ToApiResult();
                     })
+                    .RequireAuthorization(global::JobWize.Modules.Identity.Contracts.Public.Authentication.AuthenticationPolicies.UserManagement)
                     .WithName("GetUsers")
                     .WithTags("Users");
             }
@@ -51,14 +52,19 @@ namespace JobWize.Modules.Identity.Application.Users
             }
             public async Task<Result<Response>> HandleAsync(Query query, CancellationToken cancellationToken)
             {
-                var users = await _dbContext.Users
-                    .Select(u => new UserDto(
-                        u.Id,
-                        u.FirstName,
-                        u.LastName,
-                        u.Email,
-                        u.Role.ToString()))
+                var userRows = await _dbContext.Users
+                    .Where(u => query.IsSuperAdmin || u.Role == Domain.Enums.UserRole.Candidate)
+                    .OrderBy(u => u.LastName).ThenBy(u => u.FirstName)
+                    .Select(u => new { u.Id, u.FirstName, u.LastName, u.Email, u.Role, u.Status, u.MustChangePassword, u.CreatedAt })
                     .ToListAsync(cancellationToken);
+
+                var users = userRows
+                    .Select(u => new UserDto(
+                        u.Id, u.FirstName, u.LastName, u.Email,
+                        (Contracts.Public.Authentication.UserRole)u.Role,
+                        (Contracts.Public.Users.UserStatus)u.Status,
+                        u.MustChangePassword, u.CreatedAt))
+                    .ToList();
 
                 return Result<Response>.Success(new Response(users));
             }

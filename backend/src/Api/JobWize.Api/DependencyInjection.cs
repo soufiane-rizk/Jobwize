@@ -66,6 +66,12 @@ namespace JobWize.Api
                     new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
                         .RequireAuthenticatedUser()
                         .Build());
+
+                options.AddPolicy(global::JobWize.Modules.Identity.Contracts.Public.Authentication.AuthenticationPolicies.UserManagement,
+                    new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder().RequireAuthenticatedUser().RequireClaim(global::JobWize.Modules.Identity.Contracts.Public.Authentication.AuthenticationClaimTypes.MustChangePassword, "false").RequireRole("Admin", "SuperAdmin").Build());
+
+                options.AddPolicy(global::JobWize.Modules.Identity.Contracts.Public.Authentication.AuthenticationPolicies.SuperAdmin,
+                    new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder().RequireAuthenticatedUser().RequireClaim(global::JobWize.Modules.Identity.Contracts.Public.Authentication.AuthenticationClaimTypes.MustChangePassword, "false").RequireRole("SuperAdmin").Build());
             });
 
             return services;
