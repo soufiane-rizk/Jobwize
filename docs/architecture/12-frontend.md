@@ -21,6 +21,7 @@ frontend/src/JobWize.Frontend
     ├── Api
     ├── Authentication
     ├── Components
+    ├── Forms
     ├── Layout
     ├── Navigation
     ├── Results
@@ -80,6 +81,14 @@ Use the presentation mechanism that matches the scope of the feedback:
 
 MudBlazor providers are declared once at the application root. Layouts should focus on placement and navigation rather than registering global services or providers.
 
+# Forms
+
+Forms own their client-side usability validation, such as required fields, format checks, and password confirmation. The backend remains authoritative for all business validation and returns field-level errors through the shared problem-details contract.
+
+`ResultFormComponentBase<TResponse>` provides common submission state and access to server field errors. A form should keep its local validation rules explicit, then use `SubmissionResult` only for the result of submitting to the API. This prevents local validation from being coupled to server responses while allowing a field such as a duplicate email address to display the backend error inline.
+
+The registration form keys its `MudForm` with `SubmissionVersion`. This makes MudBlazor reapply an unchanged server error after a repeated submission, rather than clearing it during its validation pass.
+
 ---
 
 # Extending the Frontend
@@ -96,4 +105,4 @@ For a new business feature:
 
 # Current Scope
 
-The shared frontend foundation and authentication flow, including automatic refresh-token rotation and renewal, are in place. The next planned milestone is the first business feature.
+The shared frontend foundation and authentication flow, including candidate self-registration and automatic refresh-token rotation and renewal, are in place. The next onboarding work is SuperAdmin bootstrap and forced-password-change support; the first business feature follows.
