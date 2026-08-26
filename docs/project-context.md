@@ -27,17 +27,20 @@ JobWize is an open-source career-management platform for organizing a job search
 Implemented shared capabilities:
 
 -   Candidate self-registration and login, JWT authentication, protected routing, client authentication state, refresh-token rotation, automatic access-token renewal, and backend session revocation on logout.
+-   Initial SuperAdmin bootstrap from secure configuration and a backend-enforced forced-password-change flow.
+-   Role-scoped user management: Admins can view and manage Candidates; SuperAdmins can additionally create, suspend, and reactivate Admins. Suspending a user revokes active refresh-token sessions.
 -   Auth-aware application shell: theme, navigation drawer, app bar, anonymous authentication layout, and safe global UI error screen.
--   Unified backend error responses using `application/problem+json`, including application error codes and validation details.
+-   Unified backend error responses using `application/problem+json`, including application error codes, validation details, and backend-owned confirmation requests for consequential actions.
 -   Dispatcher exception handling plus a global HTTP exception safety net.
--   Unit tests for Identity authentication and registration, plus Runtime, Shared, and API cross-cutting behavior.
+-   Unit tests for Identity authentication, registration, password changes, and user-management authorization/state transitions, plus Runtime, Shared, and API cross-cutting behavior.
 
 Current roadmap order:
 
 1. Frontend shared foundation — implemented and ready to support feature work.
 2. Refresh-token rotation, frontend token replacement, automatic access-token renewal, and expiry/failure handling — implemented.
-3. Candidate onboarding — self-registration is implemented; SuperAdmin bootstrap and forced-password-change support are next.
-4. First business feature — follows the onboarding prerequisites.
+3. Identity foundation — candidate self-registration, SuperAdmin bootstrap, and forced-password-change support are implemented.
+4. User management — user listing, Admin creation, suspension, and reactivation are implemented.
+5. Next business feature — build on the completed identity foundation.
 
 ---
 

@@ -76,7 +76,8 @@ The backend error contract uses a `code` extension and, for validation failures,
 Use the presentation mechanism that matches the scope of the feedback:
 
 -   Show field validation and expected form failures inline, near the form or input.
--   Use snackbars for transient, cross-page, or background-operation feedback, such as a partial logout failure.
+-   Use snackbars for transient, cross-page, or background-operation feedback, such as a partial logout failure or a completed user-management action.
+-   Use a confirmation dialog when the backend returns a confirmation-required result. The frontend presents the backend-provided title and message, then repeats the request with the confirmed action key only after explicit user approval.
 -   Let `ApplicationErrorBoundary` show a safe recovery screen for unhandled UI errors. Do not render internal exception details to users.
 
 MudBlazor providers are declared once at the application root. Layouts should focus on placement and navigation rather than registering global services or providers.
@@ -105,4 +106,4 @@ For a new business feature:
 
 # Current Scope
 
-The shared frontend foundation and authentication flow, including candidate self-registration and automatic refresh-token rotation and renewal, are in place. The next onboarding work is SuperAdmin bootstrap and forced-password-change support; the first business feature follows.
+The shared frontend foundation and identity flow are in place: candidate self-registration, SuperAdmin bootstrap, forced-password change, refresh-token renewal, and role-aware user management. The Users UI lists the users visible to the signed-in role, allows SuperAdmins to create Admins, and supports suspension/reactivation with backend-driven confirmation.
