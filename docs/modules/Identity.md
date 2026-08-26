@@ -163,6 +163,8 @@ Authentication uses:
 
 Each authenticated session owns its own refresh token, allowing multiple concurrent logins across different devices.
 
+Refresh tokens are stored as one-way hashes. Refreshing a session revokes the previous token and issues a replacement token pair; a revoked or expired token cannot be reused.
+
 Future identity providers (Google, Microsoft, etc.) may be added without changing the module boundaries.
 
 ---

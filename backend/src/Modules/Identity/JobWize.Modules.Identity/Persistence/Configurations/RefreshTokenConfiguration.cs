@@ -1,4 +1,4 @@
-﻿using JobWize.Modules.Identity.Domain.Entities;
+using JobWize.Modules.Identity.Domain.Entities;
 using JobWize.Shared.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -16,7 +16,7 @@ namespace JobWize.Modules.Identity.Persistence.Configurations
 
             builder.ToTable("RefreshTokens", Schemas.Identity);
 
-            builder.Property(refreshToken => refreshToken.Token)
+            builder.Property(refreshToken => refreshToken.TokenHash)
                 .HasMaxLength(512)
                 .IsRequired();
 
@@ -25,7 +25,7 @@ namespace JobWize.Modules.Identity.Persistence.Configurations
 
             builder.Property(refreshToken => refreshToken.RevokedAt);
 
-            builder.HasIndex(refreshToken => refreshToken.Token)
+            builder.HasIndex(refreshToken => refreshToken.TokenHash)
                 .IsUnique();
 
             builder.HasIndex(refreshToken => refreshToken.UserId);

@@ -1,9 +1,54 @@
-﻿@attribute [Route(DashboardRoutes.Home)]
+@attribute [Route(DashboardRoutes.Home)]
 @attribute [Authorize]
 
 <PageTitle>Dashboard</PageTitle>
 
 
-<MudText Typo="Typo.h4">
-    Dashboard
-</MudText>
+@using JobWize.Frontend.Modules.Identity.Users
+@using JobWize.Frontend.Shared.Components
+@using JobWize.Frontend.Shared.Results
+@using JobWize.Modules.Identity.Contracts.Public.Users
+
+@inject CurrentUserService CurrentUserService
+
+<LoadingIndicator Loading="@_isLoading">
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error">
+            @_error.Message
+        </MudAlert>
+    }
+    else if (_currentUser is not null)
+    {
+        <MudText Typo="Typo.h4">
+            Welcome back, @_currentUser.FirstName
+        </MudText>
+
+        <MudText Typo="Typo.body1" Class="mt-2">
+            @_currentUser.Role
+        </MudText>
+    }
+</LoadingIndicator>
+
+@code
+{
+    private GetCurrentUser.Response? _currentUser;
+    private Error? _error;
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Result<GetCurrentUser.Response> result = await CurrentUserService.GetAsync();
+
+        if (result.IsSuccess)
+        {
+            _currentUser = result.Value;
+        }
+        else
+        {
+            _error = result.Error;
+        }
+
+        _isLoading = false;
+    }
+}

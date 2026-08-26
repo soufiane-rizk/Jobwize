@@ -54,9 +54,9 @@ The named API client attaches the access token through `AuthenticationHandler`.
 
 Login and registration save the returned access and refresh tokens only after a successful API result. Logout always clears the local session, even if the API request to revoke the server session fails; the UI surfaces that revocation failure as a warning.
 
-When the API returns 401, `ApiService` clears the local session only if a token is already stored. This prevents an expected anonymous login failure from resetting the login page before it can display its inline error.
+`AuthenticationHandler` owns access-token renewal for every authenticated API request. On a 401 response it performs one refresh request through an anonymous API client, replaces the stored access and refresh tokens, and retries the original request once. Concurrent renewal attempts are serialized so token rotation cannot race.
 
-Refresh-token rotation and automatic access-token renewal are intentionally not implemented yet.
+The handler never refreshes login, registration, logout, or refresh requests. If renewal fails, it clears the local session; protected-route handling then redirects the user to login. This preserves inline errors for anonymous login failures.
 
 ---
 
@@ -96,4 +96,4 @@ For a new business feature:
 
 # Current Scope
 
-The shared frontend foundation and authentication flow are in place. The next planned milestone is refresh-token rotation and automatic renewal, followed by the first business feature.
+The shared frontend foundation and authentication flow, including automatic refresh-token rotation and renewal, are in place. The next planned milestone is the first business feature.
