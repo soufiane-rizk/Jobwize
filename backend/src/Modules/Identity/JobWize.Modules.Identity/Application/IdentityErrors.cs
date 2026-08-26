@@ -21,6 +21,12 @@ namespace JobWize.Modules.Identity.Application
                 "The email or password is incorrect.",
                 ErrorType.Unauthorized);
 
+        public static readonly Error InvalidCurrentPassword =
+            new(
+                $"{Prefix}.InvalidCurrentPassword",
+                "The current password is incorrect.",
+                ErrorType.Validation);
+
         public static readonly Error RefreshTokenExpired =
             new(
                 $"{Prefix}.RefreshTokenExpired",

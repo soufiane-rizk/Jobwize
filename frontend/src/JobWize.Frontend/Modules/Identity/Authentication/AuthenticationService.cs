@@ -5,6 +5,7 @@ using JobWize.Modules.Identity.Contracts.Public.Authentication;
 
 using LoginContract = JobWize.Modules.Identity.Contracts.Public.Authentication.Login;
 using RegisterCandidateContract = JobWize.Modules.Identity.Contracts.Public.Authentication.RegisterCandidate;
+using ChangePasswordContract = JobWize.Modules.Identity.Contracts.Public.Authentication.ChangePassword;
 
 namespace JobWize.Frontend.Modules.Identity.Authentication
 {
@@ -45,6 +46,19 @@ namespace JobWize.Frontend.Modules.Identity.Authentication
                     new AuthenticationTokens(
                         result.Value.AccessToken,
                         result.Value.RefreshToken));
+            }
+
+            return result;
+        }
+
+        public async Task<Result<AuthenticationResponse>> ChangePasswordAsync(ChangePasswordContract.Request request, CancellationToken cancellationToken = default)
+        {
+            var result = await PostAsync<ChangePasswordContract.Request, AuthenticationResponse>(ChangePasswordContract.Route, request, cancellationToken);
+
+            if (result.IsSuccess && result.Value is not null)
+            {
+                await _authenticationStateProvider.AuthenticateAsync(
+                    new AuthenticationTokens(result.Value.AccessToken, result.Value.RefreshToken));
             }
 
             return result;

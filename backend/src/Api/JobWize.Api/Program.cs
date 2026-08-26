@@ -41,8 +41,6 @@ namespace JobWize.Api
             services.AddProblemDetails();
             services.AddExceptionHandler<GlobalExceptionHandler>();
 
-            builder.Services.AddAuthorization();
-
             ValidatorOptions.Global.LanguageManager.Enabled = true;
             ValidatorOptions.Global.LanguageManager.Culture = new CultureInfo("en");
 
