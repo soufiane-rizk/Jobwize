@@ -1,0 +1,100 @@
+@attribute [Route(IdentityRoutes.RegisterCandidate)]
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Authorization
+@using JobWize.Frontend.Modules.Dashboard
+@using JobWize.Frontend.Modules.Identity.Authentication
+@using JobWize.Frontend.Shared.Forms
+@using JobWize.Modules.Identity.Contracts.Public.Authentication
+
+@inherits ResultFormComponentBase<AuthenticationResponse>
+
+@inject AuthenticationService AuthenticationService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+@layout Shared.Layout.AuthenticationLayout
+
+<PageTitle>Create account</PageTitle>
+
+<LoadingIndicator Loading="!_initialized">
+    <MudPaper Elevation="8" Class="pa-8" Style="width: min(100%, 32rem);">
+        <MudStack Spacing="3">
+            <MudStack Spacing="1" AlignItems="AlignItems.Center">
+                <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Large" Style="color: white;"><MudIcon Icon="@Icons.Material.Filled.PersonAdd" /></MudAvatar>
+                <MudText Typo="Typo.h4" Align="Align.Center">Create your account</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">Start organizing your job search.</MudText>
+            </MudStack>
+
+            @if (HasSummaryError)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">@SubmissionResult!.Error!.Message</MudAlert>
+            }
+
+            <MudForm @key="SubmissionVersion" @ref="_form">
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_model.FirstName" Label="First name" Variant="Variant.Outlined" FullWidth="true" Immediate="true" Validation="@(new Func<string, IEnumerable<string>>(ValidateFirstName))" Error="@(GetServerFieldError(nameof(_model.FirstName)) is not null)" ErrorText="@GetServerFieldError(nameof(_model.FirstName))" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_model.LastName" Label="Last name" Variant="Variant.Outlined" FullWidth="true" Immediate="true" Validation="@(new Func<string, IEnumerable<string>>(ValidateLastName))" Error="@(GetServerFieldError(nameof(_model.LastName)) is not null)" ErrorText="@GetServerFieldError(nameof(_model.LastName))" />
+                    </MudItem>
+                </MudGrid>
+
+                <MudTextField @bind-Value="_model.Email" Label="Email" InputType="InputType.Email" Variant="Variant.Outlined" FullWidth="true" Immediate="true" Validation="@(new Func<string, IEnumerable<string>>(ValidateEmail))" Error="@HasEmailServerError" ErrorText="@EmailServerError" />
+                <MudTextField @bind-Value="_model.Password" Label="Password" InputType="InputType.Password" Variant="Variant.Outlined" FullWidth="true" Immediate="true" Validation="@(new Func<string, IEnumerable<string>>(ValidatePassword))" />
+                <MudTextField @bind-Value="_model.ConfirmPassword" Label="Confirm password" InputType="InputType.Password" Variant="Variant.Outlined" FullWidth="true" Immediate="true" Validation="@(new Func<string, IEnumerable<string>>(ValidateConfirmPassword))" />
+            </MudForm>
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Size="Size.Large" Disabled="IsSubmitting" OnClick="RegisterAsync">
+                @if (IsSubmitting) { <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Inherit" Class="mr-2" /> }
+                Create account
+            </MudButton>
+
+            <MudText Typo="Typo.body2" Align="Align.Center">Already have an account? <MudLink Href="@IdentityRoutes.Login">Sign in</MudLink></MudText>
+        </MudStack>
+    </MudPaper>
+</LoadingIndicator>
+
+@code
+{
+    private readonly RegisterCandidateModel _model = new();
+    private MudForm? _form;
+    private bool _initialized;
+
+    private string? EmailServerError => GetServerFieldError(nameof(_model.Email)) ??
+        (SubmissionResult?.Error?.Code == "Identity.EmailAlreadyExists" ? SubmissionResult.Error.Message : null);
+    private bool HasEmailServerError => EmailServerError is not null;
+    private bool HasSummaryError => SubmissionResult?.IsFailure == true && !HasEmailServerError && SubmissionResult.Error?.ValidationErrors is null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthenticationState state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (state.User.Identity?.IsAuthenticated == true) { Navigation.NavigateTo(DashboardRoutes.Home, replace: true); return; }
+        _initialized = true;
+    }
+
+    private async Task RegisterAsync()
+    {
+        await _form!.ValidateAsync();
+        if (!_form.IsValid) return;
+
+        IsSubmitting = true;
+        try
+        {
+            var result = await AuthenticationService.RegisterCandidateAsync(new JobWize.Modules.Identity.Contracts.Public.Authentication.RegisterCandidate.Request(_model.Email, _model.Password, _model.FirstName, _model.LastName));
+            SetSubmissionResult(result);
+            if (result.IsSuccess) Navigation.NavigateTo(DashboardRoutes.Home, replace: true);
+        }
+        finally { IsSubmitting = false; }
+    }
+
+    private static IEnumerable<string> Required(string value, string label) => string.IsNullOrWhiteSpace(value) ? [$"{label} is required."] : [];
+    private static IEnumerable<string> ValidateFirstName(string value) => Required(value, "First name");
+    private static IEnumerable<string> ValidateLastName(string value) => Required(value, "Last name");
+    private static IEnumerable<string> ValidateEmail(string value) => string.IsNullOrWhiteSpace(value) ? ["Email is required."] : new EmailAddressAttribute().IsValid(value) ? [] : ["Enter a valid email address."];
+    private static IEnumerable<string> ValidatePassword(string value) => string.IsNullOrWhiteSpace(value) ? ["Password is required."] : value.Length < 8 ? ["Password must contain at least 8 characters."] : [];
+    private IEnumerable<string> ValidateConfirmPassword(string value) => string.IsNullOrWhiteSpace(value) ? ["Confirm your password."] : value != _model.Password ? ["Passwords do not match."] : [];
+
+    private sealed class RegisterCandidateModel { public string FirstName { get; set; } = string.Empty; public string LastName { get; set; } = string.Empty; public string Email { get; set; } = string.Empty; public string Password { get; set; } = string.Empty; public string ConfirmPassword { get; set; } = string.Empty; }
+}
