@@ -35,6 +35,7 @@ namespace JobWize.Modules.Identity.Infrastructure.Authentication
             {
                 new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new(ClaimTypes.Role, user.Role.ToString()),
+                new(global::JobWize.Modules.Identity.Contracts.Public.Authentication.AuthenticationClaimTypes.MustChangePassword, user.MustChangePassword.ToString().ToLowerInvariant()),
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 

@@ -147,7 +147,7 @@ Migrations should be handled by deployment processes such as CI/CD pipelines.
 
 For a first deployment, run the Identity migrations before starting the API, provide
 the two `InitialSuperAdmin__*` secrets, then sign in as the seeded SuperAdmin and
-change the temporary password once the forced-password-change feature is deployed.
+change the temporary password when prompted.
 
 ---
 

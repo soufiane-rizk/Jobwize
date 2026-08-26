@@ -35,7 +35,7 @@ namespace JobWize.Modules.Identity.Application.Authentication
                         Result<bool> result = await dispatcher.SendAsync(new Command(request.RefreshToken), cancellationToken);
                         return result.ToApiResult();
                     })
-                    .RequireAuthorization()
+                    .RequireAuthorization(global::JobWize.Modules.Identity.Contracts.Public.Authentication.AuthenticationPolicies.PasswordChange)
                     .WithName("Logout")
                     .WithTags("Authentication");
             }

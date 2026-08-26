@@ -2,6 +2,8 @@
 
 @using JobWize.Frontend.Shared.Theme
 
+@implements IDisposable
+
 <MudThemeProvider Theme="@JobWizeTheme.Default" />
 <MudPopoverProvider />
 <MudDialogProvider />
@@ -37,3 +39,42 @@
         </Router>
     </CascadingAuthenticationState>
 </ApplicationErrorBoundary>
+
+@code {
+    [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        Navigation.LocationChanged += OnLocationChanged;
+        await RedirectToPasswordChangeIfRequiredAsync();
+    }
+
+    private void OnAuthenticationStateChanged(Task<AuthenticationState> authenticationStateTask) =>
+        _ = InvokeAsync(RedirectToPasswordChangeIfRequiredAsync);
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) =>
+        _ = InvokeAsync(RedirectToPasswordChangeIfRequiredAsync);
+
+    private async Task RedirectToPasswordChangeIfRequiredAsync()
+    {
+        AuthenticationState state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        bool mustChangePassword = state.User.FindFirst(global::JobWize.Modules.Identity.Contracts.Public.Authentication.AuthenticationClaimTypes.MustChangePassword)?.Value == "true";
+
+        string currentPath = Navigation.ToBaseRelativePath(Navigation.Uri)
+            .Split('?', '#')[0]
+            .TrimEnd('/');
+
+        if (mustChangePassword && !string.Equals(currentPath, "change-password", StringComparison.OrdinalIgnoreCase))
+        {
+            Navigation.NavigateTo("/change-password", replace: true);
+        }
+    }
+
+    public void Dispose()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+}

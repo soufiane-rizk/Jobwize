@@ -54,6 +54,20 @@ namespace JobWize.Api
                 };
             });
 
+            services.AddAuthorization(options =>
+            {
+                options.DefaultPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+                    .RequireAuthenticatedUser()
+                    .RequireClaim(global::JobWize.Modules.Identity.Contracts.Public.Authentication.AuthenticationClaimTypes.MustChangePassword, "false")
+                    .Build();
+
+                options.AddPolicy(
+                    global::JobWize.Modules.Identity.Contracts.Public.Authentication.AuthenticationPolicies.PasswordChange,
+                    new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+                        .RequireAuthenticatedUser()
+                        .Build());
+            });
+
             return services;
         }
     }
