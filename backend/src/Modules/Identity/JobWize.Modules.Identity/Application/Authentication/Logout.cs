@@ -1,6 +1,7 @@
 using FluentValidation;
 using JobWize.Modules.Identity.Application;
 using JobWize.Modules.Identity.Contracts.Events.Authentication;
+using JobWize.Modules.Identity.Infrastructure.Authentication;
 using JobWize.Modules.Identity.Persistence;
 using JobWize.Runtime.Contracts.Dispatching;
 using JobWize.Shared.Application.Results;
@@ -11,9 +12,6 @@ using JobWize.Shared.Runtime.Contracts;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace JobWize.Modules.Identity.Application.Authentication
 {
@@ -23,11 +21,7 @@ namespace JobWize.Modules.Identity.Application.Authentication
 
         internal sealed class Validator : AbstractValidator<Command>
         {
-            public Validator()
-            {
-                RuleFor(x => x.RefreshToken)
-                    .NotEmpty();
-            }
+            public Validator() => RuleFor(x => x.RefreshToken).NotEmpty();
         }
 
         internal sealed class Endpoint : IEndpoint
@@ -38,10 +32,7 @@ namespace JobWize.Modules.Identity.Application.Authentication
                     Contracts.Public.Authentication.Logout.Route,
                     async (Contracts.Public.Authentication.Logout.Request request, IDispatcher dispatcher, CancellationToken cancellationToken) =>
                     {
-                        var result = await dispatcher.SendAsync(
-                            new Command(request.RefreshToken),
-                            cancellationToken);
-
+                        Result<bool> result = await dispatcher.SendAsync(new Command(request.RefreshToken), cancellationToken);
                         return result.ToApiResult();
                     })
                     .RequireAuthorization()
@@ -56,28 +47,27 @@ namespace JobWize.Modules.Identity.Application.Authentication
             private readonly IUserContext _userContext;
             private readonly IClock _clock;
             private readonly IDispatcher _dispatcher;
+            private readonly IRefreshTokenHasher _refreshTokenHasher;
 
-            public Handler(IUserRepository userRepository,  IUserContext userContext, IClock clock, IDispatcher dispatcher)
+            public Handler(IUserRepository userRepository, IUserContext userContext, IClock clock, IDispatcher dispatcher, IRefreshTokenHasher refreshTokenHasher)
             {
                 _userRepository = userRepository;
                 _userContext = userContext;
                 _clock = clock;
                 _dispatcher = dispatcher;
+                _refreshTokenHasher = refreshTokenHasher;
             }
 
             public async Task<Result<bool>> HandleAsync(Command command, CancellationToken cancellationToken)
             {
-                var user = await _userRepository.GetByIdAsync(_userContext.UserId, cancellationToken);
+                Domain.User? user = await _userRepository.GetByIdAsync(_userContext.UserId, cancellationToken);
 
                 if (user is null)
-                {
                     return Result<bool>.Failure(IdentityErrors.UserNotFound);
-                }
 
-                user.RevokeRefreshToken(command.RefreshToken, _clock.UtcNow);
+                user.RevokeRefreshToken(_refreshTokenHasher.Hash(command.RefreshToken), _clock.UtcNow);
 
                 await _userRepository.SaveAsync(user, cancellationToken);
-
                 await _dispatcher.PublishAsync(new UserLoggedOut(user.Id), cancellationToken);
 
                 return Result<bool>.Success(true);

@@ -38,6 +38,7 @@ namespace JobWize.Api
 
             services.AddShared();
             services.AddApi(configuration);
+            services.AddProblemDetails();
             services.AddExceptionHandler<GlobalExceptionHandler>();
 
             builder.Services.AddAuthorization();

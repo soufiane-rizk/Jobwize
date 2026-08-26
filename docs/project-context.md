@@ -26,7 +26,7 @@ JobWize is an open-source career-management platform for organizing a job search
 
 Implemented shared capabilities:
 
--   Login, JWT authentication, protected routing, client authentication state, and backend session revocation on logout.
+-   Login, JWT authentication, protected routing, client authentication state, refresh-token rotation, automatic access-token renewal, and backend session revocation on logout.
 -   Auth-aware application shell: theme, navigation drawer, app bar, anonymous authentication layout, and safe global UI error screen.
 -   Unified backend error responses using `application/problem+json`, including application error codes and validation details.
 -   Dispatcher exception handling plus a global HTTP exception safety net.
@@ -35,8 +35,8 @@ Implemented shared capabilities:
 Current roadmap order:
 
 1. Frontend shared foundation — implemented and ready to support feature work.
-2. Refresh-token rotation, frontend token replacement, automatic access-token renewal, and expiry/failure handling — next.
-3. First business feature.
+2. Refresh-token rotation, frontend token replacement, automatic access-token renewal, and expiry/failure handling — implemented.
+3. First business feature — next.
 
 ---
 
