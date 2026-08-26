@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -30,5 +30,14 @@ namespace JobWize.Shared.Application.Results
 
         public static new Result<T> Failure(Error error)
             => new(error);
+
+        public static new Result<T> ConfirmationRequired(Confirmation confirmation)
+            => new(confirmation);
+
+        private Result(Confirmation confirmation)
+            : base(false, new Error("Confirmation.Required", confirmation.Message, ErrorType.ConfirmationRequired), [confirmation])
+        {
+            _value = default;
+        }
     }
 }

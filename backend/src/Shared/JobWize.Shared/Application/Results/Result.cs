@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -6,7 +6,7 @@ namespace JobWize.Shared.Application.Results
 {
     public class Result
     {
-        protected Result(bool isSuccess, Error error)
+        protected Result(bool isSuccess, Error error, IReadOnlyList<Confirmation>? confirmations = null)
         {
             if (isSuccess && error != SharedErrors.None)
                 throw new ArgumentException("Successful results cannot contain an error.");
@@ -16,6 +16,7 @@ namespace JobWize.Shared.Application.Results
 
             IsSuccess = isSuccess;
             Error = error;
+            Confirmations = confirmations ?? [];
         }
 
         public bool IsSuccess { get; }
@@ -23,11 +24,16 @@ namespace JobWize.Shared.Application.Results
         public bool IsFailure => !IsSuccess;
 
         public Error Error { get; }
+        public IReadOnlyList<Confirmation> Confirmations { get; }
+        public bool NeedsConfirmation => Confirmations.Count > 0;
 
         public static Result Success()
             => new(true, SharedErrors.None);
 
         public static Result Failure(Error error)
             => new(false, error);
+
+        public static Result ConfirmationRequired(Confirmation confirmation)
+            => new(false, new Error("Confirmation.Required", confirmation.Message, ErrorType.ConfirmationRequired), [confirmation]);
     }
 }
