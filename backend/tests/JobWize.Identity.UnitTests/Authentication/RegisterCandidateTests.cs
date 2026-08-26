@@ -102,6 +102,8 @@ public sealed class RegisterCandidateTests
         public Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default) =>
             Task.FromResult(string.Equals(existingUser?.Email, email, StringComparison.OrdinalIgnoreCase) ? existingUser : null);
 
+        public Task<bool> HasSuperAdminAsync(CancellationToken cancellationToken = default) => Task.FromResult(false);
+
         public Task<User?> GetByRefreshTokenHashAsync(string tokenHash, CancellationToken cancellationToken = default) => Task.FromResult<User?>(null);
 
         public Task SaveAsync(User user, CancellationToken cancellationToken = default) => Task.CompletedTask;
