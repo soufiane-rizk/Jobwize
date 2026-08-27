@@ -284,6 +284,8 @@ Examples:
 
 Business-specific information belongs to the owning module.
 
+Authenticated users can update their own first and last names through Profile. Email changes are intentionally out of scope until verification and session-handling rules are defined.
+
 ---
 
 # Seeding
