@@ -1,0 +1,28 @@
+@using AddNoteContract = JobWize.Modules.Applications.Contracts.Public.JobApplications.AddJobApplicationNote
+
+@inject JobApplicationService JobApplicationService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_note" Label="Note" Lines="3" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="MudDialog.Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="SaveAsync">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid ApplicationId { get; set; }
+    private string? _note;
+
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_note)) return;
+        Result<bool> result = await JobApplicationService.AddNoteAsync(new AddNoteContract.Request(ApplicationId, _note));
+        if (!result.IsSuccess) { Snackbar.Add(result.Error?.Message ?? "Unable to add note.", Severity.Error); return; }
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

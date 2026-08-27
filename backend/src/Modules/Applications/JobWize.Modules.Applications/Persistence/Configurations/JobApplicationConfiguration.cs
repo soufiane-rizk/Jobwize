@@ -27,6 +27,9 @@ internal sealed class JobApplicationConfiguration : IEntityTypeConfiguration<Job
         builder.Property(application => application.Notes)
             .HasMaxLength(8000);
 
+        builder.Property(application => application.LastActivityAt)
+            .IsRequired();
+
         builder.Property(application => application.Kind)
             .HasConversion<string>();
 
@@ -38,5 +41,23 @@ internal sealed class JobApplicationConfiguration : IEntityTypeConfiguration<Job
             application.CandidateId,
             application.Status
         });
+
+        builder.HasMany(application => application.Activities)
+            .WithOne()
+            .HasForeignKey(change => change.JobApplicationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Metadata
+            .FindNavigation(nameof(JobApplication.Activities))!
+            .SetPropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(application => application.Interviews)
+            .WithOne()
+            .HasForeignKey(interview => interview.JobApplicationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Metadata
+            .FindNavigation(nameof(JobApplication.Interviews))!
+            .SetPropertyAccessMode(PropertyAccessMode.Field);
     }
 }

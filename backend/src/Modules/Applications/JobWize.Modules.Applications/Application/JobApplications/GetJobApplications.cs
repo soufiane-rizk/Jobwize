@@ -1,4 +1,6 @@
 using JobWize.Modules.Applications.Contracts.Public.JobApplications;
+using JobWize.Modules.Applications.Contracts.Public.Interviews;
+using JobWize.Modules.Applications.Domain;
 using JobWize.Modules.Applications.Persistence;
 using JobWize.Runtime.Contracts.Dispatching;
 using JobWize.Shared.Application.Results;
@@ -45,17 +47,31 @@ public static class GetJobApplications
                 .Where(application => application.CandidateId == userContext.UserId)
                 .OrderByDescending(application => application.AppliedOn)
                 .ThenByDescending(application => application.CreatedAt)
-                .Select(application => new Contracts.Public.JobApplications.GetJobApplications.Item(
+                .Include(application => application.Interviews)
+                .ToListAsync(cancellationToken);
+
+            var items = applications
+                .Select(application =>
+                {
+                    JobInterview? lastInterview = application.Interviews
+                        .OrderByDescending(interview => interview.ScheduledAt)
+                        .FirstOrDefault();
+
+                    return new Contracts.Public.JobApplications.GetJobApplications.Item(
                     application.Id,
                     application.CompanyName,
                     application.RoleTitle,
                     application.Kind,
                     application.Status,
-                    application.AppliedOn,
-                    application.CreatedAt))
-                .ToListAsync(cancellationToken);
+                    application.LastActivityAt,
+                    lastInterview?.Id,
+                    lastInterview?.State,
+                    lastInterview?.ScheduledAt,
+                    application.AllowedNextStatuses);
+                })
+                .ToList();
 
-            return Result<Contracts.Public.JobApplications.GetJobApplications.Response>.Success(new(applications));
+            return Result<Contracts.Public.JobApplications.GetJobApplications.Response>.Success(new(items));
         }
     }
 }

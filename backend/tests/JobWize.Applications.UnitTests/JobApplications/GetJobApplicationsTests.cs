@@ -42,6 +42,42 @@ public sealed class GetJobApplicationsTests
         result.Value.Applications[0].CompanyName.Should().Be("Acme");
     }
 
+    [Fact]
+    public async Task ChangeStatus_Should_Add_A_New_Status_History_Record()
+    {
+        var options = new DbContextOptionsBuilder<ApplicationsDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var dbContext = new ApplicationsDbContext(options);
+
+        JobApplication application = JobApplication.Create(
+            Guid.NewGuid(),
+            "Acme",
+            "Backend developer",
+            ApplicationKind.JobPosting,
+            ApplicationStatus.Planned,
+            null,
+            null,
+            null);
+
+        dbContext.JobApplications.Add(application);
+        await dbContext.SaveChangesAsync();
+
+        application.ChangeStatus(
+            ApplicationStatus.Applied,
+            new DateOnly(2026, 8, 27),
+            "CV sent.");
+
+        dbContext.ChangeTracker.DetectChanges();
+
+        dbContext.Entry(application.Activities.Last()).State.Should().Be(EntityState.Added);
+
+        await dbContext.SaveChangesAsync();
+
+        dbContext.Entry(application.Activities.Last()).State.Should().Be(EntityState.Unchanged);
+    }
+
     private sealed class FakeUserContext(Guid userId) : IUserContext
     {
         public Guid UserId { get; } = userId;

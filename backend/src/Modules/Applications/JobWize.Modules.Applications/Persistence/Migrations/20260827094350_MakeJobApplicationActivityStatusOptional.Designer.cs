@@ -3,6 +3,7 @@ using System;
 using JobWize.Modules.Applications.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace JobWize.Modules.Applications.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationsDbContext))]
-    partial class ApplicationsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260827094350_MakeJobApplicationActivityStatusOptional")]
+    partial class MakeJobApplicationActivityStatusOptional
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -107,81 +110,6 @@ namespace JobWize.Modules.Applications.Persistence.Migrations
                     b.ToTable("JobApplicationActivities", "applications");
                 });
 
-            modelBuilder.Entity("JobWize.Modules.Applications.Domain.JobInterview", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("DurationMinutes")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Format")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("JobApplicationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Location")
-                        .HasMaxLength(2048)
-                        .HasColumnType("character varying(2048)");
-
-                    b.Property<string>("PreparationNotes")
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
-
-                    b.Property<DateTime>("ScheduledAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("State")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("JobApplicationId");
-
-                    b.ToTable("JobInterviews", "applications");
-                });
-
-            modelBuilder.Entity("JobWize.Modules.Applications.Domain.JobInterviewParticipant", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("JobInterviewId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("RoleTitle")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("JobInterviewId");
-
-                    b.ToTable("JobInterviewParticipants", "applications");
-                });
-
             modelBuilder.Entity("JobWize.Modules.Applications.Domain.JobApplicationActivity", b =>
                 {
                     b.HasOne("JobWize.Modules.Applications.Domain.JobApplication", null)
@@ -191,34 +119,9 @@ namespace JobWize.Modules.Applications.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("JobWize.Modules.Applications.Domain.JobInterview", b =>
-                {
-                    b.HasOne("JobWize.Modules.Applications.Domain.JobApplication", null)
-                        .WithMany("Interviews")
-                        .HasForeignKey("JobApplicationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("JobWize.Modules.Applications.Domain.JobInterviewParticipant", b =>
-                {
-                    b.HasOne("JobWize.Modules.Applications.Domain.JobInterview", null)
-                        .WithMany("Participants")
-                        .HasForeignKey("JobInterviewId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("JobWize.Modules.Applications.Domain.JobApplication", b =>
                 {
                     b.Navigation("Activities");
-
-                    b.Navigation("Interviews");
-                });
-
-            modelBuilder.Entity("JobWize.Modules.Applications.Domain.JobInterview", b =>
-                {
-                    b.Navigation("Participants");
                 });
 #pragma warning restore 612, 618
         }

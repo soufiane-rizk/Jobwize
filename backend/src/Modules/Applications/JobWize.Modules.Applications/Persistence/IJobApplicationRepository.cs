@@ -5,6 +5,11 @@ namespace JobWize.Modules.Applications.Persistence;
 
 public interface IJobApplicationRepository
 {
+    Task<JobApplication?> GetByIdAsync(
+        Guid applicationId,
+        Guid candidateId,
+        CancellationToken cancellationToken = default);
+
     Task SaveAsync(
         JobApplication application,
         CancellationToken cancellationToken = default);
@@ -29,5 +34,19 @@ internal sealed class JobApplicationRepository : IJobApplicationRepository
         }
 
         return Task.CompletedTask;
+    }
+
+    public Task<JobApplication?> GetByIdAsync(
+        Guid applicationId,
+        Guid candidateId,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.JobApplications
+            .Include(application => application.Activities)
+            .Include(application => application.Interviews)
+            .ThenInclude(interview => interview.Participants)
+            .SingleOrDefaultAsync(
+                application => application.Id == applicationId && application.CandidateId == candidateId,
+                cancellationToken);
     }
 }
