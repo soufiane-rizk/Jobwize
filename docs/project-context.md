@@ -29,6 +29,7 @@ Implemented shared capabilities:
 -   Candidate self-registration and login, JWT authentication, protected routing, client authentication state, refresh-token rotation, automatic access-token renewal, and backend session revocation on logout.
 -   Initial SuperAdmin bootstrap from secure configuration and a backend-enforced forced-password-change flow.
 -   Role-scoped user management: Admins can view and manage Candidates; SuperAdmins can additionally create, suspend, and reactivate Admins. Suspending a user revokes active refresh-token sessions.
+-   Self-service Profile page: users can update their own first and last names and change their password; email remains read-only.
 -   Auth-aware application shell: theme, navigation drawer, app bar, anonymous authentication layout, and safe global UI error screen.
 -   Unified backend error responses using `application/problem+json`, including application error codes, validation details, and backend-owned confirmation requests for consequential actions.
 -   Dispatcher exception handling plus a global HTTP exception safety net.

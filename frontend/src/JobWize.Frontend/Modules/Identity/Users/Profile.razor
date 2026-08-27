@@ -1,0 +1,142 @@
+@attribute [Route(IdentityRoutes.Profile)]
+@attribute [Authorize]
+
+@using JobWize.Frontend.Modules.Identity.Authentication
+@using JobWize.Frontend.Shared.Results
+@using JobWize.Modules.Identity.Contracts.Public.Authentication
+@using JobWize.Modules.Identity.Contracts.Public.Users
+
+@inject CurrentUserService CurrentUserService
+@inject AuthenticationService AuthenticationService
+@inject ISnackbar Snackbar
+
+<PageTitle>Profile</PageTitle>
+
+<LoadingIndicator Loading="@_isLoading">
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error">@_error.Message</MudAlert>
+    }
+    else if (_user is not null)
+    {
+        <MudContainer MaxWidth="MaxWidth.Medium" Class="px-0">
+            <MudStack Spacing="3">
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                <MudAvatar Size="Size.Large" Color="Color.Primary" Variant="Variant.Filled">@GetInitials()</MudAvatar>
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.h4">Profile</MudText>
+                    <MudText Color="Color.Secondary">@_user.Email</MudText>
+                </MudStack>
+            </MudStack>
+
+                <MudPaper Class="pa-6" Elevation="1">
+                <MudText Typo="Typo.h6" Class="mb-4">Personal information</MudText>
+                    <MudForm @ref="_profileForm">
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_firstName" Label="First name" Variant="Variant.Outlined" FullWidth="true" Required="true" Validation="@(new Func<string, IEnumerable<string>>(ValidateFirstName))" /></MudItem>
+                            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_lastName" Label="Last name" Variant="Variant.Outlined" FullWidth="true" Required="true" Validation="@(new Func<string, IEnumerable<string>>(ValidateLastName))" /></MudItem>
+                        </MudGrid>
+                    </MudForm>
+                <MudTextField Value="@_user.Email" Label="Email" Variant="Variant.Outlined" FullWidth="true" ReadOnly="true" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Lock" />
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-4">@_user.Role · Member since @_user.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
+                <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="_savingProfile" OnClick="SaveProfileAsync">Save changes</MudButton>
+                </MudStack>
+            </MudPaper>
+
+                <MudPaper Class="pa-6" Elevation="1">
+                <MudText Typo="Typo.h6" Class="mb-1">Security</MudText>
+                <MudText Color="Color.Secondary" Typo="Typo.body2" Class="mb-4">Change your password using your current password.</MudText>
+                    <MudForm @ref="_passwordForm">
+                        <MudTextField @bind-Value="_currentPassword" Label="Current password" InputType="InputType.Password" Variant="Variant.Outlined" FullWidth="true" Required="true" Validation="@(new Func<string, IEnumerable<string>>(ValidateCurrentPassword))" />
+                        <MudTextField @bind-Value="_newPassword" Label="New password" InputType="InputType.Password" Variant="Variant.Outlined" FullWidth="true" Required="true" Validation="@(new Func<string, IEnumerable<string>>(ValidateNewPassword))" />
+                        <MudTextField @bind-Value="_confirmPassword" Label="Confirm new password" InputType="InputType.Password" Variant="Variant.Outlined" FullWidth="true" Required="true" Validation="@(new Func<string, IEnumerable<string>>(ValidateConfirmPassword))" />
+                    </MudForm>
+                <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="_savingPassword" OnClick="ChangePasswordAsync">Change password</MudButton>
+                </MudStack>
+            </MudPaper>
+
+            </MudStack>
+        </MudContainer>
+    }
+</LoadingIndicator>
+
+@code {
+    private GetCurrentUser.Response? _user;
+    private Error? _error;
+    private bool _isLoading = true;
+    private bool _savingProfile;
+    private bool _savingPassword;
+    private MudForm? _profileForm;
+    private MudForm? _passwordForm;
+    private string _firstName = string.Empty;
+    private string _lastName = string.Empty;
+    private string _currentPassword = string.Empty;
+    private string _newPassword = string.Empty;
+    private string _confirmPassword = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Result<GetCurrentUser.Response> result = await CurrentUserService.GetAsync();
+        if (result.IsSuccess && result.Value is not null)
+        {
+            _user = result.Value;
+            _firstName = _user.FirstName;
+            _lastName = _user.LastName;
+        }
+        else _error = result.Error;
+        _isLoading = false;
+    }
+
+    private async Task SaveProfileAsync()
+    {
+        await _profileForm!.ValidateAsync();
+        if (!_profileForm.IsValid) return;
+
+        _savingProfile = true;
+        try
+        {
+            Result<bool> result = await CurrentUserService.UpdateAsync(new UpdateProfile.Request(_firstName, _lastName));
+            if (result.IsSuccess)
+            {
+                _user = _user! with { FirstName = _firstName, LastName = _lastName };
+                Snackbar.Add("Profile updated.", Severity.Success);
+            }
+            else Snackbar.Add(result.Error?.Message ?? "Unable to update profile.", Severity.Error);
+        }
+        finally { _savingProfile = false; }
+    }
+
+    private async Task ChangePasswordAsync()
+    {
+        await _passwordForm!.ValidateAsync();
+        if (!_passwordForm.IsValid) return;
+
+        _savingPassword = true;
+        try
+        {
+            Result<AuthenticationResponse> result = await AuthenticationService.ChangePasswordAsync(new ChangePassword.Request(_currentPassword, _newPassword, _confirmPassword));
+            if (result.IsSuccess) { _currentPassword = _newPassword = _confirmPassword = string.Empty; Snackbar.Add("Password updated.", Severity.Success); }
+            else Snackbar.Add(result.Error?.Message ?? "Unable to change password.", Severity.Error);
+        }
+        finally { _savingPassword = false; }
+    }
+
+    private string GetInitials()
+    {
+        string firstInitial = string.IsNullOrWhiteSpace(_user?.FirstName) ? string.Empty : _user.FirstName[..1];
+        string lastInitial = string.IsNullOrWhiteSpace(_user?.LastName) ? string.Empty : _user.LastName[..1];
+
+        return $"{firstInitial}{lastInitial}".ToUpperInvariant();
+    }
+
+    private static IEnumerable<string> Required(string value, string label) =>
+        string.IsNullOrWhiteSpace(value) ? [$"{label} is required."] : [];
+
+    private static IEnumerable<string> ValidateFirstName(string value) => Required(value, "First name");
+    private static IEnumerable<string> ValidateLastName(string value) => Required(value, "Last name");
+    private static IEnumerable<string> ValidateCurrentPassword(string value) => Required(value, "Current password");
+    private static IEnumerable<string> ValidateNewPassword(string value) => string.IsNullOrWhiteSpace(value) ? ["New password is required."] : value.Length < 8 ? ["Password must contain at least 8 characters."] : [];
+    private IEnumerable<string> ValidateConfirmPassword(string value) => string.IsNullOrWhiteSpace(value) ? ["Confirm your new password."] : value != _newPassword ? ["Passwords do not match."] : [];
+}

@@ -8,6 +8,8 @@ namespace JobWize.Frontend.Modules.Identity
 
         public const string ChangePassword = "/change-password";
 
+        public const string Profile = "/profile";
+
         public const string Users = "/users";
         public const string CreateAdmin = "/users/new";
 

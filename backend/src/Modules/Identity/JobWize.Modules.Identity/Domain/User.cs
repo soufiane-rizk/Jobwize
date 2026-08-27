@@ -101,6 +101,15 @@ namespace JobWize.Modules.Identity.Domain
 
         public void Reactivate() => Status = UserStatus.Active;
 
+        public void UpdatePersonalInformation(string firstName, string lastName)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(firstName, nameof(firstName));
+            ArgumentException.ThrowIfNullOrWhiteSpace(lastName, nameof(lastName));
+
+            FirstName = firstName;
+            LastName = lastName;
+        }
+
         public RefreshToken? FindRefreshToken(string tokenHash)
         {
             return _refreshTokens.SingleOrDefault(x => x.TokenHash == tokenHash);
