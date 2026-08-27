@@ -8,7 +8,7 @@ The module owns application data in the `applications` database schema. It does 
 
 ## Current Capability
 
-A candidate can create and list only their own applications.
+A candidate can create, list, and view only their own applications. They can also add timeline notes, move an application through its lifecycle, schedule interviews, edit scheduled interviews, and record interview results.
 
 Each application records:
 
@@ -18,13 +18,21 @@ Each application records:
 - Current status
 - Applied-on date
 - Optional source URL and notes
+- Activity timeline
+- Scheduled and historical interviews, including interviewers, format, duration, location, and preparation notes
 
 The current API is protected by authentication:
 
 - `GET /api/applications` lists the current candidate's applications.
 - `POST /api/applications` creates an application for the current candidate.
+- `GET /api/applications/{id}` returns an application, its activities, interviews, and allowed next statuses.
+- `POST /api/applications/{id}/notes` adds a timeline note.
+- `PATCH /api/applications/{id}/status` changes lifecycle status.
+- `POST /api/applications/{id}/interviews` schedules an interview.
+- `PUT /api/applications/{applicationId}/interviews/{interviewId}` edits a scheduled interview.
+- `POST /api/applications/{applicationId}/interviews/{interviewId}/result` records a completed, cancelled, or postponed result.
 
-Creating an application publishes the `JobApplicationCreated` integration event.
+Commands publish integration events for application creation, status changes, notes, interview scheduling, and interview results.
 
 ## Statuses
 
@@ -42,7 +50,10 @@ Creating an application publishes the `JobApplicationCreated` integration event.
 
 - An application belongs to exactly one candidate.
 - Candidates can only list their own applications.
-- An application whose status is `Applied` must have an `AppliedOn` date.
+- An application in any status other than `Draft` or `Planned` must have an `AppliedOn` date.
+- Status transitions are restricted by the application lifecycle policy; closed applications can only transition to `Archived`.
+- Interviews are owned by the job application aggregate.
+- A postponed interview creates a copied replacement interview in the `Scheduled` state with the supplied new date and time.
 
 The applied-date invariant is enforced by both request validation and the domain factory.
 
@@ -51,6 +62,7 @@ The applied-date invariant is enforced by both request validation and the domain
 The initial tracker intentionally does not yet include:
 
 - A shared company catalogue, company search, or candidate company suggestions
-- Application editing, interview completion, rescheduling, cancellation, assessments, or offers
+- Completed-interview outcomes such as awaiting feedback, next round, offer expected, or rejected
+- Assessments and offer details
 - Follow-up and interview reminders
 - Documents, CV versions, or cover letters
