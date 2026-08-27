@@ -30,6 +30,7 @@ Implemented shared capabilities:
 -   Initial SuperAdmin bootstrap from secure configuration and a backend-enforced forced-password-change flow.
 -   Role-scoped user management: Admins can view and manage Candidates; SuperAdmins can additionally create, suspend, and reactivate Admins. Suspending a user revokes active refresh-token sessions.
 -   Self-service Profile page: users can update their own first and last names and change their password; email remains read-only.
+-   Applications foundation: candidates can create and list their own job-posting or spontaneous-CV applications, including the company, role, status, applied date, source URL, and notes.
 -   Auth-aware application shell: theme, navigation drawer, app bar, anonymous authentication layout, and safe global UI error screen.
 -   Unified backend error responses using `application/problem+json`, including application error codes, validation details, and backend-owned confirmation requests for consequential actions.
 -   Dispatcher exception handling plus a global HTTP exception safety net.
@@ -67,6 +68,7 @@ Current roadmap order:
 | Runtime dispatch | [Runtime](architecture/09-runtime.md) |
 | Frontend conventions | [Frontend architecture](architecture/12-frontend.md) |
 | Identity boundaries and planned capabilities | [Identity module](modules/Identity.md) |
+| Application-tracking module | [Applications module](modules/Applications.md) |
 | Local run and test commands | [Local development](setup/local-development.md) |
 
 ---

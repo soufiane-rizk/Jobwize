@@ -1,0 +1,107 @@
+@attribute [Route(ApplicationsRoutes.List)]
+@attribute [Authorize]
+
+@using JobWize.Modules.Applications.Contracts.Public.JobApplications
+
+@inject JobApplicationService JobApplicationService
+@inject NavigationManager Navigation
+
+<PageTitle>Applications</PageTitle>
+
+<MudStack Spacing="3">
+    <MudStack Row="true" AlignItems="AlignItems.Center">
+        <MudText Typo="Typo.h4">Job applications</MudText>
+
+        <MudSpacer />
+
+        <MudButton
+            Color="Color.Primary"
+            Variant="Variant.Filled"
+            StartIcon="@Icons.Material.Filled.Add"
+            OnClick="@(() => Navigation.NavigateTo(ApplicationsRoutes.Create))">
+            New application
+        </MudButton>
+    </MudStack>
+
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error">@_error.Message</MudAlert>
+    }
+    else if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        <MudTable Items="@_applications" Hover="true" Dense="true">
+            <HeaderContent>
+                <MudTh>Company</MudTh>
+                <MudTh>Role</MudTh>
+                <MudTh>Type</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Applied</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Company">@context.CompanyName</MudTd>
+                <MudTd DataLabel="Role">@(context.RoleTitle ?? "—")</MudTd>
+                <MudTd DataLabel="Type">@(context.Kind == ApplicationKind.JobPosting ? "Job posting" : "Spontaneous CV")</MudTd>
+                <MudTd DataLabel="Status">
+                    <MudChip
+                        T="string"
+                        Value="@context.Status.ToString()"
+                        Size="Size.Small"
+                        Variant="Variant.Text"
+                        Color="@GetStatusColor(context.Status)">
+                        @context.Status
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="Applied">@(context.AppliedOn?.ToString("dd/MM/yyyy") ?? "—")</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="pa-4">No applications yet. Add the first one you want to track.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    }
+</MudStack>
+
+@code {
+    private IReadOnlyList<GetJobApplications.Item> _applications = [];
+    private Error? _error;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+
+        Result<GetJobApplications.Response> result = await JobApplicationService.GetAsync();
+
+        if (result.IsSuccess)
+        {
+            _applications = result.Value?.Applications ?? [];
+        }
+        else
+        {
+            _error = result.Error;
+        }
+
+        _loading = false;
+    }
+
+    private static Color GetStatusColor(ApplicationStatus status)
+    {
+        return status switch
+        {
+            ApplicationStatus.Draft => Color.Default,
+            ApplicationStatus.Planned => Color.Warning,
+            ApplicationStatus.Applied => Color.Info,
+            ApplicationStatus.InProcess => Color.Primary,
+            ApplicationStatus.OfferReceived => Color.Success,
+            ApplicationStatus.Accepted => Color.Success,
+            ApplicationStatus.Rejected => Color.Error,
+            ApplicationStatus.Withdrawn => Color.Warning,
+            ApplicationStatus.Declined => Color.Default,
+            ApplicationStatus.Archived => Color.Default,
+            _ => Color.Default
+        };
+    }
+}

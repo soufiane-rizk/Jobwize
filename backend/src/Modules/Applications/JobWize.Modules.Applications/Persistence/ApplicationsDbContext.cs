@@ -1,0 +1,21 @@
+using JobWize.Modules.Applications.Domain;
+using JobWize.Shared.Persistence;
+using Microsoft.EntityFrameworkCore;
+
+namespace JobWize.Modules.Applications.Persistence;
+public sealed class ApplicationsDbContext : ModuleDbContext
+{
+    public ApplicationsDbContext(DbContextOptions<ApplicationsDbContext> options)
+        : base(options)
+    {
+    }
+
+    public DbSet<JobApplication> JobApplications => Set<JobApplication>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationsDbContext).Assembly);
+
+        base.OnModelCreating(modelBuilder);
+    }
+}
