@@ -1,0 +1,130 @@
+@attribute [Route(ApplicationsRoutes.Create)]
+@attribute [Authorize]
+
+@using JobWize.Modules.Applications.Contracts.Public.JobApplications
+@using CreateJobApplicationContract = JobWize.Modules.Applications.Contracts.Public.JobApplications.CreateJobApplication
+
+@inject JobApplicationService JobApplicationService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>New application</PageTitle>
+
+<MudPaper MaxWidth="MaxWidth.Medium" Class="pa-6 mx-auto mt-8">
+    <MudText Typo="Typo.h4" Class="mb-4">Track an application</MudText>
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="_companyName" Label="Company" Required="true" />
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="_roleTitle" Label="Role / position" />
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudSelect T="ApplicationKind" @bind-Value="_kind" Label="Application type">
+                <MudSelectItem Value="ApplicationKind.JobPosting">Specific job posting</MudSelectItem>
+                <MudSelectItem Value="ApplicationKind.SpontaneousApplication">Spontaneous CV</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudSelect
+                T="ApplicationStatus"
+                @bind-Value="_status"
+                @bind-Value:after="UpdateAppliedOn"
+                Label="Current status">
+                <MudSelectItem Value="ApplicationStatus.Draft">Draft</MudSelectItem>
+                <MudSelectItem Value="ApplicationStatus.Planned">Planned</MudSelectItem>
+                <MudSelectItem Value="ApplicationStatus.Applied">Applied / CV sent</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+
+        @if (_status == ApplicationStatus.Applied)
+        {
+            <MudItem xs="12" md="4">
+                <MudDatePicker @bind-Date="_appliedOn" Label="Applied on" Required="true" />
+            </MudItem>
+        }
+
+        <MudItem xs="12">
+            <MudTextField @bind-Value="_sourceUrl" Label="Offer URL (optional)" />
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudTextField @bind-Value="_notes" Label="Notes (optional)" Lines="3" />
+        </MudItem>
+    </MudGrid>
+
+    <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
+        <MudButton OnClick="@(() => Navigation.NavigateTo(ApplicationsRoutes.List))">
+            Cancel
+        </MudButton>
+
+        <MudButton
+            Color="Color.Primary"
+            Variant="Variant.Filled"
+            Disabled="@_saving"
+            OnClick="CreateAsync">
+            Save application
+        </MudButton>
+    </MudStack>
+</MudPaper>
+
+@code {
+    private bool _saving;
+    private string _companyName = "";
+    private string? _roleTitle;
+    private string? _sourceUrl;
+    private string? _notes;
+    private ApplicationKind _kind = ApplicationKind.JobPosting;
+    private ApplicationStatus _status = ApplicationStatus.Planned;
+    private DateTime? _appliedOn;
+
+    private async Task CreateAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_companyName))
+        {
+            Snackbar.Add("Company is required.", Severity.Warning);
+            return;
+        }
+
+        if (_status == ApplicationStatus.Applied && _appliedOn is null)
+        {
+            Snackbar.Add("Applied on is required when the application has been sent.", Severity.Warning);
+            return;
+        }
+
+        _saving = true;
+
+        Result<CreateJobApplicationContract.Response> result = await JobApplicationService.CreateAsync(
+            new(
+                _companyName,
+                _roleTitle,
+                _kind,
+                _status,
+                _appliedOn is null ? null : DateOnly.FromDateTime(_appliedOn.Value),
+                _sourceUrl,
+                _notes));
+
+        _saving = false;
+
+        if (!result.IsSuccess)
+        {
+            Snackbar.Add(result.Error?.Message ?? "Unable to save the application.", Severity.Error);
+            return;
+        }
+
+        Snackbar.Add("Application saved.", Severity.Success);
+
+        Navigation.NavigateTo(ApplicationsRoutes.List, replace: true);
+    }
+
+    private void UpdateAppliedOn()
+    {
+        _appliedOn = _status == ApplicationStatus.Applied
+            ? _appliedOn ?? DateTime.Today
+            : null;
+    }
+}

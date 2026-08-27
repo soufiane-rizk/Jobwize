@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\backend\src\Modules\Identity\JobWize.Modules.Identity.Contracts\JobWize.Modules.Identity.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\backend\src\Modules\Applications\JobWize.Modules.Applications.Contracts\JobWize.Modules.Applications.Contracts.csproj" />
     <ProjectReference Include="..\..\..\backend\src\Shared\JobWize.Shared.Contracts\JobWize.Shared.Contracts.csproj" />
   </ItemGroup>
 

@@ -1,5 +1,6 @@
 using FluentValidation;
 using JobWize.Modules.Identity;
+using JobWize.Modules.Applications;
 using JobWize.Api.Exceptions;
 using JobWize.Runtime.Contracts.DependencyInjection;
 using JobWize.Runtime.Contracts.Modules;
@@ -30,6 +31,7 @@ namespace JobWize.Api
                 {
                     options
                         .AddModule(new IdentityModule())
+                        .AddModule(new ApplicationsModule())
 
                         .AddPipeline(typeof(ExceptionHandlingBehavior<,>))
                         .AddPipeline(typeof(ValidationBehavior<,>))
