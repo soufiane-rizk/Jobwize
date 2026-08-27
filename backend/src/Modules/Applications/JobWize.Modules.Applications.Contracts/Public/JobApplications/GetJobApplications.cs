@@ -1,3 +1,5 @@
+using JobWize.Modules.Applications.Contracts.Public.Interviews;
+
 namespace JobWize.Modules.Applications.Contracts.Public.JobApplications;
 
 public static class GetJobApplications
@@ -12,8 +14,11 @@ public static class GetJobApplications
         string? RoleTitle,
         ApplicationKind Kind,
         ApplicationStatus Status,
-        DateOnly? AppliedOn,
-        DateTime CreatedAt);
+        DateTime LastActivityAt,
+        Guid? LastInterviewId,
+        InterviewState? LastInterviewState,
+        DateTime? LastInterviewScheduledAt,
+        IReadOnlyList<ApplicationStatus> AllowedNextStatuses);
 
     public sealed record Response(IReadOnlyList<Item> Applications);
 }

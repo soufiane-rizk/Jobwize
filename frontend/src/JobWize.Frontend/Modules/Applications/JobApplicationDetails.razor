@@ -1,0 +1,245 @@
+@attribute [Route(ApplicationsRoutes.Detail)]
+@attribute [Authorize]
+
+@using JobWize.Modules.Applications.Contracts.Public.JobApplications
+@using JobWize.Modules.Applications.Contracts.Public.Interviews
+
+@inject JobApplicationService JobApplicationService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Application details</PageTitle>
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error">@_error.Message</MudAlert>
+}
+else if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_application is not null)
+{
+    <MudStack Spacing="3">
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => Navigation.NavigateTo(ApplicationsRoutes.List))">
+            Applications
+        </MudButton>
+
+        <MudPaper Class="pa-6">
+            <MudStack Row="true" AlignItems="AlignItems.Center">
+                <div>
+                    <MudText Typo="Typo.h4">@_application.CompanyName</MudText>
+                    <MudText Typo="Typo.h6">@(_application.RoleTitle ?? "Spontaneous application")</MudText>
+                </div>
+                <MudSpacer />
+                <MudChip T="string" Value="@_application.Status.ToString()" Color="Color.Info" Variant="Variant.Text">
+                    @_application.Status
+                </MudChip>
+            </MudStack>
+
+            @if (_application.AppliedOn is not null)
+            {
+                <MudText Class="mt-3">Applied on @_application.AppliedOn.Value.ToString("dd MMMM yyyy")</MudText>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(_application.Notes))
+            {
+                <MudText Class="mt-3">@_application.Notes</MudText>
+            }
+        </MudPaper>
+
+        @if (_application.Status != ApplicationStatus.Archived)
+        {
+            <MudPaper Class="pa-4">
+                <MudMenu Label="Actions" Variant="Variant.Filled" Color="Color.Primary">
+                    <MudMenuItem OnClick="OpenNoteDialogAsync">Add note</MudMenuItem>
+                    @if (_application.AllowedNextStatuses.Count > 0)
+                    {
+                        <MudMenuItem OnClick="OpenStatusDialogAsync">Change status</MudMenuItem>
+                    }
+                    @if (CanScheduleInterview(_application.Status))
+                    {
+                        <MudMenuItem OnClick="OpenScheduleInterviewDialogAsync">Schedule interview</MudMenuItem>
+                    }
+                </MudMenu>
+            </MudPaper>
+        }
+
+        @if (_application.Interviews.Count > 0)
+        {
+            <MudPaper Class="pa-6">
+                <MudText Typo="Typo.h6" Class="mb-3">Interviews</MudText>
+                <MudStack Spacing="2">
+                    @foreach (GetJobApplication.InterviewItem interview in _application.Interviews)
+                    {
+                        <MudPaper Outlined="true" Class="pa-4">
+                            <MudStack Row="true" AlignItems="AlignItems.Center">
+                                <MudText Typo="Typo.subtitle1">@GetInterviewTypeLabel(interview.Type)</MudText>
+                                <MudSpacer />
+                                <MudChip T="string" Value="@interview.State.ToString()" Size="Size.Small" Color="@GetInterviewStateColor(interview.State)" Variant="Variant.Text">@interview.State</MudChip>
+                            </MudStack>
+                            @if (interview.State == InterviewState.Scheduled && _application.Status != ApplicationStatus.Archived)
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="@(() => EditInterviewAsync(interview))">Edit</MudButton>
+                                <MudButton Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled" OnClick="@(() => OpenInterviewResultDialogAsync(interview))">Record result</MudButton>
+                            }
+                            <MudText Typo="Typo.body2" Class="mt-2">@interview.ScheduledAt.ToLocalTime().ToString("dddd, dd MMM yyyy · HH:mm")</MudText>
+                            <MudText Typo="Typo.caption">@interview.Format@(interview.DurationMinutes is null ? "" : $" · {interview.DurationMinutes} min")</MudText>
+                            @if (!string.IsNullOrWhiteSpace(interview.Location))
+                            {
+                                <MudText Typo="Typo.body2">@interview.Location</MudText>
+                            }
+                            @if (interview.Participants.Count > 0)
+                            {
+                                <MudText Typo="Typo.body2">
+                                    With @string.Join(", ", interview.Participants.Select(participant => participant.RoleTitle is null ? participant.Name : $"{participant.Name} ({participant.RoleTitle})"))
+                                </MudText>
+                            }
+                        </MudPaper>
+                    }
+                </MudStack>
+            </MudPaper>
+        }
+
+        <MudPaper Class="pa-6">
+            <MudText Typo="Typo.h6" Class="mb-3">Activity timeline</MudText>
+            <MudTimeline>
+                @foreach (GetJobApplication.ActivityItem item in _application.Activities)
+                {
+                    <MudTimelineItem Color="@GetActivityColor(item.Type)">
+                        <MudChip T="string" Value="@GetActivityLabel(item)" Size="Size.Small" Color="@GetActivityColor(item.Type)" Variant="Variant.Text">@GetActivityLabel(item)</MudChip>
+                        <MudText Typo="Typo.caption">@item.OccurredAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</MudText>
+                        @if (!string.IsNullOrWhiteSpace(item.Note)) { <MudText>@item.Note</MudText> }
+                    </MudTimelineItem>
+                }
+            </MudTimeline>
+        </MudPaper>
+    </MudStack>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private GetJobApplication.Response? _application;
+    private Error? _error;
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        Result<GetJobApplication.Response> result = await JobApplicationService.GetByIdAsync(Id);
+
+        if (result.IsSuccess && result.Value is not null)
+        {
+            GetJobApplication.Response application = result.Value;
+            _application = application;
+        }
+        else
+        {
+            _error = result.Error;
+        }
+
+        _loading = false;
+    }
+
+    private static string GetActivityLabel(GetJobApplication.ActivityItem item)
+    {
+        return item.Type switch
+        {
+            ApplicationActivityType.StatusChanged => item.Status?.ToString() ?? "Status changed",
+            ApplicationActivityType.InterviewScheduled => "Interview scheduled",
+            ApplicationActivityType.InterviewResultRecorded => "Interview result",
+            _ => "Note added"
+        };
+    }
+
+    private static Color GetActivityColor(ApplicationActivityType type)
+    {
+        return type switch
+        {
+            ApplicationActivityType.StatusChanged => Color.Primary,
+            ApplicationActivityType.InterviewScheduled => Color.Info,
+            ApplicationActivityType.InterviewResultRecorded => Color.Success,
+            _ => Color.Default
+        };
+    }
+
+    private static Color GetInterviewStateColor(InterviewState state)
+    {
+        return state switch
+        {
+            InterviewState.Scheduled => Color.Info,
+            InterviewState.Completed => Color.Success,
+            InterviewState.Postponed => Color.Warning,
+            InterviewState.Cancelled => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    private static bool CanScheduleInterview(ApplicationStatus status)
+    {
+        return status is ApplicationStatus.Applied or ApplicationStatus.InProcess;
+    }
+
+    private static string GetInterviewTypeLabel(InterviewType type)
+    {
+        return type switch
+        {
+            InterviewType.RecruiterScreen => "Recruiter screen",
+            InterviewType.HumanResources => "Human resources",
+            InterviewType.HiringManager => "Hiring manager",
+            _ => type.ToString()
+        };
+    }
+
+    private async Task EditInterviewAsync(GetJobApplication.InterviewItem interview)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(InterviewDialog.ApplicationId)] = Id,
+            [nameof(InterviewDialog.Interview)] = interview
+        };
+        var dialog = await DialogService.ShowAsync<InterviewDialog>("Edit interview", parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled) await LoadAsync();
+    }
+
+    private async Task OpenNoteDialogAsync()
+    {
+        var dialog = await DialogService.ShowAsync<NoteDialog>("Add note", new DialogParameters { [nameof(NoteDialog.ApplicationId)] = Id });
+        if ((await dialog.Result) is { Canceled: false }) await LoadAsync();
+    }
+
+    private async Task OpenStatusDialogAsync()
+    {
+        var dialog = await DialogService.ShowAsync<ChangeStatusDialog>("Change status", new DialogParameters { [nameof(ChangeStatusDialog.ApplicationId)] = Id, [nameof(ChangeStatusDialog.CurrentStatus)] = _application!.Status, [nameof(ChangeStatusDialog.AllowedNextStatuses)] = _application.AllowedNextStatuses });
+        if ((await dialog.Result) is { Canceled: false }) await LoadAsync();
+    }
+
+    private async Task OpenScheduleInterviewDialogAsync()
+    {
+        var dialog = await DialogService.ShowAsync<InterviewDialog>("Schedule interview", new DialogParameters { [nameof(InterviewDialog.ApplicationId)] = Id });
+        if ((await dialog.Result) is { Canceled: false }) await LoadAsync();
+    }
+
+    private async Task OpenInterviewResultDialogAsync(GetJobApplication.InterviewItem interview)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(InterviewResultDialog.ApplicationId)] = Id,
+            [nameof(InterviewResultDialog.InterviewId)] = interview.Id
+        };
+
+        var dialog = await DialogService.ShowAsync<InterviewResultDialog>(
+            "Record interview result",
+            parameters);
+
+        if ((await dialog.Result) is { Canceled: false }) await LoadAsync();
+    }
+}

@@ -51,7 +51,6 @@ The applied-date invariant is enforced by both request validation and the domain
 The initial tracker intentionally does not yet include:
 
 - A shared company catalogue, company search, or candidate company suggestions
-- Application editing and permanent status-history entries
-- Contacts, interview events, assessments, or offers
+- Application editing, interview completion, rescheduling, cancellation, assessments, or offers
 - Follow-up and interview reminders
 - Documents, CV versions, or cover letters

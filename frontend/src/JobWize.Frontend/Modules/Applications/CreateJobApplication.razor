@@ -35,13 +35,14 @@
                 @bind-Value="_status"
                 @bind-Value:after="UpdateAppliedOn"
                 Label="Current status">
-                <MudSelectItem Value="ApplicationStatus.Draft">Draft</MudSelectItem>
-                <MudSelectItem Value="ApplicationStatus.Planned">Planned</MudSelectItem>
-                <MudSelectItem Value="ApplicationStatus.Applied">Applied / CV sent</MudSelectItem>
+                @foreach (ApplicationStatus status in Enum.GetValues<ApplicationStatus>())
+                {
+                    <MudSelectItem Value="status">@GetStatusLabel(status)</MudSelectItem>
+                }
             </MudSelect>
         </MudItem>
 
-        @if (_status == ApplicationStatus.Applied)
+        @if (RequiresAppliedOn(_status))
         {
             <MudItem xs="12" md="4">
                 <MudDatePicker @bind-Date="_appliedOn" Label="Applied on" Required="true" />
@@ -90,7 +91,7 @@
             return;
         }
 
-        if (_status == ApplicationStatus.Applied && _appliedOn is null)
+        if (RequiresAppliedOn(_status) && _appliedOn is null)
         {
             Snackbar.Add("Applied on is required when the application has been sent.", Severity.Warning);
             return;
@@ -123,8 +124,18 @@
 
     private void UpdateAppliedOn()
     {
-        _appliedOn = _status == ApplicationStatus.Applied
+        _appliedOn = RequiresAppliedOn(_status)
             ? _appliedOn ?? DateTime.Today
             : null;
+    }
+
+    private static bool RequiresAppliedOn(ApplicationStatus status)
+    {
+        return status is not ApplicationStatus.Draft and not ApplicationStatus.Planned;
+    }
+
+    private static string GetStatusLabel(ApplicationStatus status)
+    {
+        return status == ApplicationStatus.Applied ? "Applied / CV sent" : status.ToString();
     }
 }

@@ -1,0 +1,80 @@
+@using JobWize.Modules.Applications.Contracts.Public.Interviews
+@using RecordInterviewResultContract = JobWize.Modules.Applications.Contracts.Public.Interviews.RecordInterviewResult
+
+@inject JobApplicationService JobApplicationService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudSelect T="InterviewState" @bind-Value="_state" Label="Interview result">
+            <MudSelectItem Value="InterviewState.Completed">Completed</MudSelectItem>
+            <MudSelectItem Value="InterviewState.Cancelled">Cancelled</MudSelectItem>
+            <MudSelectItem Value="InterviewState.Postponed">Postponed</MudSelectItem>
+        </MudSelect>
+
+        <MudTextField
+            @bind-Value="_note"
+            Label="Note (optional)"
+            Lines="3" />
+
+        @if (_state == InterviewState.Postponed)
+        {
+            <MudDatePicker @bind-Date="_rescheduledDate" Label="New interview date" Required="true" />
+            <MudTextField @bind-Value="_rescheduledTime" Label="New interview time" InputType="InputType.Time" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="MudDialog.Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync">
+            Save result
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public Guid ApplicationId { get; set; }
+
+    [Parameter] public Guid InterviewId { get; set; }
+
+    private InterviewState _state = InterviewState.Completed;
+    private string? _note;
+    private DateTime? _rescheduledDate;
+    private string? _rescheduledTime;
+
+    private async Task SaveAsync()
+    {
+        DateTime? rescheduledAt = null;
+
+        if (_state == InterviewState.Postponed)
+        {
+            if (_rescheduledDate is null || !TimeOnly.TryParse(_rescheduledTime, out TimeOnly rescheduledTime))
+            {
+                Snackbar.Add("A new interview date and time are required.", Severity.Warning);
+                return;
+            }
+
+            rescheduledAt = DateTime.SpecifyKind(
+                    _rescheduledDate.Value.Date.Add(rescheduledTime.ToTimeSpan()),
+                    DateTimeKind.Local)
+                .ToUniversalTime();
+        }
+
+        Result<bool> result = await JobApplicationService.RecordInterviewResultAsync(
+            new RecordInterviewResultContract.Request(
+                ApplicationId,
+                InterviewId,
+                _state,
+                rescheduledAt,
+                _note));
+
+        if (!result.IsSuccess)
+        {
+            Snackbar.Add(result.Error?.Message ?? "Unable to record the interview result.", Severity.Error);
+            return;
+        }
+
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

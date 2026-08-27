@@ -89,6 +89,14 @@ public sealed class CreateJobApplicationTests
     {
         public JobApplication? SavedApplication { get; private set; }
 
+        public Task<JobApplication?> GetByIdAsync(
+            Guid applicationId,
+            Guid candidateId,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<JobApplication?>(null);
+        }
+
         public Task SaveAsync(
             JobApplication application,
             CancellationToken cancellationToken = default)
