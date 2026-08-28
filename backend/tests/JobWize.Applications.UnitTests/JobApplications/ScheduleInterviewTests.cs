@@ -21,7 +21,8 @@ public sealed class ScheduleInterviewTests
         var candidateId = Guid.NewGuid();
         JobApplication application = JobApplication.Create(
             candidateId,
-            "Acme",
+            Guid.NewGuid(),
+            null,
             "Backend developer",
             ApplicationKind.JobPosting,
             ApplicationStatus.Applied,

@@ -7,7 +7,8 @@ public static class CreateJobApplication
     public const string Route = "/api/applications";
 
     public sealed record Request(
-        [property: HttpBody] string CompanyName,
+        [property: HttpBody] Guid CompanyId,
+        [property: HttpBody] Guid? CompanyLocationId,
         [property: HttpBody] string? RoleTitle,
         [property: HttpBody] ApplicationKind Kind,
         [property: HttpBody] ApplicationStatus Status,

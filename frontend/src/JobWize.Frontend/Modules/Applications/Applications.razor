@@ -48,6 +48,12 @@
             <RowTemplate>
                 <MudTd DataLabel="Company">
                     <MudLink Href="@($"/applications/{context.Id}")">@context.CompanyName</MudLink>
+                    @if (!string.IsNullOrWhiteSpace(context.CompanyLocationLabel))
+                    {
+                        <MudText Typo="Typo.caption" Class="d-block">
+                            @context.CompanyLocationLabel
+                        </MudText>
+                    }
                 </MudTd>
                 <MudTd DataLabel="Role">@(context.RoleTitle ?? "—")</MudTd>
                 <MudTd DataLabel="Type">@(context.Kind == ApplicationKind.JobPosting ? "Job posting" : "Spontaneous CV")</MudTd>

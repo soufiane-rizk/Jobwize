@@ -3,8 +3,11 @@
 
 @using JobWize.Modules.Applications.Contracts.Public.JobApplications
 @using CreateJobApplicationContract = JobWize.Modules.Applications.Contracts.Public.JobApplications.CreateJobApplication
+@using GetSelectableCompaniesContract = JobWize.Modules.Applications.Contracts.Public.Companies.GetSelectableCompanies
+@using JobWize.Frontend.Modules.Companies
 
 @inject JobApplicationService JobApplicationService
+@inject IDialogService DialogService
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -15,8 +18,48 @@
 
     <MudGrid>
         <MudItem xs="12" md="6">
-            <MudTextField @bind-Value="_companyName" Label="Company" Required="true" />
+            <MudAutocomplete
+                    T="Guid?"
+                    @bind-Value="_companyId"
+                    @bind-Value:after="OnCompanyChanged"
+                    @bind-Text="_companySearch"
+                    Label="Company"
+                    Required="true"
+                    Clearable="true"
+                    SearchFunc="SearchCompaniesAsync"
+                    ToStringFunc="GetCompanyName"
+                    CoerceText="false">
+                <NoItemsTemplate>
+                    <MudStack Spacing="1" Class="pa-2">
+                        <MudText Typo="Typo.body2">No companies found.</MudText>
+                        <MudText Typo="Typo.caption">
+                            Add a private company to use it in this application.
+                        </MudText>
+                        <MudButton
+                            Color="Color.Primary"
+                            Variant="Variant.Text"
+                            StartIcon="@Icons.Material.Filled.Add"
+                            OnClick="CreatePrivateCompanyAsync">
+                            Add company
+                        </MudButton>
+                    </MudStack>
+                </NoItemsTemplate>
+            </MudAutocomplete>
         </MudItem>
+
+        @if (SelectedCompany is not null && SelectedCompany.Locations.Count > 0)
+        {
+            <MudItem xs="12" md="6">
+                <MudSelect T="Guid?" @bind-Value="_companyLocationId" Label="Location (optional)" Clearable="true">
+                    @foreach (GetSelectableCompaniesContract.Location location in SelectedCompany.Locations)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)location.Id)">
+                            @location.Label
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        }
 
         <MudItem xs="12" md="6">
             <MudTextField @bind-Value="_roleTitle" Label="Role / position" />
@@ -75,7 +118,10 @@
 
 @code {
     private bool _saving;
-    private string _companyName = "";
+    private IReadOnlyList<GetSelectableCompaniesContract.Item> _companies = [];
+    private Guid? _companyId;
+    private Guid? _companyLocationId;
+    private string? _companySearch;
     private string? _roleTitle;
     private string? _sourceUrl;
     private string? _notes;
@@ -83,9 +129,17 @@
     private ApplicationStatus _status = ApplicationStatus.Planned;
     private DateTime? _appliedOn;
 
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCompaniesAsync();
+    }
+
+    private GetSelectableCompaniesContract.Item? SelectedCompany =>
+        _companies.SingleOrDefault(company => company.Id == _companyId);
+
     private async Task CreateAsync()
     {
-        if (string.IsNullOrWhiteSpace(_companyName))
+        if (_companyId is null)
         {
             Snackbar.Add("Company is required.", Severity.Warning);
             return;
@@ -101,7 +155,8 @@
 
         Result<CreateJobApplicationContract.Response> result = await JobApplicationService.CreateAsync(
             new(
-                _companyName,
+                _companyId.Value,
+                _companyLocationId,
                 _roleTitle,
                 _kind,
                 _status,
@@ -120,6 +175,74 @@
         Snackbar.Add("Application saved.", Severity.Success);
 
         Navigation.NavigateTo(ApplicationsRoutes.List, replace: true);
+    }
+
+    private async Task CreatePrivateCompanyAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(CreatePrivateCompanyDialog.InitialName)] = _companySearch
+        };
+
+        IDialogReference dialog = await DialogService.ShowAsync<CreatePrivateCompanyDialog>(
+            "Add private company",
+            parameters);
+
+        DialogResult? result = await dialog.Result;
+
+        if (result is null || result.Canceled || result.Data is not Guid companyId)
+        {
+            return;
+        }
+
+        await LoadCompaniesAsync();
+
+        _companyId = companyId;
+        _companyLocationId = null;
+        _companySearch = GetCompanyName(companyId);
+    }
+
+    private async Task LoadCompaniesAsync()
+    {
+        Result<GetSelectableCompaniesContract.Response> result =
+            await JobApplicationService.GetSelectableCompaniesAsync();
+
+        if (!result.IsSuccess)
+        {
+            Snackbar.Add(result.Error?.Message ?? "Unable to load companies.", Severity.Error);
+            _companies = [];
+            return;
+        }
+
+        _companies = result.Value?.Companies ?? [];
+    }
+
+    private void OnCompanyChanged()
+    {
+        _companyLocationId = null;
+    }
+
+    private Task<IEnumerable<Guid?>> SearchCompaniesAsync(
+        string? searchText,
+        CancellationToken cancellationToken)
+    {
+        _companySearch = searchText;
+
+        IEnumerable<Guid?> companyIds = _companies
+            .Where(company =>
+                string.IsNullOrWhiteSpace(searchText) ||
+                company.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            .Select(company => (Guid?)company.Id);
+
+        return Task.FromResult(companyIds);
+    }
+
+    private string GetCompanyName(Guid? companyId)
+    {
+        return _companies
+            .SingleOrDefault(company => company.Id == companyId)
+            ?.Name
+            ?? string.Empty;
     }
 
     private void UpdateAppliedOn()

@@ -6,6 +6,7 @@ internal static class DependencyInjection
 {
     public static IServiceCollection AddCompaniesModule(this IServiceCollection services)
     {
+        services.AddScoped<CandidateCompanyService>();
         services.AddScoped<CompanyModerationService>();
         services.AddSingleton<INavItem>(new NavItem("Company reviews", CompaniesRoutes.ReviewQueue, MudBlazor.Icons.Material.Filled.Business, 11, "Admin,SuperAdmin"));
         return services;
