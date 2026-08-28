@@ -47,7 +47,14 @@
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Company">
-                    <MudLink Href="@($"/applications/{context.Id}")">@context.CompanyName</MudLink>
+                    @if (context.CompanyId is Guid companyId)
+                    {
+                        <MudLink Href="@($"/companies/{companyId}")">@context.CompanyName</MudLink>
+                    }
+                    else
+                    {
+                        <MudText>@context.CompanyName</MudText>
+                    }
                     @if (!string.IsNullOrWhiteSpace(context.CompanyLocationLabel))
                     {
                         <MudText Typo="Typo.caption" Class="d-block">
@@ -58,14 +65,7 @@
                 <MudTd DataLabel="Role">@(context.RoleTitle ?? "—")</MudTd>
                 <MudTd DataLabel="Type">@(context.Kind == ApplicationKind.JobPosting ? "Job posting" : "Spontaneous CV")</MudTd>
                 <MudTd DataLabel="Status">
-                    <MudChip
-                        T="string"
-                        Value="@context.Status.ToString()"
-                        Size="Size.Small"
-                        Variant="Variant.Text"
-                        Color="@GetStatusColor(context.Status)">
-                        @context.Status
-                    </MudChip>
+                    <ApplicationStatusChip Status="context.Status" />
                 </MudTd>
                 <MudTd DataLabel="Last activity">@context.LastActivityAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudTd>
                 <MudTd DataLabel="Last interview">
@@ -177,24 +177,6 @@
     {
         var dialog = await DialogService.ShowAsync<InterviewDialog>("Schedule interview", new DialogParameters { [nameof(InterviewDialog.ApplicationId)] = application.Id });
         if ((await dialog.Result) is { Canceled: false }) await LoadAsync();
-    }
-
-    private static Color GetStatusColor(ApplicationStatus status)
-    {
-        return status switch
-        {
-            ApplicationStatus.Draft => Color.Default,
-            ApplicationStatus.Planned => Color.Warning,
-            ApplicationStatus.Applied => Color.Info,
-            ApplicationStatus.InProcess => Color.Primary,
-            ApplicationStatus.OfferReceived => Color.Success,
-            ApplicationStatus.Accepted => Color.Success,
-            ApplicationStatus.Rejected => Color.Error,
-            ApplicationStatus.Withdrawn => Color.Warning,
-            ApplicationStatus.Declined => Color.Default,
-            ApplicationStatus.Archived => Color.Default,
-            _ => Color.Default
-        };
     }
 
     private static Color GetInterviewStateColor(InterviewState state)

@@ -15,14 +15,38 @@ internal sealed class GetCompanyProjectionHandler(CompaniesDbContext dbContext)
             [query.CompanyId],
             cancellationToken);
 
-        if (company is null || dbContext.Entry(company).State != EntityState.Added)
+        if (company is not null)
         {
-            company = await dbContext.Companies
-                .AsNoTracking()
-                .Include(item => item.Locations)
-                .SingleAsync(item => item.Id == query.CompanyId, cancellationToken);
+            dbContext.ChangeTracker.DetectChanges();
+
+            EntityState state = dbContext.Entry(company).State;
+
+            if (state == EntityState.Added)
+            {
+                return CreateResponse(company);
+            }
+
+            if (state == EntityState.Modified)
+            {
+                await dbContext.Entry(company)
+                    .Collection(item => item.Locations)
+                    .LoadAsync(cancellationToken);
+
+                return CreateResponse(company);
+            }
         }
 
+        company = await dbContext.Companies
+            .AsNoTracking()
+            .Include(item => item.Locations)
+            .SingleAsync(item => item.Id == query.CompanyId, cancellationToken);
+
+        return CreateResponse(company);
+    }
+
+    private static Contracts.Internal.Companies.GetCompanyProjection.Response CreateResponse(
+        Domain.Company company)
+    {
         return new(
             company.Id,
             company.Name,

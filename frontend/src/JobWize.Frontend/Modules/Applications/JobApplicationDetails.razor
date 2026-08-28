@@ -29,7 +29,22 @@ else if (_application is not null)
         <MudPaper Class="pa-6">
             <MudStack Row="true" AlignItems="AlignItems.Center">
                 <div>
-                    <MudText Typo="Typo.h4">@_application.CompanyName</MudText>
+                    @if (_application.CompanyId is Guid companyId)
+                    {
+                        <MudLink Typo="Typo.h4" Href="@($"/companies/{companyId}")">
+                            @_application.CompanyName
+                        </MudLink>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.h4">@_application.CompanyName</MudText>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(_application.CompanyLocationLabel))
+                    {
+                        <MudText Typo="Typo.subtitle2">@_application.CompanyLocationLabel</MudText>
+                    }
+
                     <MudText Typo="Typo.h6">@(_application.RoleTitle ?? "Spontaneous application")</MudText>
                 </div>
                 <MudSpacer />

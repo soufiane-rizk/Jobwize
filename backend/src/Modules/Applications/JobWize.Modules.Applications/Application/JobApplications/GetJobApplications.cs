@@ -15,7 +15,8 @@ using Microsoft.EntityFrameworkCore;
 namespace JobWize.Modules.Applications.Application.JobApplications;
 public static class GetJobApplications
 {
-    internal sealed record Query : IQuery<Contracts.Public.JobApplications.GetJobApplications.Response>;
+    internal sealed record Query(Guid? CompanyId)
+        : IQuery<Contracts.Public.JobApplications.GetJobApplications.Response>;
 
     internal sealed class Endpoint : IEndpoint
     {
@@ -23,10 +24,13 @@ public static class GetJobApplications
         {
             app.MapGet(
                     Contracts.Public.JobApplications.GetJobApplications.Route,
-                    async (IDispatcher dispatcher, CancellationToken cancellationToken) =>
+                    async (
+                        Guid? companyId,
+                        IDispatcher dispatcher,
+                        CancellationToken cancellationToken) =>
                     {
                         Result<Contracts.Public.JobApplications.GetJobApplications.Response> result =
-                            await dispatcher.SendAsync(new Query(), cancellationToken);
+                            await dispatcher.SendAsync(new Query(companyId), cancellationToken);
 
                         return result.ToApiResult();
                     })
@@ -42,9 +46,16 @@ public static class GetJobApplications
     {
         public async Task<Result<Contracts.Public.JobApplications.GetJobApplications.Response>> HandleAsync(Query query, CancellationToken cancellationToken)
         {
-            var applications = await dbContext.JobApplications
+            IQueryable<JobApplication> applicationsQuery = dbContext.JobApplications
                 .AsNoTracking()
-                .Where(application => application.CandidateId == userContext.UserId)
+                .Where(application => application.CandidateId == userContext.UserId);
+
+            if (query.CompanyId is Guid companyId)
+            {
+                applicationsQuery = applicationsQuery.Where(application => application.CompanyId == companyId);
+            }
+
+            List<JobApplication> applications = await applicationsQuery
                 .OrderByDescending(application => application.AppliedOn)
                 .ThenByDescending(application => application.CreatedAt)
                 .Include(application => application.Interviews)
@@ -81,6 +92,7 @@ public static class GetJobApplications
 
                     return new Contracts.Public.JobApplications.GetJobApplications.Item(
                         application.Id,
+                        application.CompanyId,
                         GetCompanyName(application, companyNames),
                         GetCompanyLocationLabel(application, companyLocationLabels),
                         application.RoleTitle,

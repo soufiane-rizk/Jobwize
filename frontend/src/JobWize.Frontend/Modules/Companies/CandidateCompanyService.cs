@@ -10,6 +10,16 @@ public sealed class CandidateCompanyService(
     JobWizeAuthenticationStateProvider authenticationStateProvider)
     : ApiService(httpClientFactory, authenticationStateProvider)
 {
+    public Task<Result<GetCompany.Response>> GetByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        return GetAsync<GetCompany.Request, GetCompany.Response>(
+            GetCompany.Route,
+            new GetCompany.Request(id),
+            cancellationToken);
+    }
+
     public Task<Result<CreatePrivateCompany.Response>> CreatePrivateAsync(
         CreatePrivateCompany.Request request,
         CancellationToken cancellationToken = default)
