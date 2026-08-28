@@ -46,6 +46,11 @@ public sealed class CreatePrivateCompanyTests
     {
         public Company? SavedCompany { get; private set; }
 
+        public Task<Company?> GetByIdAsync(Guid companyId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<Company?>(null);
+        }
+
         public Task SaveAsync(Company company, CancellationToken cancellationToken = default)
         {
             SavedCompany = company;

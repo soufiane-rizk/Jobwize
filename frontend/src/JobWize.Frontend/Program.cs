@@ -2,6 +2,7 @@ using JobWize.Frontend;
 using JobWize.Frontend.Modules.Dashboard;
 using JobWize.Frontend.Modules.Identity;
 using JobWize.Frontend.Modules.Applications;
+using JobWize.Frontend.Modules.Companies;
 using JobWize.Frontend.Shared.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
@@ -43,6 +44,7 @@ builder.Services.AddScoped<TokenRefreshService>();
 builder.Services.AddIdentityModule();
 builder.Services.AddDashboardModule();
 builder.Services.AddApplicationsModule();
+builder.Services.AddCompaniesModule();
 
 builder.Services.AddMudServices();
 

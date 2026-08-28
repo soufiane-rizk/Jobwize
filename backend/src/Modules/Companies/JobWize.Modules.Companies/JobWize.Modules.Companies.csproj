@@ -16,6 +16,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\Shared\JobWize.Shared\JobWize.Shared.csproj" />
+    <ProjectReference Include="..\..\Identity\JobWize.Modules.Identity.Contracts\JobWize.Modules.Identity.Contracts.csproj" />
     <ProjectReference Include="..\JobWize.Modules.Companies.Contracts\JobWize.Modules.Companies.Contracts.csproj" />
   </ItemGroup>
 </Project>

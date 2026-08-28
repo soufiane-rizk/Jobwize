@@ -5,11 +5,17 @@ namespace JobWize.Modules.Companies.Persistence;
 
 public interface ICompanyRepository
 {
+    Task<Company?> GetByIdAsync(Guid companyId, CancellationToken cancellationToken = default);
     Task SaveAsync(Company company, CancellationToken cancellationToken = default);
 }
 
 internal sealed class CompanyRepository(CompaniesDbContext dbContext) : ICompanyRepository
 {
+    public Task<Company?> GetByIdAsync(Guid companyId, CancellationToken cancellationToken = default)
+    {
+        return dbContext.Companies.SingleOrDefaultAsync(company => company.Id == companyId, cancellationToken);
+    }
+
     public Task SaveAsync(Company company, CancellationToken cancellationToken = default)
     {
         if (dbContext.Entry(company).State == EntityState.Detached)

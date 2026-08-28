@@ -75,6 +75,61 @@ public sealed class Company : DomainModel
         _locations.Add(CompanyLocation.Create(Id, label, city, country, Normalize(address)));
     }
 
+    public void Approve(Guid reviewerId, DateTime reviewedAt, string? reason)
+    {
+        if (Visibility == CompanyVisibility.Shared)
+        {
+            throw new InvalidOperationException("A shared company cannot be reviewed again.");
+        }
+
+        Visibility = CompanyVisibility.Shared;
+        ReviewedByUserId = reviewerId;
+        ReviewedAt = reviewedAt;
+        ReviewReason = Normalize(reason);
+    }
+
+    public void UpdateBasicInformation(
+        string? name,
+        string? website,
+        string? industry,
+        string? description)
+    {
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            Name = name.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(website))
+        {
+            Website = website.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(industry))
+        {
+            Industry = industry.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(description))
+        {
+            Description = description.Trim();
+        }
+    }
+
+    public void Reject(Guid reviewerId, DateTime reviewedAt, string reason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        if (Visibility == CompanyVisibility.Shared)
+        {
+            throw new InvalidOperationException("A shared company cannot be reviewed again.");
+        }
+
+        Visibility = CompanyVisibility.Private;
+        ReviewedByUserId = reviewerId;
+        ReviewedAt = reviewedAt;
+        ReviewReason = reason.Trim();
+    }
+
     private static string? Normalize(string? value)
     {
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
