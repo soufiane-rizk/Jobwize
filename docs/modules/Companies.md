@@ -10,7 +10,9 @@ Admins and superadmins can use the company-review queue to approve or reject can
 
 The Applications module maintains its own local company selection/display projection through internal module queries and company-created/promoted integration events. This avoids synchronous cross-module reads for normal application pages.
 
-Company detail pages, reusable contacts, company rename/update and removal integration events, and ongoing company/location management are deferred to subsequent work.
+Candidates can open a company details page that shows the company profile, its locations, and their own applications to that company. The frontend composes this page from the Companies company-details endpoint and an Applications query filtered by company identifier.
+
+Reusable contacts, company rename/update and removal integration events, and ongoing company/location management are deferred to subsequent work.
 
 ## Module boundary
 

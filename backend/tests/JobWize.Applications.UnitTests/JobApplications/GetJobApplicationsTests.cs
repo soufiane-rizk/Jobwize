@@ -42,12 +42,76 @@ public sealed class GetJobApplicationsTests
             new FakeUserContext(candidateId));
 
         var result = await handler.HandleAsync(
-            new GetJobApplicationsFeature.Query(),
+            new GetJobApplicationsFeature.Query(null),
             CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
         result.Value.Applications.Should().ContainSingle();
         result.Value.Applications[0].CompanyName.Should().Be("Acme");
+    }
+
+    [Fact]
+    public async Task HandleAsync_Should_Return_Only_Applications_For_The_Requested_Company()
+    {
+        var candidateId = Guid.NewGuid();
+        var requestedCompanyId = Guid.NewGuid();
+        var otherCompanyId = Guid.NewGuid();
+
+        var options = new DbContextOptionsBuilder<ApplicationsDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var dbContext = new ApplicationsDbContext(options);
+
+        dbContext.CompanyProjections.AddRange(
+            CompanyProjection.CreateOrUpdate(
+                requestedCompanyId,
+                "Acme",
+                CompanyVisibility.Shared,
+                null,
+                true),
+            CompanyProjection.CreateOrUpdate(
+                otherCompanyId,
+                "Other",
+                CompanyVisibility.Shared,
+                null,
+                true));
+
+        dbContext.JobApplications.AddRange(
+            JobApplication.Create(
+                candidateId,
+                requestedCompanyId,
+                null,
+                "Backend developer",
+                ApplicationKind.JobPosting,
+                ApplicationStatus.Planned,
+                null,
+                null,
+                null),
+            JobApplication.Create(
+                candidateId,
+                otherCompanyId,
+                null,
+                "Frontend developer",
+                ApplicationKind.JobPosting,
+                ApplicationStatus.Planned,
+                null,
+                null,
+                null));
+
+        await dbContext.SaveChangesAsync();
+
+        var handler = new GetJobApplicationsFeature.Handler(
+            dbContext,
+            new FakeUserContext(candidateId));
+
+        var result = await handler.HandleAsync(
+            new GetJobApplicationsFeature.Query(requestedCompanyId),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Applications.Should().ContainSingle();
+        result.Value.Applications[0].CompanyId.Should().Be(requestedCompanyId);
     }
 
     [Fact]

@@ -110,6 +110,7 @@ public static class GetJobApplication
 
             return Result<Contracts.Public.JobApplications.GetJobApplication.Response>.Success(new(
                 application.Id,
+                application.CompanyId,
                 companyName,
                 companyLocationLabel,
                 application.RoleTitle,

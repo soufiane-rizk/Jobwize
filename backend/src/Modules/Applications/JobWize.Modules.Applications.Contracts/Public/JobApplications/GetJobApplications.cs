@@ -1,3 +1,4 @@
+using JobWize.Shared.Contracts.Http.Attributes;
 using JobWize.Modules.Applications.Contracts.Public.Interviews;
 
 namespace JobWize.Modules.Applications.Contracts.Public.JobApplications;
@@ -6,10 +7,11 @@ public static class GetJobApplications
 {
     public const string Route = "/api/applications";
 
-    public sealed record Request();
+    public sealed record Request([property: HttpQuery] Guid? CompanyId);
 
     public sealed record Item(
         Guid Id,
+        Guid? CompanyId,
         string CompanyName,
         string? CompanyLocationLabel,
         string? RoleTitle,
