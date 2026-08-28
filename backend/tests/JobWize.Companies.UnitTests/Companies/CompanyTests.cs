@@ -35,4 +35,36 @@ public sealed class CompanyTests
 
         action.Should().Throw<ArgumentException>();
     }
+
+    [Fact]
+    public void Approve_Should_Promote_Company_And_Record_Review_Metadata()
+    {
+        Guid candidateId = Guid.NewGuid();
+        Guid reviewerId = Guid.NewGuid();
+        DateTime reviewedAt = DateTime.UtcNow;
+        Company company = Company.CreatePrivate(candidateId, "acme", null, null, null, []);
+
+        company.UpdateBasicInformation("Acme", "https://acme.example", "Technology", "Curated description.");
+        company.Approve(reviewerId, reviewedAt, "Corrected branding.");
+
+        company.Visibility.Should().Be(CompanyVisibility.Shared);
+        company.Name.Should().Be("Acme");
+        company.ReviewedByUserId.Should().Be(reviewerId);
+        company.ReviewedAt.Should().Be(reviewedAt);
+        company.ReviewReason.Should().Be("Corrected branding.");
+    }
+
+    [Fact]
+    public void Reject_Should_Keep_Company_Private_And_Require_A_Reason()
+    {
+        Company company = Company.CreatePrivate(Guid.NewGuid(), "Acme", null, null, null, []);
+
+        Action action = () => company.Reject(Guid.NewGuid(), DateTime.UtcNow, "");
+
+        action.Should().Throw<ArgumentException>();
+
+        company.Reject(Guid.NewGuid(), DateTime.UtcNow, "Insufficient information.");
+        company.Visibility.Should().Be(CompanyVisibility.Private);
+        company.ReviewReason.Should().Be("Insufficient information.");
+    }
 }
