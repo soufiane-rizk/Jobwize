@@ -28,4 +28,14 @@ public static class ApplicationsErrors
         "Applications.InterviewResultMustBeFinal",
         "Select completed, cancelled, or postponed as the interview result.",
         ErrorType.Validation);
+
+    public static readonly Error CompanyNotAvailable = new(
+        "Applications.CompanyNotAvailable",
+        "The selected company is not available.",
+        ErrorType.Validation);
+
+    public static readonly Error CompanyLocationNotAvailable = new(
+        "Applications.CompanyLocationNotAvailable",
+        "The selected company location is not available.",
+        ErrorType.Validation);
 }

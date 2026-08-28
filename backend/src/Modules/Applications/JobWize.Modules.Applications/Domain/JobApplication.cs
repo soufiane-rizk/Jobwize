@@ -7,7 +7,9 @@ namespace JobWize.Modules.Applications.Domain;
 public sealed class JobApplication : DomainModel
 {
     public Guid CandidateId { get; private set; }
-    public string CompanyName { get; private set; } = default!;
+    public string? LegacyCompanyName { get; private set; }
+    public Guid? CompanyId { get; private set; }
+    public Guid? CompanyLocationId { get; private set; }
     public string? RoleTitle { get; private set; }
     public ApplicationKind Kind { get; private set; }
     public ApplicationStatus Status { get; private set; }
@@ -27,7 +29,8 @@ public sealed class JobApplication : DomainModel
 
     public static JobApplication Create(
         Guid candidateId,
-        string companyName,
+        Guid companyId,
+        Guid? companyLocationId,
         string? roleTitle,
         ApplicationKind kind,
         ApplicationStatus status,
@@ -35,8 +38,6 @@ public sealed class JobApplication : DomainModel
         string? sourceUrl,
         string? notes)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(companyName);
-
         if (RequiresAppliedOn(status) && appliedOn is null)
         {
             throw new ArgumentException(
@@ -48,7 +49,9 @@ public sealed class JobApplication : DomainModel
         {
             Id = Guid.NewGuid(),
             CandidateId = candidateId,
-            CompanyName = companyName.Trim(),
+            LegacyCompanyName = null,
+            CompanyId = companyId,
+            CompanyLocationId = companyLocationId,
             RoleTitle = string.IsNullOrWhiteSpace(roleTitle) ? null : roleTitle.Trim(),
             Kind = kind,
             Status = status,

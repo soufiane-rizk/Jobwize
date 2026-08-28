@@ -11,12 +11,14 @@ using JobWize.Shared.Runtime.Contracts;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.EntityFrameworkCore;
 
 namespace JobWize.Modules.Applications.Application.JobApplications;
 public static class CreateJobApplication
 {
     internal sealed record Command(
-        string CompanyName,
+        Guid CompanyId,
+        Guid? CompanyLocationId,
         string? RoleTitle,
         ApplicationKind Kind,
         ApplicationStatus Status,
@@ -28,10 +30,6 @@ public static class CreateJobApplication
     {
         public Validator()
         {
-            RuleFor(x => x.CompanyName)
-                .NotEmpty()
-                .MaximumLength(200);
-
             RuleFor(x => x.RoleTitle)
                 .MaximumLength(200);
 
@@ -61,7 +59,8 @@ public static class CreateJobApplication
                         CancellationToken cancellationToken) =>
                     {
                         var command = new Command(
-                            request.CompanyName,
+                            request.CompanyId,
+                            request.CompanyLocationId,
                             request.RoleTitle,
                             request.Kind,
                             request.Status,
@@ -82,14 +81,46 @@ public static class CreateJobApplication
 
     internal sealed class Handler(
         IJobApplicationRepository jobApplications,
+        ApplicationsDbContext dbContext,
         IUserContext userContext,
         IDispatcher dispatcher) : ICommandHandler<Command, Contracts.Public.JobApplications.CreateJobApplication.Response>
     {
         public async Task<Result<Contracts.Public.JobApplications.CreateJobApplication.Response>> HandleAsync(Command command, CancellationToken cancellationToken)
         {
+            Domain.CompanyProjection? company = await dbContext.CompanyProjections
+                .AsNoTracking()
+                .SingleOrDefaultAsync(item => item.Id == command.CompanyId, cancellationToken);
+
+            if (company is null ||
+                !company.IsActive ||
+                (company.Visibility != JobWize.Modules.Companies.Contracts.Public.Companies.CompanyVisibility.Shared &&
+                 company.CreatedByCandidateId != userContext.UserId))
+            {
+                return Result<Contracts.Public.JobApplications.CreateJobApplication.Response>.Failure(
+                    ApplicationsErrors.CompanyNotAvailable);
+            }
+
+            if (command.CompanyLocationId is Guid locationId)
+            {
+                bool locationIsAvailable = await dbContext.CompanyLocationProjections
+                    .AsNoTracking()
+                    .AnyAsync(
+                        item => item.Id == locationId &&
+                                item.CompanyId == command.CompanyId &&
+                                item.IsActive,
+                        cancellationToken);
+
+                if (!locationIsAvailable)
+                {
+                    return Result<Contracts.Public.JobApplications.CreateJobApplication.Response>.Failure(
+                        ApplicationsErrors.CompanyLocationNotAvailable);
+                }
+            }
+
             JobApplication application = JobApplication.Create(
                 userContext.UserId,
-                command.CompanyName,
+                command.CompanyId,
+                command.CompanyLocationId,
                 command.RoleTitle,
                 command.Kind,
                 command.Status,

@@ -35,6 +35,7 @@ public static class GetJobApplication
     public sealed record Response(
         Guid Id,
         string CompanyName,
+        string? CompanyLocationLabel,
         string? RoleTitle,
         ApplicationKind Kind,
         ApplicationStatus Status,
