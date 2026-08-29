@@ -13,9 +13,11 @@ internal sealed class CompanyLocationConfiguration : IEntityTypeConfiguration<Co
 
         builder.ConfigureEntityBase();
 
+        builder.Property(location => location.Id)
+            .ValueGeneratedNever();
+
         builder.Property(location => location.Label)
-            .HasMaxLength(200)
-            .IsRequired();
+            .HasMaxLength(200);
 
         builder.Property(location => location.City)
             .HasMaxLength(200)
@@ -28,6 +30,24 @@ internal sealed class CompanyLocationConfiguration : IEntityTypeConfiguration<Co
         builder.Property(location => location.Address)
             .HasMaxLength(500);
 
-        builder.HasIndex(location => location.CompanyId);
+        builder.Property(location => location.Visibility)
+            .HasConversion<string>()
+            .HasDefaultValue(Contracts.Public.Companies.CompanyLocationVisibility.Shared)
+            .IsRequired();
+
+        builder.Property(location => location.IsActive)
+            .HasDefaultValue(true)
+            .IsRequired();
+
+        builder.Property(location => location.ReviewReason)
+            .HasMaxLength(4000);
+
+        builder.HasIndex(location => new
+        {
+            location.CompanyId,
+            location.Visibility,
+            location.CreatedByCandidateId,
+            location.IsActive
+        });
     }
 }

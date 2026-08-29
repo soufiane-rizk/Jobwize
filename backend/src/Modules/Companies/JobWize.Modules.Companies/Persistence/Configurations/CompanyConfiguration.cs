@@ -46,5 +46,14 @@ internal sealed class CompanyConfiguration : IEntityTypeConfiguration<Company>
         builder.Metadata
             .FindNavigation(nameof(Company.Locations))!
             .SetPropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(company => company.Contacts)
+            .WithOne()
+            .HasForeignKey(contact => contact.CompanyId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Metadata
+            .FindNavigation(nameof(Company.Contacts))!
+            .SetPropertyAccessMode(PropertyAccessMode.Field);
     }
 }

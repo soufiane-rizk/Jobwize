@@ -1,0 +1,96 @@
+@attribute [Route(CompaniesRoutes.ContactReviewQueue)]
+@attribute [Authorize(Roles = "Admin,SuperAdmin")]
+
+@using JobWize.Modules.Companies.Contracts.Public.CompanyContacts
+
+@inject CompanyModerationService CompanyModerationService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Contact reviews</PageTitle>
+
+<LoadingIndicator Loading="@_loading">
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error">@_error.Message</MudAlert>
+    }
+    else
+    {
+        <MudStack Spacing="3">
+            <MudText Typo="Typo.h4">Contact reviews</MudText>
+
+            <MudTable Items="@_contacts" Hover="true" Dense="true">
+                <HeaderContent>
+                    <MudTh>Contact</MudTh>
+                    <MudTh>Company</MudTh>
+                    <MudTh>Submitted</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Contact">
+                        <MudText>@context.Name</MudText>
+                        <MudText Typo="Typo.caption">@context.RoleTitle</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Company">@context.CompanyName</MudTd>
+                    <MudTd DataLabel="Submitted">@context.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</MudTd>
+                    <MudTd>
+                        <MudButton Size="Size.Small" Color="Color.Primary" OnClick="@(() => ReviewAsync(context))">
+                            Review
+                        </MudButton>
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Class="pa-4">No contacts are awaiting review.</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudStack>
+    }
+</LoadingIndicator>
+
+@code {
+    private IReadOnlyList<GetCompanyContactsForReview.Item> _contacts = [];
+    private Error? _error;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        Result<GetCompanyContactsForReview.Response> result =
+            await CompanyModerationService.GetContactsForReviewAsync();
+
+        if (result.IsSuccess)
+        {
+            _contacts = result.Value?.Contacts ?? [];
+        }
+        else
+        {
+            _error = result.Error;
+        }
+
+        _loading = false;
+    }
+
+    private async Task ReviewAsync(GetCompanyContactsForReview.Item contact)
+    {
+        DialogParameters parameters = new()
+        {
+            [nameof(ReviewCompanyContactDialog.Contact)] = contact
+        };
+
+        IDialogReference dialog = await DialogService.ShowAsync<ReviewCompanyContactDialog>(
+            "Review contact",
+            parameters);
+
+        DialogResult? result = await dialog.Result;
+
+        if (result is not null && !result.Canceled)
+        {
+            Snackbar.Add("Contact review recorded.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+}

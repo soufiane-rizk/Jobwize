@@ -61,7 +61,9 @@ public static class GetJobApplication
                     ApplicationsErrors.JobApplicationNotFound);
             }
 
-            string companyName = application.LegacyCompanyName ?? "Unknown company";
+            string companyName = string.IsNullOrWhiteSpace(application.LegacyCompanyName)
+                ? "Unknown company"
+                : application.LegacyCompanyName;
             string? companyLocationLabel = null;
 
             if (application.CompanyId is Guid companyId)

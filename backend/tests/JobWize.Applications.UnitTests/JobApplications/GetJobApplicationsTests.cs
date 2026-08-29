@@ -115,6 +115,45 @@ public sealed class GetJobApplicationsTests
     }
 
     [Fact]
+    public async Task HandleAsync_Should_Return_The_Legacy_Company_Name_When_No_Company_Is_Linked()
+    {
+        Guid candidateId = Guid.NewGuid();
+        var options = new DbContextOptionsBuilder<ApplicationsDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var dbContext = new ApplicationsDbContext(options);
+
+        JobApplication application = JobApplication.Create(
+            candidateId,
+            Guid.NewGuid(),
+            null,
+            "Backend developer",
+            ApplicationKind.JobPosting,
+            ApplicationStatus.Planned,
+            null,
+            null,
+            null);
+
+        dbContext.JobApplications.Add(application);
+        dbContext.Entry(application).Property("CompanyId").CurrentValue = null;
+        dbContext.Entry(application).Property("LegacyCompanyName").CurrentValue = "Legacy Acme";
+        await dbContext.SaveChangesAsync();
+
+        var handler = new GetJobApplicationsFeature.Handler(
+            dbContext,
+            new FakeUserContext(candidateId));
+
+        var result = await handler.HandleAsync(
+            new GetJobApplicationsFeature.Query(null),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Applications.Should().ContainSingle();
+        result.Value.Applications[0].CompanyName.Should().Be("Legacy Acme");
+    }
+
+    [Fact]
     public async Task ChangeStatus_Should_Add_A_New_Status_History_Record()
     {
         var options = new DbContextOptionsBuilder<ApplicationsDbContext>()
