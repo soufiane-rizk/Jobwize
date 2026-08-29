@@ -13,7 +13,10 @@ internal sealed class CompanyRepository(CompaniesDbContext dbContext) : ICompany
 {
     public Task<Company?> GetByIdAsync(Guid companyId, CancellationToken cancellationToken = default)
     {
-        return dbContext.Companies.SingleOrDefaultAsync(company => company.Id == companyId, cancellationToken);
+        return dbContext.Companies
+            .Include(company => company.Locations)
+            .Include(company => company.Contacts)
+            .SingleOrDefaultAsync(company => company.Id == companyId, cancellationToken);
     }
 
     public Task SaveAsync(Company company, CancellationToken cancellationToken = default)
@@ -22,7 +25,6 @@ internal sealed class CompanyRepository(CompaniesDbContext dbContext) : ICompany
         {
             dbContext.Companies.Add(company);
         }
-
         return Task.CompletedTask;
     }
 }

@@ -118,7 +118,9 @@ public static class GetJobApplications
                 return companyName;
             }
 
-            return application.LegacyCompanyName ?? "Unknown company";
+            return string.IsNullOrWhiteSpace(application.LegacyCompanyName)
+                ? "Unknown company"
+                : application.LegacyCompanyName;
         }
 
         private static string? GetCompanyLocationLabel(

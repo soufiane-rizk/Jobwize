@@ -31,7 +31,8 @@ public sealed class CreatePrivateCompanyTests
                 "https://acme.example",
                 "Technology",
                 null,
-                [new CreatePrivateCompanyFeature.Location("Casablanca HQ", "Casablanca", "Morocco", null)]),
+                [new CreatePrivateCompanyFeature.Location("Casablanca HQ", "Casablanca", "Morocco", null)],
+                []),
             CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();

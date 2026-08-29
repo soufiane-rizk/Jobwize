@@ -17,15 +17,35 @@
         <MudStack Spacing="3">
             <MudText Typo="Typo.h4">Company reviews</MudText>
             <MudTable Items="@_companies" Hover="true" Dense="true">
-                <HeaderContent><MudTh>Company</MudTh><MudTh>Industry</MudTh><MudTh>Locations</MudTh><MudTh>Submitted</MudTh><MudTh></MudTh></HeaderContent>
+                <HeaderContent>
+                    <MudTh>Company</MudTh>
+                    <MudTh>Industry</MudTh>
+                    <MudTh>Locations</MudTh>
+                    <MudTh>Submitted</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="Company"><MudText>@context.Name</MudText><MudText Typo="Typo.caption">@context.Website</MudText></MudTd>
+                    <MudTd DataLabel="Company">
+                        <MudText>@context.Name</MudText>
+                        <MudText Typo="Typo.caption">@context.Website</MudText>
+                    </MudTd>
                     <MudTd DataLabel="Industry">@context.Industry</MudTd>
-                    <MudTd DataLabel="Locations">@string.Join(", ", context.Locations.Select(location => $"{location.Label} · {location.City}"))</MudTd>
+                    <MudTd DataLabel="Locations">
+                        @string.Join(", ", context.Locations.Select(GetLocationName))
+                    </MudTd>
                     <MudTd DataLabel="Submitted">@context.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</MudTd>
-                    <MudTd><MudButton Size="Size.Small" Color="Color.Primary" OnClick="@(() => ReviewAsync(context))">Review</MudButton></MudTd>
+                    <MudTd>
+                        <MudButton
+                            Size="Size.Small"
+                            Color="Color.Primary"
+                            OnClick="@(() => ReviewAsync(context))">
+                            Review
+                        </MudButton>
+                    </MudTd>
                 </RowTemplate>
-                <NoRecordsContent><MudText Class="pa-4">No companies are awaiting review.</MudText></NoRecordsContent>
+                <NoRecordsContent>
+                    <MudText Class="pa-4">No companies are awaiting review.</MudText>
+                </NoRecordsContent>
             </MudTable>
         </MudStack>
     }
@@ -36,20 +56,50 @@
     private Error? _error;
     private bool _loading = true;
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
 
     private async Task LoadAsync()
     {
         Result<GetCompaniesForReview.Response> result = await CompanyModerationService.GetForReviewAsync();
-        if (result.IsSuccess) _companies = result.Value?.Companies ?? [];
-        else _error = result.Error;
+        if (result.IsSuccess)
+        {
+            _companies = result.Value?.Companies ?? [];
+        }
+        else
+        {
+            _error = result.Error;
+        }
+
         _loading = false;
     }
 
     private async Task ReviewAsync(GetCompaniesForReview.Item company)
     {
-        var dialog = await DialogService.ShowAsync<ReviewCompanyDialog>("Review company", new DialogParameters { [nameof(ReviewCompanyDialog.Company)] = company });
+        var parameters = new DialogParameters
+        {
+            [nameof(ReviewCompanyDialog.Company)] = company
+        };
+        IDialogReference dialog = await DialogService.ShowAsync<ReviewCompanyDialog>(
+            "Review company",
+            parameters);
         DialogResult? result = await dialog.Result;
-        if (result is not null && !result.Canceled) { Snackbar.Add("Company review recorded.", Severity.Success); await LoadAsync(); }
+
+        if (result is null || result.Canceled)
+        {
+            return;
+        }
+
+        Snackbar.Add("Company review recorded.", Severity.Success);
+        await LoadAsync();
+    }
+
+    private static string GetLocationName(GetCompaniesForReview.Location location)
+    {
+        return string.IsNullOrWhiteSpace(location.Label)
+            ? $"{location.City}, {location.Country}"
+            : $"{location.Label} · {location.City}";
     }
 }

@@ -4,11 +4,14 @@
 @using JobWize.Frontend.Modules.Applications
 @using JobWize.Modules.Applications.Contracts.Public.JobApplications
 @using JobWize.Modules.Companies.Contracts.Public.Companies
+@using JobWize.Modules.Companies.Contracts.Public.CompanyContacts
 @using GetCompanyContract = JobWize.Modules.Companies.Contracts.Public.Companies.GetCompany
+@using GetCompanyContactsContract = JobWize.Modules.Companies.Contracts.Public.CompanyContacts.GetCompanyContacts
 
 @inject CandidateCompanyService CandidateCompanyService
 @inject JobApplicationService JobApplicationService
 @inject NavigationManager Navigation
+@inject IDialogService DialogService
 
 <PageTitle>Company details</PageTitle>
 
@@ -65,6 +68,46 @@ else if (_company is not null)
             @if (!string.IsNullOrWhiteSpace(_company.Description))
             {
                 <MudText Class="mt-3">@_company.Description</MudText>
+            }
+        </MudPaper>
+
+        <MudPaper Class="pa-6">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                <MudText Typo="Typo.h6">Contacts</MudText>
+                <MudSpacer />
+                <MudButton Variant="Variant.Outlined" OnClick="AddContactAsync">Add contact</MudButton>
+            </MudStack>
+            @if (_contacts.Count == 0)
+            {
+                <MudText>No contacts have been added.</MudText>
+            }
+            else
+            {
+                @foreach (GetCompanyContactsContract.Item contact in _contacts)
+                {
+                    <MudPaper Outlined="true" Class="pa-3 mb-2">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudText Typo="Typo.subtitle1">@contact.Name</MudText>
+
+                            @if (contact.Visibility != CompanyContactVisibility.Shared)
+                            {
+                                <MudChip
+                                    T="string"
+                                    Value="@contact.Visibility.ToString()"
+                                    Size="Size.Small"
+                                    Variant="Variant.Text">
+                                    Private
+                                </MudChip>
+                            }
+                        </MudStack>
+                        <MudText Typo="Typo.body2">@contact.RoleTitle</MudText>
+                        @if (contact.CompanyLocationId is Guid locationId)
+                        {
+                            <MudText Typo="Typo.body2">@GetLocationName(locationId)</MudText>
+                        }
+                        <MudText Typo="Typo.body2">@contact.Email @contact.PhoneNumber</MudText>
+                    </MudPaper>
+                }
             }
         </MudPaper>
 
@@ -137,6 +180,7 @@ else if (_company is not null)
 
     private GetCompanyContract.Response? _company;
     private IReadOnlyList<GetJobApplications.Item> _applications = [];
+    private IReadOnlyList<GetCompanyContactsContract.Item> _contacts = [];
     private Error? _error;
     private bool _loading = true;
 
@@ -149,11 +193,14 @@ else if (_company is not null)
             CandidateCompanyService.GetByIdAsync(Id);
         Task<Result<GetJobApplications.Response>> applicationsTask =
             JobApplicationService.GetByCompanyAsync(Id);
+        Task<Result<GetCompanyContactsContract.Response>> contactsTask =
+            CandidateCompanyService.GetContactsAsync(Id);
 
-        await Task.WhenAll(companyTask, applicationsTask);
+        await Task.WhenAll(companyTask, applicationsTask, contactsTask);
 
         Result<GetCompanyContract.Response> companyResult = await companyTask;
         Result<GetJobApplications.Response> applicationsResult = await applicationsTask;
+        Result<GetCompanyContactsContract.Response> contactsResult = await contactsTask;
 
         if (!companyResult.IsSuccess)
         {
@@ -169,9 +216,34 @@ else if (_company is not null)
             return;
         }
 
+        if (!contactsResult.IsSuccess)
+        {
+            _error = contactsResult.Error;
+            _loading = false;
+            return;
+        }
+
         _company = companyResult.Value;
         _applications = applicationsResult.Value?.Applications ?? [];
+        _contacts = contactsResult.Value?.Contacts ?? [];
         _loading = false;
+    }
+
+    private async Task AddContactAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(CreateCompanyContactDialog.CompanyId)] = Id,
+            [nameof(CreateCompanyContactDialog.Locations)] = _company!.Locations
+        };
+        IDialogReference dialog = await DialogService.ShowAsync<CreateCompanyContactDialog>("Add contact", parameters);
+        if ((await dialog.Result) is { Canceled: false }) await OnParametersSetAsync();
+    }
+
+    private string GetLocationName(Guid locationId)
+    {
+        return _company?.Locations.SingleOrDefault(location => location.Id == locationId)?.Label
+            ?? "Unknown location";
     }
 
 }

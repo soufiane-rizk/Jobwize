@@ -47,25 +47,48 @@ public sealed class CompanyProjection : Entity
         SynchronizeLocations([]);
     }
 
-    public void SynchronizeLocations(IEnumerable<(Guid Id, string Label)> locations)
+    public void SynchronizeLocations(
+        IEnumerable<(
+            Guid Id,
+            string Label,
+            CompanyLocationVisibility Visibility,
+            Guid? CreatedByCandidateId,
+            bool IsActive)> locations)
     {
         Guid[] sourceLocationIds = locations.Select(location => location.Id).ToArray();
 
-        foreach (CompanyLocationProjection existing in _locations.Where(location => !sourceLocationIds.Contains(location.Id)))
+        foreach (CompanyLocationProjection existing in _locations.Where(location =>
+                     !sourceLocationIds.Contains(location.Id)))
         {
-            existing.Update(existing.Label, false);
+            existing.Update(
+                existing.Label,
+                existing.Visibility,
+                existing.CreatedByCandidateId,
+                false);
         }
 
-        foreach ((Guid id, string label) in locations)
+        foreach ((
+                     Guid id,
+                     string label,
+                     CompanyLocationVisibility visibility,
+                     Guid? createdByCandidateId,
+                     bool isActive) in locations)
         {
             CompanyLocationProjection? existing = _locations.SingleOrDefault(location => location.Id == id);
+
             if (existing is null)
             {
-                _locations.Add(CompanyLocationProjection.Create(id, Id, label));
+                _locations.Add(CompanyLocationProjection.Create(
+                    id,
+                    Id,
+                    label,
+                    visibility,
+                    createdByCandidateId,
+                    isActive));
             }
             else
             {
-                existing.Update(label, true);
+                existing.Update(label, visibility, createdByCandidateId, isActive);
             }
         }
     }

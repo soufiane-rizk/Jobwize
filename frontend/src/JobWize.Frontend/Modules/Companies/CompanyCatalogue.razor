@@ -1,0 +1,126 @@
+@attribute [Route(CompaniesRoutes.CatalogueManagement)]
+@attribute [Authorize(Roles = "Admin,SuperAdmin")]
+@using JobWize.Modules.Companies.Contracts.Public.Companies
+
+@inject CompanyModerationService CompanyModerationService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Company catalogue</PageTitle>
+
+<MudStack Spacing="3">
+    <MudText Typo="Typo.h4">Company catalogue</MudText>
+
+    <MudTextField
+        T="string"
+        Value="@_search"
+        Label="Search companies"
+        Adornment="Adornment.Start"
+        AdornmentIcon="@Icons.Material.Filled.Search"
+        Immediate="true"
+        DebounceInterval="300"
+        ValueChanged="OnSearchChangedAsync"
+        Clearable="true" />
+
+    <LoadingIndicator Loading="@_loading">
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error">@_error.Message</MudAlert>
+        }
+        else
+        {
+            <MudTable Items="@_companies" Hover="true" Dense="true">
+                <HeaderContent>
+                    <MudTh>Company</MudTh>
+                    <MudTh>Industry</MudTh>
+                    <MudTh>Locations</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Company">
+                        <MudText>@context.Name</MudText>
+                        <MudText Typo="Typo.caption">@context.Website</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Industry">@context.Industry</MudTd>
+                    <MudTd DataLabel="Locations">@context.Locations.Count</MudTd>
+                    <MudTd>
+                        <MudButton
+                            Size="Size.Small"
+                            Variant="Variant.Outlined"
+                            OnClick="@(() => ManageAsync(context))">
+                            Manage
+                        </MudButton>
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Class="pa-4">No shared companies found.</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        }
+    </LoadingIndicator>
+</MudStack>
+
+@code {
+    private IReadOnlyList<GetCompanies.Item> _companies = [];
+    private Error? _error;
+    private string? _search;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task OnSearchChangedAsync(string? value)
+    {
+        _search = value;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        Result<GetCompanies.Response> result = await CompanyModerationService.GetCatalogueAsync(_search);
+
+        if (result.IsSuccess)
+        {
+            _companies = result.Value?.Companies
+                .Where(company => company.Visibility == CompanyVisibility.Shared)
+                .ToList() ?? [];
+        }
+        else
+        {
+            _error = result.Error;
+        }
+
+        _loading = false;
+    }
+
+    private async Task ManageAsync(GetCompanies.Item company)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(ManageCompanyDialog.CompanyId)] = company.Id
+        };
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true
+        };
+        IDialogReference dialog = await DialogService.ShowAsync<ManageCompanyDialog>(
+            "Manage company",
+            parameters,
+            options);
+        DialogResult? result = await dialog.Result;
+
+        if (result is null || result.Canceled)
+        {
+            return;
+        }
+
+        Snackbar.Add("Company catalogue updated.", Severity.Success);
+        await LoadAsync();
+    }
+}

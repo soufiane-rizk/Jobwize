@@ -7,17 +7,25 @@ public static class CreatePrivateCompany
     public const string Route = "/api/companies";
 
     public sealed record Location(
-        string Label,
+        string? Label,
         string City,
         string Country,
         string? Address);
+
+    public sealed record Contact(
+        int? LocationIndex,
+        string Name,
+        string? RoleTitle,
+        string? Email,
+        string? PhoneNumber);
 
     public sealed record Request(
         [property: HttpBody] string Name,
         [property: HttpBody] string? Website,
         [property: HttpBody] string? Industry,
         [property: HttpBody] string? Description,
-        [property: HttpBody] IReadOnlyList<Location> Locations);
+        [property: HttpBody] IReadOnlyList<Location> Locations,
+        [property: HttpBody] IReadOnlyList<Contact> Contacts);
 
     public sealed record Response(Guid Id);
 }

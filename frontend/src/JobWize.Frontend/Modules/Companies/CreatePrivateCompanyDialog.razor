@@ -9,43 +9,110 @@
             Add a private company for this application. You will be the only candidate who can see it unless it is later approved for the shared catalogue.
         </MudText>
 
-        <MudTextField @bind-Value="_name" Label="Company name" Required="true" />
-        <MudTextField @bind-Value="_website" Label="Website (optional)" />
-        <MudTextField @bind-Value="_industry" Label="Industry (optional)" />
-        <MudTextField @bind-Value="_description" Label="Description (optional)" Lines="3" />
+        <MudStepper @ref="_stepper" @bind-ActiveIndex="_step">
+            <ActionContent>
+                <MudStack
+                    Row="true"
+                    Justify="Justify.SpaceBetween"
+                    Class="mt-4"
+                    Style="width: 100%;">
+                    <MudButton
+                        Variant="Variant.Text"
+                        Disabled="@(_step == 0)"
+                        OnClick="PreviousStepAsync">
+                        Previous
+                    </MudButton>
 
-        <MudDivider Class="my-4" />
+                    @if (_step < 2)
+                    {
+                        <MudButton
+                            Color="Color.Primary"
+                            Variant="Variant.Outlined"
+                            OnClick="NextStepAsync">
+                            Next
+                        </MudButton>
+                    }
+                </MudStack>
+            </ActionContent>
+            <ChildContent>
+                <MudStep Title="Company">
+                <MudTextField @bind-Value="_name" Label="Company name" Required="true" Error="@(_showValidation && string.IsNullOrWhiteSpace(_name))" ErrorText="Company name is required." />
+                <MudTextField @bind-Value="_website" Label="Website (optional)" />
+                <MudTextField @bind-Value="_industry" Label="Industry (optional)" />
+                <MudTextField @bind-Value="_description" Label="Description (optional)" Lines="3" />
+                </MudStep>
 
-        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
-            <MudText Typo="Typo.subtitle1">Locations</MudText>
-            <MudSpacer />
-            <MudButton
-                Variant="Variant.Outlined"
-                StartIcon="@Icons.Material.Filled.Add"
-                OnClick="AddLocation">
-                Add location
-            </MudButton>
-        </MudStack>
-
-        @foreach (LocationInput location in _locations)
-        {
-            <MudPaper Outlined="true" Class="pa-3 mb-2">
+                <MudStep Title="Locations">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
-                    <MudText Typo="Typo.subtitle2">Location</MudText>
+                    <MudText Typo="Typo.subtitle1">Locations</MudText>
                     <MudSpacer />
-                    <MudIconButton
-                        Icon="@Icons.Material.Filled.DeleteOutline"
-                        Color="Color.Error"
-                        aria-label="Remove location"
-                        OnClick="@(() => RemoveLocation(location))" />
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" OnClick="AddLocation">Add location</MudButton>
                 </MudStack>
 
-                <MudTextField @bind-Value="location.Label" Label="Label" Required="true" />
-                <MudTextField @bind-Value="location.City" Label="City" Required="true" />
-                <MudTextField @bind-Value="location.Country" Label="Country" Required="true" />
-                <MudTextField @bind-Value="location.Address" Label="Address (optional)" />
-            </MudPaper>
-        }
+                @foreach (LocationInput location in _locations)
+                {
+                    <MudPaper Outlined="true" Class="pa-3 mb-2">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                            <MudText Typo="Typo.subtitle2">Location</MudText>
+                            <MudSpacer />
+                            <MudIconButton
+                                Icon="@Icons.Material.Filled.DeleteOutline"
+                                Color="Color.Error"
+                                aria-label="Remove location"
+                                OnClick="@(() => RemoveLocation(location))" />
+                        </MudStack>
+
+                        <MudTextField @bind-Value="location.Label" Label="Label (optional)" />
+                        <MudTextField @bind-Value="location.City" Label="City" Required="true" Error="@(_showValidation && string.IsNullOrWhiteSpace(location.City))" ErrorText="City is required." />
+                        <MudTextField @bind-Value="location.Country" Label="Country" Required="true" Error="@(_showValidation && string.IsNullOrWhiteSpace(location.Country))" ErrorText="Country is required." />
+                        <MudTextField @bind-Value="location.Address" Label="Address (optional)" />
+                    </MudPaper>
+                }
+                </MudStep>
+                <MudStep Title="Contacts">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                    <MudText Typo="Typo.subtitle1">Contacts</MudText>
+                    <MudSpacer />
+                    <MudButton
+                        Variant="Variant.Outlined"
+                        StartIcon="@Icons.Material.Filled.Add"
+                        OnClick="AddContact">
+                        Add contact
+                    </MudButton>
+                </MudStack>
+
+                @foreach (ContactInput contact in _contacts)
+                {
+                    <MudPaper Outlined="true" Class="pa-3 mb-2">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                            <MudText Typo="Typo.subtitle2">Contact</MudText>
+                            <MudSpacer />
+                            <MudIconButton
+                                Icon="@Icons.Material.Filled.DeleteOutline"
+                                Color="Color.Error"
+                                aria-label="Remove contact"
+                                OnClick="@(() => RemoveContact(contact))" />
+                        </MudStack>
+
+                        <MudTextField @bind-Value="contact.Name" Label="Name" Required="true" Error="@(_showValidation && string.IsNullOrWhiteSpace(contact.Name))" ErrorText="Name is required." />
+                        <MudTextField @bind-Value="contact.RoleTitle" Label="Role" />
+                        <MudTextField @bind-Value="contact.Email" Label="Email" />
+                        <MudTextField @bind-Value="contact.PhoneNumber" Label="Phone" />
+                        <MudSelect T="int?" @bind-Value="contact.LocationIndex" Label="Location" Clearable="true">
+                            @for (int index = 0; index < _locations.Count; index++)
+                            {
+                                int locationIndex = index;
+
+                                <MudSelectItem T="int?" Value="@((int?)locationIndex)">
+                                    @GetLocationOptionText(locationIndex)
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudPaper>
+                }
+                </MudStep>
+            </ChildContent>
+        </MudStepper>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="MudDialog.Cancel">Cancel</MudButton>
@@ -64,11 +131,15 @@
     [Parameter] public string? InitialName { get; set; }
 
     private bool _saving;
+    private bool _showValidation;
+    private int _step;
+    private MudStepper? _stepper;
     private string? _name;
     private string? _website;
     private string? _industry;
     private string? _description;
     private readonly List<LocationInput> _locations = [];
+    private readonly List<ContactInput> _contacts = [];
 
     protected override void OnInitialized()
     {
@@ -77,18 +148,28 @@
 
     private async Task SaveAsync()
     {
+        _showValidation = true;
+
         if (string.IsNullOrWhiteSpace(_name))
         {
+            _step = 0;
             Snackbar.Add("Company name is required.", Severity.Warning);
             return;
         }
 
         if (_locations.Any(location =>
-                string.IsNullOrWhiteSpace(location.Label) ||
                 string.IsNullOrWhiteSpace(location.City) ||
                 string.IsNullOrWhiteSpace(location.Country)))
         {
-            Snackbar.Add("Each location needs a label, city, and country.", Severity.Warning);
+            _step = 1;
+            Snackbar.Add("Each location needs a city and country.", Severity.Warning);
+            return;
+        }
+
+        if (_contacts.Any(contact => string.IsNullOrWhiteSpace(contact.Name)))
+        {
+            _step = 2;
+            Snackbar.Add("Each contact needs a name.", Severity.Warning);
             return;
         }
 
@@ -102,10 +183,18 @@
                 _description,
                 _locations
                     .Select(location => new CreatePrivateCompany.Location(
-                        location.Label!,
+                        location.Label,
                         location.City!,
                         location.Country!,
                         location.Address))
+                    .ToList(),
+                _contacts
+                    .Select(contact => new CreatePrivateCompany.Contact(
+                        contact.LocationIndex,
+                        contact.Name!,
+                        contact.RoleTitle,
+                        contact.Email,
+                        contact.PhoneNumber))
                     .ToList()));
 
         _saving = false;
@@ -124,9 +213,53 @@
         _locations.Add(new LocationInput());
     }
 
+    private async Task PreviousStepAsync()
+    {
+        await _stepper!.PreviousStepAsync();
+    }
+
+    private async Task NextStepAsync()
+    {
+        await _stepper!.NextStepAsync();
+    }
+
     private void RemoveLocation(LocationInput location)
     {
+        int removedIndex = _locations.IndexOf(location);
+
         _locations.Remove(location);
+
+        foreach (ContactInput contact in _contacts)
+        {
+            if (contact.LocationIndex == removedIndex)
+            {
+                contact.LocationIndex = null;
+            }
+            else if (contact.LocationIndex > removedIndex)
+            {
+                contact.LocationIndex--;
+            }
+        }
+    }
+    private void AddContact()
+    {
+        _contacts.Add(new ContactInput());
+    }
+
+    private void RemoveContact(ContactInput contact)
+    {
+        _contacts.Remove(contact);
+    }
+
+    private string GetLocationOptionText(int index)
+    {
+        string? label = _locations[index].Label;
+
+        string locationLabel = string.IsNullOrWhiteSpace(label)
+            ? "Unnamed location"
+            : label;
+
+        return $"Location {index + 1} — {locationLabel}";
     }
 
     private sealed class LocationInput
@@ -138,5 +271,17 @@
         public string? Country { get; set; }
 
         public string? Address { get; set; }
+    }
+    private sealed class ContactInput
+    {
+        public int? LocationIndex { get; set; }
+
+        public string? Name { get; set; }
+
+        public string? RoleTitle { get; set; }
+
+        public string? Email { get; set; }
+
+        public string? PhoneNumber { get; set; }
     }
 }
