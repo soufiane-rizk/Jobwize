@@ -37,9 +37,15 @@
 
                     @foreach (LocationInput location in _locations)
                     {
-                        <MudPaper Outlined="true" Class="pa-3">
+                        <MudPaper Outlined="true" Class="@GetCardClass(location.IsActive)">
                             <MudStack Row="true" AlignItems="AlignItems.Center">
                                 <MudText Typo="Typo.subtitle2">@GetLocationTitle(location)</MudText>
+                                @if (!location.IsActive)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                                        Disabled
+                                    </MudChip>
+                                }
                                 <MudSpacer />
                                 @if (location.IsNew)
                                 {
@@ -88,9 +94,15 @@
 
                     @foreach (ContactInput contact in _contacts)
                     {
-                        <MudPaper Outlined="true" Class="pa-3">
+                        <MudPaper Outlined="true" Class="@GetCardClass(contact.IsActive)">
                             <MudStack Row="true" AlignItems="AlignItems.Center">
                                 <MudText Typo="Typo.subtitle2">@(contact.IsNew ? "New shared contact" : contact.Name)</MudText>
+                                @if (!contact.IsActive)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                                        Disabled
+                                    </MudChip>
+                                }
                                 <MudSpacer />
                                 @if (contact.IsNew)
                                 {
@@ -352,6 +364,13 @@
         }
 
         return "New location";
+    }
+
+    private static string GetCardClass(bool isActive)
+    {
+        return isActive
+            ? "pa-3"
+            : "pa-3 catalogue-item-disabled";
     }
 
     private sealed class LocationInput

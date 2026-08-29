@@ -44,12 +44,20 @@
                     <MudTd DataLabel="Industry">@context.Industry</MudTd>
                     <MudTd DataLabel="Locations">@context.Locations.Count</MudTd>
                     <MudTd>
-                        <MudButton
-                            Size="Size.Small"
-                            Variant="Variant.Outlined"
-                            OnClick="@(() => ManageAsync(context))">
-                            Manage
-                        </MudButton>
+                        <MudStack Row="true" Spacing="1">
+                            <MudButton
+                                Size="Size.Small"
+                                Variant="Variant.Text"
+                                Href="@($"/companies/{context.Id}")">
+                                View details
+                            </MudButton>
+                            <MudButton
+                                Size="Size.Small"
+                                Variant="Variant.Outlined"
+                                OnClick="@(() => ManageAsync(context))">
+                                Manage
+                            </MudButton>
+                        </MudStack>
                     </MudTd>
                 </RowTemplate>
                 <NoRecordsContent>

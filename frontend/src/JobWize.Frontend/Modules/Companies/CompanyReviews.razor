@@ -82,9 +82,15 @@
         {
             [nameof(ReviewCompanyDialog.Company)] = company
         };
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true
+        };
         IDialogReference dialog = await DialogService.ShowAsync<ReviewCompanyDialog>(
             "Review company",
-            parameters);
+            parameters,
+            options);
         DialogResult? result = await dialog.Result;
 
         if (result is null || result.Canceled)
