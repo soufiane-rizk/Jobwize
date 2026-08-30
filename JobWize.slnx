@@ -10,17 +10,22 @@
   <Folder Name="/Modules/Companies/">
     <Project Path="backend/src/Modules/Companies/JobWize.Modules.Companies.Contracts/JobWize.Modules.Companies.Contracts.csproj" />
     <Project Path="backend/src/Modules/Companies/JobWize.Modules.Companies/JobWize.Modules.Companies.csproj" />
-    <Project Path="backend/tests/JobWize.Companies.UnitTests/JobWize.Companies.UnitTests.csproj" />
+    <Project Path="backend/tests/JobWize.Modules.Companies.UnitTests/JobWize.Modules.Companies.UnitTests.csproj" />
   </Folder>
   <Folder Name="/Modules/Applications/">
     <Project Path="backend/src/Modules/Applications/JobWize.Modules.Applications.Contracts/JobWize.Modules.Applications.Contracts.csproj" />
     <Project Path="backend/src/Modules/Applications/JobWize.Modules.Applications/JobWize.Modules.Applications.csproj" />
-    <Project Path="backend/tests/JobWize.Applications.UnitTests/JobWize.Applications.UnitTests.csproj" />
+    <Project Path="backend/tests/JobWize.Modules.Applications.UnitTests/JobWize.Modules.Applications.UnitTests.csproj" />
   </Folder>
   <Folder Name="/Modules/Identity/">
     <Project Path="backend/src/Modules/Identity/JobWize.Modules.Identity.Contracts/JobWize.Modules.Identity.Contracts.csproj" Id="8e72762c-45e9-4d9b-8047-220095dc445b" />
     <Project Path="backend/src/Modules/Identity/JobWize.Modules.Identity/JobWize.Modules.Identity.csproj" Id="55cfede1-3fb6-4f2d-8d02-b0c25d1b1daa" />
-    <Project Path="backend/tests/JobWize.Identity.UnitTests/JobWize.Identity.UnitTests.csproj" />
+    <Project Path="backend/tests/JobWize.Modules.Identity.UnitTests/JobWize.Modules.Identity.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/Modules/Files/">
+    <Project Path="backend/src/Modules/Files/JobWize.Modules.Files.Contracts/JobWize.Modules.Files.Contracts.csproj" />
+    <Project Path="backend/src/Modules/Files/JobWize.Modules.Files/JobWize.Modules.Files.csproj" />
+    <Project Path="backend/tests/JobWize.Modules.Files.UnitTests/JobWize.Modules.Files.UnitTests.csproj" />
   </Folder>
   <Folder Name="/Runtime/">
     <Project Path="backend/src/Runtime/JobWize.Runtime.Contracts/JobWize.Runtime.Contracts.csproj" Id="a06264e0-b594-4c7e-bacb-a9b6443257d5" />
