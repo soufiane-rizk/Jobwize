@@ -88,6 +88,22 @@ namespace JobWize.Modules.Identity.Domain
             return _refreshTokens.SingleOrDefault(x => x.TokenHash == tokenHash);
         }
 
+        public void ChangePassword(string passwordHash)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(passwordHash, nameof(passwordHash));
+
+            PasswordHash = passwordHash;
+            MustChangePassword = false;
+        }
+
+        public void RevokeAllRefreshTokens(DateTime revokedAt)
+        {
+            foreach (RefreshToken refreshToken in _refreshTokens.Where(token => !token.IsRevoked))
+            {
+                refreshToken.Revoke(revokedAt);
+            }
+        }
+
         public void RevokeRefreshToken(string tokenHash, DateTime revokedAt)
         {
             RefreshToken? refreshToken = FindRefreshToken(tokenHash);
