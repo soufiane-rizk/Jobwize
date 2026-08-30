@@ -10,6 +10,7 @@ internal sealed class FileBindingConfiguration : IEntityTypeConfiguration<FileBi
     {
         builder.ToTable("file_bindings", "files");
         builder.HasKey(binding => binding.Id);
+        builder.Property(binding => binding.Id).ValueGeneratedNever();
         builder.Property(binding => binding.ResourceType).HasMaxLength(100).IsRequired();
         builder.Property(binding => binding.Usage).HasMaxLength(100).IsRequired();
         builder.Property(binding => binding.AccessPolicy).IsRequired();

@@ -32,6 +32,25 @@ public static class GetJobApplication
         string? PreparationNotes,
         IReadOnlyList<InterviewParticipantItem> Participants);
 
+    public sealed record CvSubmissionDocumentItem(
+        Guid FileId,
+        string FileName,
+        string ContentType,
+        long SizeBytes);
+
+    public sealed record CvSubmissionItem(
+        Guid Id,
+        DateTime SentAt,
+        CvSubmissionMethod Method,
+        string? Notes,
+        Guid? CompanyContactId,
+        Guid? CompanyLocationId,
+        string? ContactName,
+        string? ContactRoleTitle,
+        string? ContactEmail,
+        string? ContactPhoneNumber,
+        IReadOnlyList<CvSubmissionDocumentItem> Documents);
+
     public sealed record Response(
         Guid Id,
         Guid? CompanyId,
@@ -45,5 +64,6 @@ public static class GetJobApplication
         string? Notes,
         IReadOnlyList<ActivityItem> Activities,
         IReadOnlyList<InterviewItem> Interviews,
+        IReadOnlyList<CvSubmissionItem> CvSubmissions,
         IReadOnlyList<ApplicationStatus> AllowedNextStatuses);
 }

@@ -103,6 +103,9 @@
                                     Record interview result
                                 </MudMenuItem>
                             }
+                            <MudMenuItem OnClick="@(() => OpenCvSubmissionDialogAsync(context))">
+                                Record CV submission
+                            </MudMenuItem>
                         }
                         <MudMenuItem Href="@($"/applications/{context.Id}")">View details</MudMenuItem>
                     </MudMenu>
@@ -177,6 +180,25 @@
     {
         var dialog = await DialogService.ShowAsync<InterviewDialog>("Schedule interview", new DialogParameters { [nameof(InterviewDialog.ApplicationId)] = application.Id });
         if ((await dialog.Result) is { Canceled: false }) await LoadAsync();
+    }
+
+    private async Task OpenCvSubmissionDialogAsync(GetJobApplications.Item application)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(CvSubmissionDialog.ApplicationId)] = application.Id,
+            [nameof(CvSubmissionDialog.CompanyId)] = application.CompanyId,
+            [nameof(CvSubmissionDialog.Kind)] = application.Kind
+        };
+
+        IDialogReference dialog = await DialogService.ShowAsync<CvSubmissionDialog>(
+            "Record CV submission",
+            parameters);
+
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await LoadAsync();
+        }
     }
 
     private static Color GetInterviewStateColor(InterviewState state)

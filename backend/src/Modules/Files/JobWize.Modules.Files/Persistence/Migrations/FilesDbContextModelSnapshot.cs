@@ -77,7 +77,6 @@ namespace JobWize.Modules.Files.Persistence.Migrations
             modelBuilder.Entity("JobWize.Modules.Files.Domain.FileBinding", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<int>("AccessPolicy")

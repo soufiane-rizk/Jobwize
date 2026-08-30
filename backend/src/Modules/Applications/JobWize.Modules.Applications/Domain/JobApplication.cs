@@ -21,6 +21,8 @@ public sealed class JobApplication : DomainModel
     public IReadOnlyCollection<JobApplicationActivity> Activities => _activities.AsReadOnly();
     private readonly List<JobInterview> _interviews = [];
     public IReadOnlyCollection<JobInterview> Interviews => _interviews.AsReadOnly();
+    private readonly List<JobApplicationCvSubmission> _cvSubmissions = [];
+    public IReadOnlyCollection<JobApplicationCvSubmission> CvSubmissions => _cvSubmissions.AsReadOnly();
     public IReadOnlyList<ApplicationStatus> AllowedNextStatuses => GetAllowedNextStatuses();
 
     private JobApplication()
@@ -104,6 +106,60 @@ public sealed class JobApplication : DomainModel
         AddActivity(JobApplicationActivity.CreateNote(Id, note));
     }
 
+    public JobApplicationCvSubmission RecordCvSubmission(
+        DateTime sentAt,
+        CvSubmissionMethod method,
+        string? notes,
+        (Guid? Id, Guid? LocationId, string? Name, string? RoleTitle, string? Email, string? PhoneNumber) contact,
+        IEnumerable<(Guid FileId, string FileName, string ContentType, long SizeBytes)> documents)
+    {
+        DateTime normalizedSentAt = sentAt.Kind switch
+        {
+            DateTimeKind.Utc => sentAt,
+            DateTimeKind.Local => sentAt.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(sentAt, DateTimeKind.Utc)
+        };
+
+        (Guid FileId, string FileName, string ContentType, long SizeBytes)[] documentSnapshots = documents.ToArray();
+
+        if (documentSnapshots.Length == 0)
+        {
+            throw new ArgumentException("At least one document is required.", nameof(documents));
+        }
+
+        if (documentSnapshots.Select(document => document.FileId).Distinct().Count() != documentSnapshots.Length)
+        {
+            throw new ArgumentException("A document can only be submitted once.", nameof(documents));
+        }
+
+        JobApplicationCvSubmission submission = JobApplicationCvSubmission.Create(
+            Id,
+            normalizedSentAt,
+            method,
+            notes,
+            contact,
+            documentSnapshots);
+
+        _cvSubmissions.Add(submission);
+
+        if (Status is ApplicationStatus.Draft or ApplicationStatus.Planned)
+        {
+            Status = ApplicationStatus.Applied;
+            AppliedOn = DateOnly.FromDateTime(normalizedSentAt);
+            AddActivity(JobApplicationActivity.CreateStatusChange(
+                Id,
+                ApplicationStatus.Applied,
+                "Automatically marked as applied when the CV submission was recorded."));
+        }
+
+        AddActivity(JobApplicationActivity.CreateCvSubmitted(
+            Id,
+            method,
+            contact.Name));
+
+        return submission;
+    }
+
     public JobInterview ScheduleInterview(
         InterviewType interviewType,
         DateTime scheduledAt,
@@ -169,7 +225,10 @@ public sealed class JobApplication : DomainModel
     private void AddActivity(JobApplicationActivity activity)
     {
         _activities.Add(activity);
-        LastActivityAt = activity.OccurredAt;
+        if (activity.OccurredAt > LastActivityAt)
+        {
+            LastActivityAt = activity.OccurredAt;
+        }
     }
 
     private static bool RequiresAppliedOn(ApplicationStatus status)

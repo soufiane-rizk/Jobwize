@@ -21,12 +21,7 @@ internal sealed class GetCompanyProjectionHandler(CompaniesDbContext dbContext)
 
             EntityState state = dbContext.Entry(company).State;
 
-            if (state == EntityState.Added)
-            {
-                return CreateResponse(company);
-            }
-
-            if (state == EntityState.Modified)
+            if (state != EntityState.Added)
             {
                 await dbContext.Entry(company)
                     .Collection(item => item.Locations)
@@ -35,8 +30,9 @@ internal sealed class GetCompanyProjectionHandler(CompaniesDbContext dbContext)
                     .Collection(item => item.Contacts)
                     .LoadAsync(cancellationToken);
 
-                return CreateResponse(company);
             }
+
+            return CreateResponse(company);
         }
 
         company = await dbContext.Companies

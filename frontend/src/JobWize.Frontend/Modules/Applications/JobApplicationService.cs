@@ -9,6 +9,7 @@ using ScheduleInterviewContract = JobWize.Modules.Applications.Contracts.Public.
 using UpdateInterviewContract = JobWize.Modules.Applications.Contracts.Public.Interviews.UpdateInterview;
 using RecordInterviewResultContract = JobWize.Modules.Applications.Contracts.Public.Interviews.RecordInterviewResult;
 using GetSelectableCompaniesContract = JobWize.Modules.Applications.Contracts.Public.Companies.GetSelectableCompanies;
+using RecordCvSubmissionContract = JobWize.Modules.Applications.Contracts.Public.JobApplications.RecordCvSubmission;
 using GetSelectableCompanyContactsContract = JobWize.Modules.Applications.Contracts.Public.CompanyContacts.GetSelectableCompanyContacts;
 namespace JobWize.Frontend.Modules.Applications;
 public sealed class JobApplicationService(
@@ -94,6 +95,16 @@ public sealed class JobApplicationService(
     {
         return PostAsync<AddNoteContract.Request, bool>(
             AddNoteContract.Route,
+            request,
+            cancellationToken);
+    }
+
+    public Task<Result<RecordCvSubmissionContract.Response>> RecordCvSubmissionAsync(
+        RecordCvSubmissionContract.Request request,
+        CancellationToken cancellationToken = default)
+    {
+        return PostAsync<RecordCvSubmissionContract.Request, RecordCvSubmissionContract.Response>(
+            RecordCvSubmissionContract.Route,
             request,
             cancellationToken);
     }

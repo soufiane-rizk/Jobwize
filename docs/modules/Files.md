@@ -10,15 +10,14 @@ The current candidate Documents page exposes only `CandidateDocument` assets: PD
 
 Metadata is stored in the `files` schema and bytes are stored through `IFileStorage`. Development uses a local implementation configured by `Files:Storage:LocalPath`; object storage can replace that provider without changing the domain or API contract.
 
-Files support bindings from an asset to a consuming resource and usage, such as `Company / {companyId} / Logo`, with an access policy. Candidate documents remain owner-only. A company logo binding will use `ResourceViewers`, meaning its authorization follows the company-details policy. A user-avatar binding will use `OwnerAndAdministrators` until Identity supplies profile visibility. Future consuming modules will create and update those bindings through Files contracts and integration events. Unbound uploads are intentionally temporary and are eligible for future expiration cleanup.
+Files support bindings from an asset to a consuming resource and usage, such as `Company / {companyId} / Logo`, with an access policy. Candidate documents remain owner-only. Application CV submissions validate active candidate-owned documents through an internal module query, then publish a submission event that Files handles by creating permanent owner-only bindings. A company logo binding will use `ResourceViewers`, meaning its authorization follows the company-details policy. A user-avatar binding will use `OwnerAndAdministrators` until Identity supplies profile visibility. Unbound uploads are intentionally temporary and are eligible for future expiration cleanup.
 
-`DELETE /api/files/{documentId}` archives a document. It removes the document from new selections and ordinary downloads, but retains the metadata and blob. This is intentional: a future CV-submission activity can safely retain its historical file snapshot even after the candidate removes it from their active library.
+`DELETE /api/files/{documentId}` archives a document and removes it from new selections. An unbound archived document is unavailable for download. If the document has an active historical binding, its owner can still download it from the application submission history. Metadata and blob content remain under Files ownership.
 
 The module publishes document-uploaded and document-archived integration events.
 
 ## Deferred Work
 
-- Connecting document selection and immutable snapshots to application CV submissions
 - Referential integrity checks before a retention-policy-driven physical purge
 - Malware scanning, asynchronous large-file processing, and cloud/object-storage providers
 - Company logo and avatar upload/binding workflows
