@@ -108,7 +108,7 @@ Example properties:
 -   Role
 -   Status
 -   RefreshTokens
--   RequirePasswordChange
+-   MustChangePassword
 -   CreatedAt
 -   UpdatedAt
 -   DeletedAt
@@ -148,9 +148,7 @@ Current statuses:
 -   Active
 -   Suspended
 
-Suspended users cannot authenticate.
-
-Authentication failures always return a generic error message to avoid revealing account existence.
+Suspended users cannot authenticate. Suspending a user also revokes all of their active refresh-token sessions.
 
 ---
 
@@ -197,9 +195,8 @@ Future identity providers (Google, Microsoft, etc.) may be added without changin
 ## Super Admin
 
 -   CreateAdmin
--   UpdateAdmin
--   SuspendAdmin
--   ReactivateAdmin
+-   SuspendUser
+-   ReactivateUser
 
 ---
 
@@ -214,7 +211,6 @@ Future identity providers (Google, Microsoft, etc.) may be added without changin
 ## Administration
 
 -   GetUsers
--   GetUserDetails
 
 ---
 
@@ -235,20 +231,29 @@ The Super Admin provides:
 -   First Name
 -   Last Name
 -   Email
+-   Temporary password
 
 The system:
 
 1. Creates the account.
-2. Generates a strong temporary password.
-3. Stores the password hash.
-4. Sets `RequirePasswordChange = true`.
-5. Displays the temporary password once.
+2. Stores only the temporary password hash.
+3. Sets `MustChangePassword = true`.
 
-The temporary password must be communicated securely to the new administrator.
+The SuperAdmin must communicate the temporary password securely to the new administrator; it is never returned or displayed by the system after creation.
 
 At the first successful login, the administrator must change the password before accessing the application.
 
 Future versions will replace the temporary password with an email-based password setup flow.
+
+## User Management Rules
+
+The Users page is available to Admins and SuperAdmins. The API enforces the same boundaries independently of the UI:
+
+-   Admins can view, suspend, and reactivate Candidates only.
+-   SuperAdmins can view, suspend, and reactivate Candidates and Admins, and can create Admin accounts.
+-   SuperAdmin accounts cannot be managed through these actions.
+
+Suspension requires an explicit confirmation. The backend returns the confirmation key and message when confirmation is required; the frontend repeats the same request with that key only after the user accepts. Confirmation does not grant permission—the backend rechecks authorization and the target's current state.
 
 ---
 

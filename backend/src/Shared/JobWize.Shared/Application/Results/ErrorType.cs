@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -11,6 +11,7 @@ namespace JobWize.Shared.Application.Results
         NotFound,
         Unauthorized,
         Forbidden,
+        ConfirmationRequired,
         Failure
     }
 }
