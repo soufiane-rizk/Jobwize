@@ -92,6 +92,10 @@ coverage/
 # Generated files
 # -----------------------------
 Generated/
+
+# Local development file storage
+backend/src/Api/JobWize.Api/App_Data/
+
 # Terraform working directories
 **/.terraform/*
 
