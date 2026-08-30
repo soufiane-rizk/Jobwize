@@ -1,4 +1,5 @@
 using FluentValidation;
+using JobWize.Modules.Companies.Contracts.Events.Companies;
 using JobWize.Modules.Companies.Contracts.Public.CompanyContacts;
 using JobWize.Modules.Companies.Contracts.Public.Companies;
 using JobWize.Modules.Companies.Persistence;
@@ -76,7 +77,8 @@ public static class ReviewCompanyContact
     internal sealed class Handler(
         CompaniesDbContext dbContext,
         ICompanyRepository companies,
-        IUserContext userContext) : ICommandHandler<Command, bool>
+        IUserContext userContext,
+        IDispatcher dispatcher) : ICommandHandler<Command, bool>
     {
         public async Task<Result<bool>> HandleAsync(Command command, CancellationToken cancellationToken)
         {
@@ -132,6 +134,9 @@ public static class ReviewCompanyContact
                 }
 
                 await companies.SaveAsync(company, cancellationToken);
+                await dispatcher.PublishAsync(
+                    new CompanyContactReviewed(company.Id, command.Id, userContext.UserId),
+                    cancellationToken);
 
                 return Result<bool>.Success(true);
             }

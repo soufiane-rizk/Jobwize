@@ -9,6 +9,7 @@ using ScheduleInterviewContract = JobWize.Modules.Applications.Contracts.Public.
 using UpdateInterviewContract = JobWize.Modules.Applications.Contracts.Public.Interviews.UpdateInterview;
 using RecordInterviewResultContract = JobWize.Modules.Applications.Contracts.Public.Interviews.RecordInterviewResult;
 using GetSelectableCompaniesContract = JobWize.Modules.Applications.Contracts.Public.Companies.GetSelectableCompanies;
+using GetSelectableCompanyContactsContract = JobWize.Modules.Applications.Contracts.Public.CompanyContacts.GetSelectableCompanyContacts;
 namespace JobWize.Frontend.Modules.Applications;
 public sealed class JobApplicationService(
     IHttpClientFactory httpClientFactory,
@@ -50,6 +51,20 @@ public sealed class JobApplicationService(
         return GetAsync<GetSelectableCompaniesContract.Request, GetSelectableCompaniesContract.Response>(
             GetSelectableCompaniesContract.Route,
             new(search),
+            cancellationToken);
+    }
+
+    public Task<Result<GetSelectableCompanyContactsContract.Response>> GetSelectableCompanyContactsAsync(
+        Guid? companyId = null,
+        Guid? companyLocationId = null,
+        string? search = null,
+        CancellationToken cancellationToken = default)
+    {
+        return GetAsync<
+            GetSelectableCompanyContactsContract.Request,
+            GetSelectableCompanyContactsContract.Response>(
+            GetSelectableCompanyContactsContract.Route,
+            new(companyId, companyLocationId, search),
             cancellationToken);
     }
 

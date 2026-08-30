@@ -31,6 +31,9 @@ internal sealed class GetCompanyProjectionHandler(CompaniesDbContext dbContext)
                 await dbContext.Entry(company)
                     .Collection(item => item.Locations)
                     .LoadAsync(cancellationToken);
+                await dbContext.Entry(company)
+                    .Collection(item => item.Contacts)
+                    .LoadAsync(cancellationToken);
 
                 return CreateResponse(company);
             }
@@ -39,6 +42,7 @@ internal sealed class GetCompanyProjectionHandler(CompaniesDbContext dbContext)
         company = await dbContext.Companies
             .AsNoTracking()
             .Include(item => item.Locations)
+            .Include(item => item.Contacts)
             .SingleAsync(item => item.Id == query.CompanyId, cancellationToken);
 
         return CreateResponse(company);
@@ -63,6 +67,22 @@ internal sealed class GetCompanyProjectionHandler(CompaniesDbContext dbContext)
                     location.Visibility,
                     location.CreatedByCandidateId,
                     location.IsActive))
+                .ToList(),
+            company.Contacts
+                .OrderBy(contact => contact.Name)
+                .Select(contact => new Contracts.Internal.Companies.GetCompanyProjection.Contact(
+                    contact.Id,
+                    contact.CompanyId,
+                    contact.CompanyLocationId,
+                    contact.Name,
+                    contact.RoleTitle,
+                    contact.Email,
+                    contact.PhoneNumber,
+                    contact.Visibility,
+                    contact.CreatedByCandidateId,
+                    contact.IsActive,
+                    contact.Visibility == Contracts.Public.CompanyContacts.CompanyContactVisibility.Private &&
+                    contact.ReviewedAt is not null))
                 .ToList());
     }
 }

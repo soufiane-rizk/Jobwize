@@ -84,6 +84,60 @@ public static class RebuildCompanyProjections
                         location.Visibility,
                         location.CreatedByCandidateId,
                         location.IsActive)));
+
+                Guid[] contactIds = company.Contacts.Select(contact => contact.Id).ToArray();
+                List<CompanyContactProjection> removedContacts = await dbContext.CompanyContactProjections
+                    .Where(contact => contact.CompanyId == company.Id && !contactIds.Contains(contact.Id))
+                    .ToListAsync(cancellationToken);
+
+                foreach (CompanyContactProjection contact in removedContacts)
+                {
+                    contact.Update(
+                        contact.CompanyLocationId,
+                        contact.Name,
+                        contact.RoleTitle,
+                        contact.Email,
+                        contact.PhoneNumber,
+                        contact.Visibility,
+                        contact.CreatedByCandidateId,
+                        false,
+                        contact.IsRejected);
+                }
+
+                foreach (JobWize.Modules.Companies.Contracts.Internal.Companies.GetCompanyProjection.Contact contact in company.Contacts)
+                {
+                    CompanyContactProjection? contactProjection = await dbContext.CompanyContactProjections
+                        .SingleOrDefaultAsync(item => item.Id == contact.Id, cancellationToken);
+
+                    if (contactProjection is null)
+                    {
+                        dbContext.CompanyContactProjections.Add(CompanyContactProjection.Create(
+                            contact.Id,
+                            contact.CompanyId,
+                            contact.CompanyLocationId,
+                            contact.Name,
+                            contact.RoleTitle,
+                            contact.Email,
+                            contact.PhoneNumber,
+                            contact.Visibility,
+                            contact.CreatedByCandidateId,
+                            contact.IsActive,
+                            contact.IsRejected));
+                    }
+                    else
+                    {
+                        contactProjection.Update(
+                            contact.CompanyLocationId,
+                            contact.Name,
+                            contact.RoleTitle,
+                            contact.Email,
+                            contact.PhoneNumber,
+                            contact.Visibility,
+                            contact.CreatedByCandidateId,
+                            contact.IsActive,
+                            contact.IsRejected);
+                    }
+                }
             }
 
             List<CompanyProjection> removedCompanyProjections = await dbContext.CompanyProjections
@@ -94,6 +148,24 @@ public static class RebuildCompanyProjections
             foreach (CompanyProjection projection in removedCompanyProjections)
             {
                 projection.Deactivate();
+            }
+
+            List<CompanyContactProjection> contactsForRemovedCompanies = await dbContext.CompanyContactProjections
+                .Where(contact => contact.IsActive && !companyIds.Contains(contact.CompanyId))
+                .ToListAsync(cancellationToken);
+
+            foreach (CompanyContactProjection contact in contactsForRemovedCompanies)
+            {
+                contact.Update(
+                    contact.CompanyLocationId,
+                    contact.Name,
+                    contact.RoleTitle,
+                    contact.Email,
+                    contact.PhoneNumber,
+                    contact.Visibility,
+                    contact.CreatedByCandidateId,
+                    false,
+                    contact.IsRejected);
             }
 
             return Result<int>.Success(companies.Count);

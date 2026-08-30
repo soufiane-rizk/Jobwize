@@ -14,6 +14,7 @@ internal sealed class GetAllCompanyProjectionsHandler(CompaniesDbContext dbConte
         return await dbContext.Companies
             .AsNoTracking()
             .Include(company => company.Locations)
+            .Include(company => company.Contacts)
             .Select(company => new Contracts.Internal.Companies.GetCompanyProjection.Response(
                 company.Id,
                 company.Name,
@@ -30,6 +31,22 @@ internal sealed class GetAllCompanyProjectionsHandler(CompaniesDbContext dbConte
                         location.Visibility,
                         location.CreatedByCandidateId,
                         location.IsActive))
+                    .ToList(),
+                company.Contacts
+                    .OrderBy(contact => contact.Name)
+                    .Select(contact => new Contracts.Internal.Companies.GetCompanyProjection.Contact(
+                        contact.Id,
+                        contact.CompanyId,
+                        contact.CompanyLocationId,
+                        contact.Name,
+                        contact.RoleTitle,
+                        contact.Email,
+                        contact.PhoneNumber,
+                        contact.Visibility,
+                        contact.CreatedByCandidateId,
+                        contact.IsActive,
+                        contact.Visibility == Contracts.Public.CompanyContacts.CompanyContactVisibility.Private &&
+                        contact.ReviewedAt != null))
                     .ToList()))
             .ToListAsync(cancellationToken);
     }
