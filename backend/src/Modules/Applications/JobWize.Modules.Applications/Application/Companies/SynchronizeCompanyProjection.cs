@@ -13,7 +13,9 @@ internal sealed class SynchronizeCompanyProjection(
     IDispatcher dispatcher)
     : INotificationHandler<CompanyCreated>,
       INotificationHandler<CompanyPromotedToShared>,
-      INotificationHandler<CompanyCatalogueUpdated>
+      INotificationHandler<CompanyCatalogueUpdated>,
+      INotificationHandler<CompanyContactCreated>,
+      INotificationHandler<CompanyContactReviewed>
 {
     public Task HandleAsync(CompanyCreated notification, CancellationToken cancellationToken)
     {
@@ -26,6 +28,16 @@ internal sealed class SynchronizeCompanyProjection(
     }
 
     public Task HandleAsync(CompanyCatalogueUpdated notification, CancellationToken cancellationToken)
+    {
+        return SynchronizeAsync(notification.CompanyId, cancellationToken);
+    }
+
+    public Task HandleAsync(CompanyContactCreated notification, CancellationToken cancellationToken)
+    {
+        return SynchronizeAsync(notification.CompanyId, cancellationToken);
+    }
+
+    public Task HandleAsync(CompanyContactReviewed notification, CancellationToken cancellationToken)
     {
         return SynchronizeAsync(notification.CompanyId, cancellationToken);
     }
@@ -61,5 +73,59 @@ internal sealed class SynchronizeCompanyProjection(
             location.Visibility,
             location.CreatedByCandidateId,
             location.IsActive)));
+
+        Guid[] sourceContactIds = source.Contacts.Select(contact => contact.Id).ToArray();
+
+        List<CompanyContactProjection> missingSourceContacts = await dbContext.CompanyContactProjections
+            .Where(contact => contact.CompanyId == companyId && !sourceContactIds.Contains(contact.Id))
+            .ToListAsync(cancellationToken);
+
+        foreach (CompanyContactProjection contact in missingSourceContacts)
+        {
+            contact.Update(
+                contact.CompanyLocationId,
+                contact.Name,
+                contact.RoleTitle,
+                contact.Email,
+                contact.PhoneNumber,
+                contact.Visibility,
+                contact.CreatedByCandidateId,
+                false,
+                contact.IsRejected);
+        }
+
+        foreach (GetCompanyProjection.Contact contact in source.Contacts)
+        {
+            CompanyContactProjection? existing = await dbContext.CompanyContactProjections
+                .SingleOrDefaultAsync(item => item.Id == contact.Id, cancellationToken);
+
+            if (existing is null)
+            {
+                dbContext.CompanyContactProjections.Add(CompanyContactProjection.Create(
+                    contact.Id,
+                    contact.CompanyId,
+                    contact.CompanyLocationId,
+                    contact.Name,
+                    contact.RoleTitle,
+                    contact.Email,
+                    contact.PhoneNumber,
+                    contact.Visibility,
+                    contact.CreatedByCandidateId,
+                    contact.IsActive,
+                    contact.IsRejected));
+                continue;
+            }
+
+            existing.Update(
+                contact.CompanyLocationId,
+                contact.Name,
+                contact.RoleTitle,
+                contact.Email,
+                contact.PhoneNumber,
+                contact.Visibility,
+                contact.CreatedByCandidateId,
+                contact.IsActive,
+                contact.IsRejected);
+        }
     }
 }
