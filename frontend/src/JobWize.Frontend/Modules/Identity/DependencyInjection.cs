@@ -13,7 +13,6 @@ namespace JobWize.Frontend.Modules.Identity
                 Icon: MudBlazor.Icons.Material.Filled.People,
                 Order: 10,
                 Roles: "Admin,SuperAdmin"));
-
             return services;
         }
     }

@@ -15,6 +15,7 @@ namespace JobWize.Modules.Identity.Contracts.Public.Users
             string Email,
             UserRole Role,
             string? AvatarUrl,
-            bool MustChangePassword);
+            bool MustChangePassword,
+            DateTime CreatedAt);
     }
 }

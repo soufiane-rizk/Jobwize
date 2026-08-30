@@ -60,7 +60,8 @@ namespace JobWize.Modules.Identity.Application.Users
                     user.Email,
                     (Contracts.Public.Authentication.UserRole)user.Role,
                     user.AvatarUrl,
-                    user.MustChangePassword));
+                    user.MustChangePassword,
+                    user.CreatedAt));
             }
         }
     }

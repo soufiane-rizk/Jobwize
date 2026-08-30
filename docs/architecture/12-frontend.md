@@ -106,4 +106,4 @@ For a new business feature:
 
 # Current Scope
 
-The shared frontend foundation and identity flow are in place: candidate self-registration, SuperAdmin bootstrap, forced-password change, refresh-token renewal, and role-aware user management. The Users UI lists the users visible to the signed-in role, allows SuperAdmins to create Admins, and supports suspension/reactivation with backend-driven confirmation.
+The shared frontend foundation and identity flow are in place: candidate self-registration, SuperAdmin bootstrap, forced-password change, refresh-token renewal, role-aware user management, and a self-service Profile page. Profile is reached through the app-bar account action and uses separate cards for personal information and security.
