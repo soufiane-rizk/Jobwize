@@ -19,7 +19,8 @@ public sealed class JobApplicationActivity : Entity
     internal static JobApplicationActivity CreateStatusChange(
         Guid applicationId,
         ApplicationStatus status,
-        string? note)
+        string? note,
+        DateTime? occurredAt = null)
     {
         return new JobApplicationActivity
         {
@@ -27,7 +28,7 @@ public sealed class JobApplicationActivity : Entity
             JobApplicationId = applicationId,
             Type = ApplicationActivityType.StatusChanged,
             Status = status,
-            OccurredAt = DateTime.UtcNow,
+            OccurredAt = occurredAt ?? DateTime.UtcNow,
             Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim()
         };
     }
@@ -73,6 +74,25 @@ public sealed class JobApplicationActivity : Entity
             Note = string.IsNullOrWhiteSpace(note)
                 ? state.ToString()
                 : $"{state}. {note.Trim()}"
+        };
+    }
+
+    internal static JobApplicationActivity CreateCvSubmitted(
+        Guid applicationId,
+        CvSubmissionMethod method,
+        string? contactName)
+    {
+        string recipient = string.IsNullOrWhiteSpace(contactName)
+            ? string.Empty
+            : $" to {contactName.Trim()}";
+
+        return new JobApplicationActivity
+        {
+            Id = Guid.NewGuid(),
+            JobApplicationId = applicationId,
+            Type = ApplicationActivityType.CvSubmitted,
+            OccurredAt = DateTime.UtcNow,
+            Note = $"CV submitted via {method}{recipient}."
         };
     }
 }

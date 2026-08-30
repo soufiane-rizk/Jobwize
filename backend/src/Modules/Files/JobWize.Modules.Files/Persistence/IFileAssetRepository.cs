@@ -12,7 +12,9 @@ public interface IFileAssetRepository
 internal sealed class FileAssetRepository(FilesDbContext dbContext) : IFileAssetRepository
 {
     public Task<FileAsset?> GetByIdAsync(Guid documentId, Guid candidateId, CancellationToken cancellationToken = default) =>
-        dbContext.FileAssets.SingleOrDefaultAsync(
+        dbContext.FileAssets
+            .Include(document => document.Bindings)
+            .SingleOrDefaultAsync(
             document => document.Id == documentId && document.CandidateId == candidateId,
             cancellationToken);
 

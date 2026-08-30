@@ -51,6 +51,8 @@ public static class GetJobApplication
                 .Include(item => item.Activities)
                 .Include(item => item.Interviews)
                 .ThenInclude(interview => interview.Participants)
+                .Include(item => item.CvSubmissions)
+                .ThenInclude(submission => submission.Documents)
                 .SingleOrDefaultAsync(
                     item => item.Id == query.Id && item.CandidateId == userContext.UserId,
                     cancellationToken);
@@ -110,6 +112,28 @@ public static class GetJobApplication
                         .ToList()))
                 .ToList();
 
+            var submissions = application.CvSubmissions
+                .OrderByDescending(item => item.SentAt)
+                .Select(item => new Contracts.Public.JobApplications.GetJobApplication.CvSubmissionItem(
+                    item.Id,
+                    item.SentAt,
+                    item.Method,
+                    item.Notes,
+                    item.CompanyContactId,
+                    item.CompanyLocationId,
+                    item.ContactName,
+                    item.ContactRoleTitle,
+                    item.ContactEmail,
+                    item.ContactPhoneNumber,
+                    item.Documents
+                        .Select(document => new Contracts.Public.JobApplications.GetJobApplication.CvSubmissionDocumentItem(
+                            document.FileId,
+                            document.FileName,
+                            document.ContentType,
+                            document.SizeBytes))
+                        .ToList()))
+                .ToList();
+
             return Result<Contracts.Public.JobApplications.GetJobApplication.Response>.Success(new(
                 application.Id,
                 application.CompanyId,
@@ -123,6 +147,7 @@ public static class GetJobApplication
                 application.Notes,
                 activities,
                 interviews,
+                submissions,
                 application.AllowedNextStatuses));
         }
     }

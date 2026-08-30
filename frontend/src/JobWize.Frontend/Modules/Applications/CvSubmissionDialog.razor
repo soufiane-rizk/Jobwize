@@ -1,0 +1,209 @@
+@using JobWize.Frontend.Modules.Files
+@using JobWize.Modules.Applications.Contracts.Public.JobApplications
+@using JobWize.Modules.Files.Contracts.Public.FileAssets
+@using RecordCvSubmissionContract = JobWize.Modules.Applications.Contracts.Public.JobApplications.RecordCvSubmission
+
+@inject JobApplicationService JobApplicationService
+@inject CandidateDocumentService CandidateDocumentService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Record CV submission</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            <MudGrid>
+                <MudItem xs="12">
+                    @if (_documents.Count == 0)
+                    {
+                        <MudAlert Severity="Severity.Warning">
+                            Upload a document from the Documents page before recording a submission.
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudSelect
+                            T="Guid"
+                            Label="Documents"
+                            MultiSelection="true"
+                            ToStringFunc="GetDocumentName"
+                            @bind-SelectedValues="_selectedFileIds"
+                            Required="true"
+                            Error="@(_showValidation && !_selectedFileIds.Any())"
+                            ErrorText="Select at least one document.">
+                            @foreach (GetFileAssets.Item document in _documents)
+                            {
+                                <MudSelectItem T="Guid" Value="@document.Id">
+                                    @document.FileName
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+                </MudItem>
+
+                <MudItem xs="12">
+                    <CompanyContactPicker CompanyId="CompanyId" @bind-Value="_companyContactId" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="CvSubmissionMethod" @bind-Value="_method" Label="Method">
+                        @foreach (CvSubmissionMethod method in Enum.GetValues<CvSubmissionMethod>())
+                        {
+                            <MudSelectItem T="CvSubmissionMethod" Value="@method">
+                                @GetMethodLabel(method)
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="3">
+                    <MudDatePicker
+                        @bind-Date="_sentDate"
+                        Label="Sent date"
+                        Required="true"
+                        Error="@(_showValidation && _sentDate is null)"
+                        ErrorText="Sent date is required." />
+                </MudItem>
+
+                <MudItem xs="12" md="3">
+                    <MudTextField
+                        @bind-Value="_sentTime"
+                        Label="Sent time"
+                        InputType="InputType.Time"
+                        Required="true"
+                        Error="@(_showValidation && !TimeOnly.TryParse(_sentTime, out _))"
+                        ErrorText="A valid time is required." />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_notes" Label="Notes (optional)" Lines="3" />
+                </MudItem>
+            </MudGrid>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="MudDialog.Cancel">Cancel</MudButton>
+        <MudButton
+            Color="Color.Primary"
+            Variant="Variant.Filled"
+            Disabled="@(_loading || _saving || _documents.Count == 0)"
+            OnClick="SaveAsync">
+            Record submission
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public Guid ApplicationId { get; set; }
+
+    [Parameter]
+    public Guid? CompanyId { get; set; }
+
+    [Parameter]
+    public ApplicationKind Kind { get; set; }
+
+    private IReadOnlyList<GetFileAssets.Item> _documents = [];
+    private IReadOnlyCollection<Guid> _selectedFileIds = [];
+    private Guid? _companyContactId;
+    private CvSubmissionMethod _method;
+    private DateTime? _sentDate = DateTime.Today;
+    private string _sentTime = DateTime.Now.ToString("HH:mm");
+    private string? _notes;
+    private bool _loading = true;
+    private bool _saving;
+    private bool _showValidation;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _method = Kind == ApplicationKind.SpontaneousApplication
+            ? CvSubmissionMethod.Email
+            : CvSubmissionMethod.JobPortal;
+
+        Result<GetFileAssets.Response> documentsResult = await CandidateDocumentService.GetAsync();
+
+        if (documentsResult.IsSuccess)
+        {
+            _documents = documentsResult.Value?.Files ?? [];
+        }
+        else
+        {
+            Snackbar.Add(
+                documentsResult.Error?.Message ?? "Unable to load documents.",
+                Severity.Error);
+        }
+
+        _loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        _showValidation = true;
+
+        Guid[] fileIds = _selectedFileIds.Distinct().ToArray();
+        if (_sentDate is null ||
+            !TimeOnly.TryParse(_sentTime, out TimeOnly sentTime) ||
+            fileIds.Length == 0)
+        {
+            return;
+        }
+
+        DateTime sentAt = DateTime.SpecifyKind(
+                _sentDate.Value.Date.Add(sentTime.ToTimeSpan()),
+                DateTimeKind.Local)
+            .ToUniversalTime();
+
+        _saving = true;
+
+        Result<RecordCvSubmissionContract.Response> result =
+            await JobApplicationService.RecordCvSubmissionAsync(
+                new RecordCvSubmissionContract.Request(
+                    ApplicationId,
+                    sentAt,
+                    _method,
+                    fileIds,
+                    _companyContactId,
+                    _notes));
+
+        _saving = false;
+
+        if (!result.IsSuccess)
+        {
+            Snackbar.Add(
+                result.Error?.Message ?? "Unable to record the CV submission.",
+                Severity.Error);
+            return;
+        }
+
+        Snackbar.Add("CV submission recorded.", Severity.Success);
+        MudDialog.Close(DialogResult.Ok(result.Value!.SubmissionId));
+    }
+
+    private string GetDocumentName(Guid fileId)
+    {
+        return _documents
+            .SingleOrDefault(document => document.Id == fileId)
+            ?.FileName
+            ?? fileId.ToString();
+    }
+
+    private static string GetMethodLabel(CvSubmissionMethod method)
+    {
+        return method switch
+        {
+            CvSubmissionMethod.JobPortal => "Job portal",
+            CvSubmissionMethod.CompanyWebsite => "Company website",
+            CvSubmissionMethod.InPerson => "In person",
+            _ => method.ToString()
+        };
+    }
+}

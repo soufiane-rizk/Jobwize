@@ -38,4 +38,14 @@ public static class ApplicationsErrors
         "Applications.CompanyLocationNotAvailable",
         "The selected company location is not available.",
         ErrorType.Validation);
+
+    public static readonly Error CompanyContactNotAvailable = new(
+        "Applications.CompanyContactNotAvailable",
+        "The selected company contact is not available.",
+        ErrorType.Validation);
+
+    public static readonly Error CandidateDocumentNotAvailable = new(
+        "Applications.CandidateDocumentNotAvailable",
+        "One or more selected documents are not available.",
+        ErrorType.Validation);
 }

@@ -32,6 +32,7 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public Guid CompanyId { get; set; }
     [Parameter] public IReadOnlyList<GetCompanies.Location> Locations { get; set; } = [];
+    [Parameter] public string? InitialName { get; set; }
     private bool _saving;
     private bool _showValidation;
     private Guid? _locationId;
@@ -39,6 +40,12 @@
     private string? _roleTitle;
     private string? _email;
     private string? _phoneNumber;
+
+    protected override void OnParametersSet()
+    {
+        _name ??= InitialName;
+    }
+
     private async Task SaveAsync()
     {
         _showValidation = true;
@@ -67,6 +74,6 @@
             return;
         }
 
-        MudDialog.Close(DialogResult.Ok(true));
+        MudDialog.Close(DialogResult.Ok(result.Value!.Id));
     }
 }
