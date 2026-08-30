@@ -14,5 +14,24 @@ public static class GetCompanyProjection
         Guid? CreatedByCandidateId,
         bool IsActive);
 
-    public sealed record Response(Guid Id, string Name, Contracts.Public.Companies.CompanyVisibility Visibility, Guid? CreatedByCandidateId, IReadOnlyList<Location> Locations);
+    public sealed record Contact(
+        Guid Id,
+        Guid CompanyId,
+        Guid? CompanyLocationId,
+        string Name,
+        string? RoleTitle,
+        string? Email,
+        string? PhoneNumber,
+        Contracts.Public.CompanyContacts.CompanyContactVisibility Visibility,
+        Guid? CreatedByCandidateId,
+        bool IsActive,
+        bool IsRejected);
+
+    public sealed record Response(
+        Guid Id,
+        string Name,
+        Contracts.Public.Companies.CompanyVisibility Visibility,
+        Guid? CreatedByCandidateId,
+        IReadOnlyList<Location> Locations,
+        IReadOnlyList<Contact> Contacts);
 }

@@ -40,11 +40,13 @@ Company ownership remains in the Companies module. The Applications module does 
 
 Applications maintains a local, minimal read projection of company and location identifiers, display labels, visibility, candidate ownership, and active state. The application form reads this projection to show shared companies and the current candidate's private companies. It validates the selected company and location against the same local data before an application is created.
 
+Applications also maintains a local contact projection. `GET /api/applications/company-contacts` returns contacts filtered by optional company, location, and search criteria. It exposes active shared contacts to all candidates and active, unreviewed private contacts only to their creator; rejected contacts are excluded. The projection retains inactive contact data instead of deleting it, preserving a safe basis for future historical activity snapshots.
+
 The application form provides a searchable company selector. If the search has no result, the candidate can open an in-place private-company dialog prefilled with the searched name and optionally add one or more locations. The applications list displays the selected location beneath the company name.
 
 New applications store only `CompanyId` and an optional `CompanyLocationId`; they do not duplicate the company name. Application lists and details resolve the current display name from the local projection. Existing records created before the company link retain their old `CompanyName` database value as a nullable legacy fallback.
 
-The Companies module publishes company-created, company-promoted, and company-catalogue-updated events. Applications handles these events by synchronizing its local projection through an internal module query. The projection retains location visibility, creator ownership, and active state. A SuperAdmin-only recovery endpoint, `POST /api/admin/applications/company-projections/rebuild`, performs a full idempotent rebuild. It marks projections absent from the Companies source inactive instead of deleting them, so historical application links remain intact.
+The Companies module publishes company-created, company-promoted, company-catalogue-updated, contact-created, and contact-reviewed events. Applications handles these events by synchronizing its local projections through an internal module query. The projections retain visibility, creator ownership, and active state. A SuperAdmin-only recovery endpoint, `POST /api/admin/applications/company-projections/rebuild`, performs a full idempotent rebuild. It marks projections absent from the Companies source inactive instead of deleting them, so historical application links remain intact.
 
 `GET /api/applications?companyId={companyId}` returns only the current candidate's applications for the selected company. The candidate-facing company details page composes this endpoint with `GET /api/companies/{id}` from the Companies module.
 
@@ -82,3 +84,4 @@ The initial tracker intentionally does not yet include:
 - Assessments and offer details
 - Follow-up and interview reminders
 - Documents, CV versions, or cover letters
+- Linking a contact to an interview or CV submission; those activities will record immutable contact snapshots

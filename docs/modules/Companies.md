@@ -12,7 +12,7 @@ Candidate-created contacts added after a company is shared use a separate review
 
 The admin company-catalogue screen supports ongoing edits to shared companies, locations, and contacts only. It deliberately excludes private and rejected candidate submissions; those remain visible only to their creator and the relevant review queue. Shared locations and contacts can be enabled or disabled without deleting historical data. Disabled children are not returned by candidate selection endpoints. Existing application, interview, or CV references can therefore retain their identifiers while new forms stop offering obsolete data.
 
-Company, location, and contact review records retain the reviewer, review date, and optional approval or required rejection reason. The module publishes company creation, promotion, catalogue-update, rejection, and contact-creation integration events where downstream synchronization is required.
+Company, location, and contact review records retain the reviewer, review date, and optional approval or required rejection reason. The module publishes company creation, promotion, catalogue-update, rejection, contact-creation, and contact-review integration events where downstream synchronization is required.
 
 The Applications module maintains its own local company selection/display projection through internal module queries and company-created, promoted, and catalogue-updated integration events. Location projections include visibility, creator ownership, and active state so rejected private locations remain selectable only by their creator and disabled locations disappear from new application forms. This avoids synchronous cross-module reads for normal application pages.
 
@@ -24,4 +24,4 @@ Contacts are currently reusable company data and may optionally reference a comp
 
 Companies owns its `companies` schema, persistence, contracts, domain model, and candidate-facing endpoints. Other modules must use these public endpoints/contracts and must not query the Companies database directly.
 
-Applications already maintains local company and location projections for its selection, list, and detail reads. It does not synchronously query the Companies database. The frontend may compose calls to both modules where a page owns a cross-module user workflow.
+Applications maintains local company, location, and contact projections for selection, list, and detail reads. It does not synchronously query the Companies database. The frontend may compose calls to both modules where a page owns a cross-module user workflow.
