@@ -8,5 +8,6 @@ namespace JobWize.Shared.Persistence
     {
         public const string Identity = "identity";
         public const string Applications = "applications";
+        public const string Companies = "companies";
     }
 }

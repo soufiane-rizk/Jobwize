@@ -7,6 +7,11 @@
     <Project Path="frontend/src/JobWize.Frontend/JobWize.Frontend.csproj" Id="56dd8bcc-9bbd-4b7a-a2f2-5bdf68623634" />
   </Folder>
   <Folder Name="/Modules/" />
+  <Folder Name="/Modules/Companies/">
+    <Project Path="backend/src/Modules/Companies/JobWize.Modules.Companies.Contracts/JobWize.Modules.Companies.Contracts.csproj" />
+    <Project Path="backend/src/Modules/Companies/JobWize.Modules.Companies/JobWize.Modules.Companies.csproj" />
+    <Project Path="backend/tests/JobWize.Companies.UnitTests/JobWize.Companies.UnitTests.csproj" />
+  </Folder>
   <Folder Name="/Modules/Applications/">
     <Project Path="backend/src/Modules/Applications/JobWize.Modules.Applications.Contracts/JobWize.Modules.Applications.Contracts.csproj" />
     <Project Path="backend/src/Modules/Applications/JobWize.Modules.Applications/JobWize.Modules.Applications.csproj" />
