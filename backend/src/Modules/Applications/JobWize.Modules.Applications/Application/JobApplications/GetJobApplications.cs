@@ -50,6 +50,28 @@ public static class GetJobApplications
                 .Include(application => application.Interviews)
                 .ToListAsync(cancellationToken);
 
+            Guid[] companyIds = applications
+                .Where(application => application.CompanyId is not null)
+                .Select(application => application.CompanyId!.Value)
+                .Distinct()
+                .ToArray();
+
+            Dictionary<Guid, string> companyNames = await dbContext.CompanyProjections
+                .AsNoTracking()
+                .Where(company => companyIds.Contains(company.Id))
+                .ToDictionaryAsync(company => company.Id, company => company.Name, cancellationToken);
+
+            Guid[] companyLocationIds = applications
+                .Where(application => application.CompanyLocationId is not null)
+                .Select(application => application.CompanyLocationId!.Value)
+                .Distinct()
+                .ToArray();
+
+            Dictionary<Guid, string> companyLocationLabels = await dbContext.CompanyLocationProjections
+                .AsNoTracking()
+                .Where(location => companyLocationIds.Contains(location.Id))
+                .ToDictionaryAsync(location => location.Id, location => location.Label, cancellationToken);
+
             var items = applications
                 .Select(application =>
                 {
@@ -58,20 +80,46 @@ public static class GetJobApplications
                         .FirstOrDefault();
 
                     return new Contracts.Public.JobApplications.GetJobApplications.Item(
-                    application.Id,
-                    application.CompanyName,
-                    application.RoleTitle,
-                    application.Kind,
-                    application.Status,
-                    application.LastActivityAt,
-                    lastInterview?.Id,
-                    lastInterview?.State,
-                    lastInterview?.ScheduledAt,
-                    application.AllowedNextStatuses);
+                        application.Id,
+                        GetCompanyName(application, companyNames),
+                        GetCompanyLocationLabel(application, companyLocationLabels),
+                        application.RoleTitle,
+                        application.Kind,
+                        application.Status,
+                        application.LastActivityAt,
+                        lastInterview?.Id,
+                        lastInterview?.State,
+                        lastInterview?.ScheduledAt,
+                        application.AllowedNextStatuses);
                 })
                 .ToList();
 
             return Result<Contracts.Public.JobApplications.GetJobApplications.Response>.Success(new(items));
+        }
+
+        private static string GetCompanyName(
+            JobApplication application,
+            IReadOnlyDictionary<Guid, string> companyNames)
+        {
+            if (application.CompanyId is Guid companyId && companyNames.TryGetValue(companyId, out string? companyName))
+            {
+                return companyName;
+            }
+
+            return application.LegacyCompanyName ?? "Unknown company";
+        }
+
+        private static string? GetCompanyLocationLabel(
+            JobApplication application,
+            IReadOnlyDictionary<Guid, string> companyLocationLabels)
+        {
+            if (application.CompanyLocationId is Guid companyLocationId &&
+                companyLocationLabels.TryGetValue(companyLocationId, out string? companyLocationLabel))
+            {
+                return companyLocationLabel;
+            }
+
+            return null;
         }
     }
 }

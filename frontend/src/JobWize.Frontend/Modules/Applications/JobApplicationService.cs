@@ -8,6 +8,7 @@ using AddNoteContract = JobWize.Modules.Applications.Contracts.Public.JobApplica
 using ScheduleInterviewContract = JobWize.Modules.Applications.Contracts.Public.Interviews.ScheduleInterview;
 using UpdateInterviewContract = JobWize.Modules.Applications.Contracts.Public.Interviews.UpdateInterview;
 using RecordInterviewResultContract = JobWize.Modules.Applications.Contracts.Public.Interviews.RecordInterviewResult;
+using GetSelectableCompaniesContract = JobWize.Modules.Applications.Contracts.Public.Companies.GetSelectableCompanies;
 namespace JobWize.Frontend.Modules.Applications;
 public sealed class JobApplicationService(IHttpClientFactory httpClientFactory, JobWizeAuthenticationStateProvider authenticationStateProvider) : ApiService(httpClientFactory, authenticationStateProvider)
 {
@@ -19,6 +20,16 @@ public sealed class JobApplicationService(IHttpClientFactory httpClientFactory, 
         return PostAsync<CreateJobApplicationContract.Request, CreateJobApplicationContract.Response>(
             CreateJobApplicationContract.Route,
             request,
+            cancellationToken);
+    }
+
+    public Task<Result<GetSelectableCompaniesContract.Response>> GetSelectableCompaniesAsync(
+        string? search = null,
+        CancellationToken cancellationToken = default)
+    {
+        return GetAsync<GetSelectableCompaniesContract.Request, GetSelectableCompaniesContract.Response>(
+            GetSelectableCompaniesContract.Route,
+            new(search),
             cancellationToken);
     }
 

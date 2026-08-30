@@ -14,9 +14,11 @@ internal sealed class JobApplicationConfiguration : IEntityTypeConfiguration<Job
 
         builder.HasQueryFilter(application => application.DeletedAt == null);
 
-        builder.Property(application => application.CompanyName)
-            .HasMaxLength(200)
-            .IsRequired();
+        builder.Property(application => application.LegacyCompanyName)
+            .HasColumnName("CompanyName")
+            .HasMaxLength(200);
+
+        builder.HasIndex(application => application.CompanyId);
 
         builder.Property(application => application.RoleTitle)
             .HasMaxLength(200);

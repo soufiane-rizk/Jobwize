@@ -1,15 +1,18 @@
 using FluentAssertions;
 using FluentValidation.Results;
+using JobWize.Modules.Applications.Application;
 using JobWize.Modules.Applications.Application.JobApplications;
 using JobWize.Modules.Applications.Contracts.Events.JobApplications;
 using JobWize.Modules.Applications.Contracts.Public.JobApplications;
 using JobWize.Modules.Applications.Domain;
 using JobWize.Modules.Applications.Persistence;
+using JobWize.Modules.Companies.Contracts.Public.Companies;
 using JobWize.Runtime.Contracts.Dispatching;
 using JobWize.Runtime.Contracts.Notifications;
 using JobWize.Runtime.Contracts.Requests;
 using JobWize.Shared.Application.Results;
 using JobWize.Shared.Application.Security;
+using Microsoft.EntityFrameworkCore;
 using CreateJobApplicationContract = JobWize.Modules.Applications.Contracts.Public.JobApplications.CreateJobApplication;
 using CreateJobApplicationFeature = JobWize.Modules.Applications.Application.JobApplications.CreateJobApplication;
 
@@ -24,7 +27,8 @@ public sealed class CreateJobApplicationTests
 
         ValidationResult validationResult = validator.Validate(
             new CreateJobApplicationFeature.Command(
-                "Acme",
+                Guid.NewGuid(),
+                null,
                 "Backend developer",
                 ApplicationKind.JobPosting,
                 ApplicationStatus.Applied,
@@ -41,7 +45,8 @@ public sealed class CreateJobApplicationTests
     {
         Action act = () => JobApplication.Create(
             Guid.NewGuid(),
-            "Acme",
+            Guid.NewGuid(),
+            null,
             "Backend developer",
             ApplicationKind.JobPosting,
             ApplicationStatus.Applied,
@@ -60,14 +65,34 @@ public sealed class CreateJobApplicationTests
         var candidateId = Guid.NewGuid();
         var repository = new FakeJobApplicationRepository();
         var dispatcher = new FakeDispatcher();
+
+        var options = new DbContextOptionsBuilder<ApplicationsDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var dbContext = new ApplicationsDbContext(options);
+
+        var companyId = Guid.NewGuid();
+
+        dbContext.CompanyProjections.Add(CompanyProjection.CreateOrUpdate(
+            companyId,
+            "Acme",
+            CompanyVisibility.Shared,
+            null,
+            true));
+
+        await dbContext.SaveChangesAsync();
+
         var handler = new CreateJobApplicationFeature.Handler(
             repository,
+            dbContext,
             new FakeUserContext(candidateId),
             dispatcher);
 
         Result<CreateJobApplicationContract.Response> result = await handler.HandleAsync(
             new CreateJobApplicationFeature.Command(
-                "Acme",
+                companyId,
+                null,
                 "Backend developer",
                 ApplicationKind.JobPosting,
                 ApplicationStatus.Applied,
@@ -79,10 +104,109 @@ public sealed class CreateJobApplicationTests
         result.IsSuccess.Should().BeTrue();
         repository.SavedApplication.Should().NotBeNull();
         repository.SavedApplication!.CandidateId.Should().Be(candidateId);
-        repository.SavedApplication.CompanyName.Should().Be("Acme");
+        repository.SavedApplication.CompanyId.Should().Be(companyId);
+        repository.SavedApplication.LegacyCompanyName.Should().BeNull();
 
         dispatcher.PublishedNotification.Should().BeOfType<JobApplicationCreated>()
             .Which.JobApplicationId.Should().Be(result.Value.Id);
+    }
+
+    [Fact]
+    public async Task HandleAsync_Should_Reject_A_Company_Outside_The_Local_Projection()
+    {
+        var candidateId = Guid.NewGuid();
+        var repository = new FakeJobApplicationRepository();
+        var dispatcher = new FakeDispatcher();
+
+        var options = new DbContextOptionsBuilder<ApplicationsDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var dbContext = new ApplicationsDbContext(options);
+
+        var handler = new CreateJobApplicationFeature.Handler(
+            repository,
+            dbContext,
+            new FakeUserContext(candidateId),
+            dispatcher);
+
+        Result<CreateJobApplicationContract.Response> result = await handler.HandleAsync(
+            new CreateJobApplicationFeature.Command(
+                Guid.NewGuid(),
+                null,
+                "Backend developer",
+                ApplicationKind.JobPosting,
+                ApplicationStatus.Planned,
+                null,
+                null,
+                null),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Be(ApplicationsErrors.CompanyNotAvailable);
+        repository.SavedApplication.Should().BeNull();
+        dispatcher.PublishedNotification.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task HandleAsync_Should_Reject_A_Location_That_Does_Not_Belong_To_The_Company()
+    {
+        var candidateId = Guid.NewGuid();
+        var companyId = Guid.NewGuid();
+        var otherCompanyId = Guid.NewGuid();
+        var locationId = Guid.NewGuid();
+        var repository = new FakeJobApplicationRepository();
+        var dispatcher = new FakeDispatcher();
+
+        var options = new DbContextOptionsBuilder<ApplicationsDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var dbContext = new ApplicationsDbContext(options);
+
+        dbContext.CompanyProjections.AddRange(
+            CompanyProjection.CreateOrUpdate(
+                companyId,
+                "Acme",
+                CompanyVisibility.Shared,
+                null,
+                true),
+            CompanyProjection.CreateOrUpdate(
+                otherCompanyId,
+                "Other",
+                CompanyVisibility.Shared,
+                null,
+                true));
+
+        dbContext.CompanyLocationProjections.Add(CompanyLocationProjection.Create(
+            locationId,
+            otherCompanyId,
+            "Other HQ"));
+
+        await dbContext.SaveChangesAsync();
+
+        var handler = new CreateJobApplicationFeature.Handler(
+            repository,
+            dbContext,
+            new FakeUserContext(candidateId),
+            dispatcher);
+
+        Result<CreateJobApplicationContract.Response> result = await handler.HandleAsync(
+            new CreateJobApplicationFeature.Command(
+                companyId,
+                locationId,
+                "Backend developer",
+                ApplicationKind.JobPosting,
+                ApplicationStatus.Planned,
+                null,
+                null,
+                null),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Be(ApplicationsErrors.CompanyLocationNotAvailable);
+        repository.SavedApplication.Should().BeNull();
+        dispatcher.PublishedNotification.Should().BeNull();
     }
 
     private sealed class FakeJobApplicationRepository : IJobApplicationRepository
