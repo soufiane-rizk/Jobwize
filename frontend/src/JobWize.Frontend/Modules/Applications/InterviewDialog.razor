@@ -1,0 +1,72 @@
+@using JobWize.Modules.Applications.Contracts.Public.JobApplications
+@using JobWize.Modules.Applications.Contracts.Public.Interviews
+@using ScheduleInterviewContract = JobWize.Modules.Applications.Contracts.Public.Interviews.ScheduleInterview
+@using UpdateInterviewContract = JobWize.Modules.Applications.Contracts.Public.Interviews.UpdateInterview
+
+@inject JobApplicationService JobApplicationService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@(Interview is null ? "Schedule interview" : "Edit interview")</MudText></TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" md="6"><MudSelect T="InterviewType" @bind-Value="_type" Label="Interview type">@foreach (InterviewType item in Enum.GetValues<InterviewType>()) { <MudSelectItem Value="item">@item</MudSelectItem> }</MudSelect></MudItem>
+            <MudItem xs="12" md="6"><MudSelect T="InterviewFormat" @bind-Value="_format" Label="Format">@foreach (InterviewFormat item in Enum.GetValues<InterviewFormat>()) { <MudSelectItem Value="item">@item</MudSelectItem> }</MudSelect></MudItem>
+            <MudItem xs="12" md="6"><MudDatePicker @bind-Date="_date" Label="Date" Required="true" /></MudItem>
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_time" Label="Time" InputType="InputType.Time" /></MudItem>
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_duration" Label="Duration (minutes)" InputType="InputType.Number" /></MudItem>
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_location" Label="Location or meeting link" /></MudItem>
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_interviewerName" Label="Interviewer name" /></MudItem>
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_interviewerRole" Label="Interviewer role" /></MudItem>
+            <MudItem xs="12"><MudTextField @bind-Value="_notes" Label="Preparation notes" Lines="2" /></MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="MudDialog.Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid ApplicationId { get; set; }
+    [Parameter] public GetJobApplication.InterviewItem? Interview { get; set; }
+    private InterviewType _type = InterviewType.RecruiterScreen;
+    private InterviewFormat _format = InterviewFormat.Video;
+    private DateTime? _date;
+    private string? _time;
+    private int? _duration;
+    private string? _location;
+    private string? _interviewerName;
+    private string? _interviewerRole;
+    private string? _notes;
+
+    protected override void OnInitialized()
+    {
+        if (Interview is null) return;
+        _type = Interview.Type; _format = Interview.Format; _date = Interview.ScheduledAt.ToLocalTime().Date;
+        _time = Interview.ScheduledAt.ToLocalTime().ToString("HH:mm"); _duration = Interview.DurationMinutes;
+        _location = Interview.Location; _notes = Interview.PreparationNotes;
+        var participant = Interview.Participants.FirstOrDefault();
+        _interviewerName = participant?.Name; _interviewerRole = participant?.RoleTitle;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_date is null || !TimeOnly.TryParse(_time, out TimeOnly time)) { Snackbar.Add("A date and time are required.", Severity.Warning); return; }
+        DateTime scheduledAt = DateTime.SpecifyKind(_date.Value.Date.Add(time.ToTimeSpan()), DateTimeKind.Local).ToUniversalTime();
+        if (Interview is null)
+        {
+            Result<ScheduleInterviewContract.Response> result = await JobApplicationService.ScheduleInterviewAsync(new(ApplicationId, _type, scheduledAt, _duration, _format, _location, _notes, Participants()));
+            if (!result.IsSuccess) { Snackbar.Add(result.Error?.Message ?? "Unable to schedule interview.", Severity.Error); return; }
+        }
+        else
+        {
+            Result<bool> result = await JobApplicationService.UpdateInterviewAsync(new(ApplicationId, Interview.Id, _type, scheduledAt, _duration, _format, _location, _notes, Participants().Select(item => new UpdateInterviewContract.Participant(item.Name, item.RoleTitle)).ToList()));
+            if (!result.IsSuccess) { Snackbar.Add(result.Error?.Message ?? "Unable to update interview.", Severity.Error); return; }
+        }
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private IReadOnlyList<ScheduleInterviewContract.Participant> Participants() => string.IsNullOrWhiteSpace(_interviewerName) ? [] : [new(_interviewerName, _interviewerRole)];
+}
