@@ -61,5 +61,14 @@ internal sealed class JobApplicationConfiguration : IEntityTypeConfiguration<Job
         builder.Metadata
             .FindNavigation(nameof(JobApplication.Interviews))!
             .SetPropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(application => application.CvSubmissions)
+            .WithOne()
+            .HasForeignKey(submission => submission.JobApplicationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Metadata
+            .FindNavigation(nameof(JobApplication.CvSubmissions))!
+            .SetPropertyAccessMode(PropertyAccessMode.Field);
     }
 }

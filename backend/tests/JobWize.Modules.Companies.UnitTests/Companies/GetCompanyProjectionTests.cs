@@ -45,4 +45,36 @@ public sealed class GetCompanyProjectionTests
         projection.Locations.Should().ContainSingle();
         projection.Locations[0].Label.Should().Be("Casablanca HQ");
     }
+
+    [Fact]
+    public async Task HandleAsync_Should_Return_A_Tracked_Contact_Disable_Before_It_Is_Persisted()
+    {
+        Company company = Company.CreateShared("Acme", null, null, null);
+        CompanyContact contact = company.AddSharedContact(
+            null,
+            "Sara Mansouri",
+            "Senior Talent Partner",
+            "sara@example.com",
+            null);
+
+        var options = new DbContextOptionsBuilder<CompaniesDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var dbContext = new CompaniesDbContext(options);
+        dbContext.Companies.Add(company);
+        await dbContext.SaveChangesAsync();
+
+        company.SetContactActive(contact.Id, false);
+        dbContext.ChangeTracker.DetectChanges();
+        dbContext.Entry(company).State.Should().Be(EntityState.Unchanged);
+
+        var handler = new GetCompanyProjectionFeature(dbContext);
+        GetCompanyProjection.Response projection = await handler.HandleAsync(
+            new GetCompanyProjection.Query(company.Id),
+            CancellationToken.None);
+
+        projection.Contacts.Should().ContainSingle();
+        projection.Contacts[0].IsActive.Should().BeFalse();
+    }
 }

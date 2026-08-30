@@ -3,11 +3,14 @@
 
 @using JobWize.Modules.Applications.Contracts.Public.JobApplications
 @using JobWize.Modules.Applications.Contracts.Public.Interviews
+@using JobWize.Frontend.Modules.Files
 
 @inject JobApplicationService JobApplicationService
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject CandidateDocumentService CandidateDocumentService
+@inject IJSRuntime JsRuntime
 
 <PageTitle>Application details</PageTitle>
 
@@ -77,6 +80,7 @@ else if (_application is not null)
                     {
                         <MudMenuItem OnClick="OpenScheduleInterviewDialogAsync">Schedule interview</MudMenuItem>
                     }
+                    <MudMenuItem OnClick="OpenCvSubmissionDialogAsync">Record CV submission</MudMenuItem>
                 </MudMenu>
             </MudPaper>
         }
@@ -111,6 +115,54 @@ else if (_application is not null)
                                     With @string.Join(", ", interview.Participants.Select(participant => participant.RoleTitle is null ? participant.Name : $"{participant.Name} ({participant.RoleTitle})"))
                                 </MudText>
                             }
+                        </MudPaper>
+                    }
+                </MudStack>
+            </MudPaper>
+        }
+
+        @if (_application.CvSubmissions.Count > 0)
+        {
+            <MudPaper Class="pa-6">
+                <MudText Typo="Typo.h6" Class="mb-3">CV submissions</MudText>
+                <MudStack Spacing="2">
+                    @foreach (GetJobApplication.CvSubmissionItem submission in _application.CvSubmissions)
+                    {
+                        <MudPaper Outlined="true" Class="pa-4">
+                            <MudStack Row="true" AlignItems="AlignItems.Center">
+                                <MudText Typo="Typo.subtitle1">
+                                    @GetSubmissionMethodLabel(submission.Method)
+                                </MudText>
+                                <MudSpacer />
+                                <MudText Typo="Typo.caption">
+                                    @submission.SentAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")
+                                </MudText>
+                            </MudStack>
+
+                            @if (!string.IsNullOrWhiteSpace(submission.ContactName))
+                            {
+                                <MudText Typo="Typo.body2" Class="mt-2">
+                                    Sent to @submission.ContactName@FormatContactRole(submission.ContactRoleTitle)
+                                </MudText>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(submission.Notes))
+                            {
+                                <MudText Typo="Typo.body2" Class="mt-2">@submission.Notes</MudText>
+                            }
+
+                            <MudStack Row="true" Spacing="1" Class="mt-2">
+                                @foreach (GetJobApplication.CvSubmissionDocumentItem document in submission.Documents)
+                                {
+                                    <MudButton
+                                        Size="Size.Small"
+                                        Variant="Variant.Text"
+                                        StartIcon="@Icons.Material.Filled.Download"
+                                        OnClick="@(() => DownloadSubmissionDocumentAsync(document))">
+                                        @document.FileName
+                                    </MudButton>
+                                }
+                            </MudStack>
                         </MudPaper>
                     }
                 </MudStack>
@@ -170,6 +222,7 @@ else if (_application is not null)
             ApplicationActivityType.StatusChanged => item.Status?.ToString() ?? "Status changed",
             ApplicationActivityType.InterviewScheduled => "Interview scheduled",
             ApplicationActivityType.InterviewResultRecorded => "Interview result",
+            ApplicationActivityType.CvSubmitted => "CV submitted",
             _ => "Note added"
         };
     }
@@ -181,6 +234,7 @@ else if (_application is not null)
             ApplicationActivityType.StatusChanged => Color.Primary,
             ApplicationActivityType.InterviewScheduled => Color.Info,
             ApplicationActivityType.InterviewResultRecorded => Color.Success,
+            ApplicationActivityType.CvSubmitted => Color.Secondary,
             _ => Color.Default
         };
     }
@@ -241,6 +295,66 @@ else if (_application is not null)
     {
         var dialog = await DialogService.ShowAsync<InterviewDialog>("Schedule interview", new DialogParameters { [nameof(InterviewDialog.ApplicationId)] = Id });
         if ((await dialog.Result) is { Canceled: false }) await LoadAsync();
+    }
+
+    private async Task OpenCvSubmissionDialogAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(CvSubmissionDialog.ApplicationId)] = Id,
+            [nameof(CvSubmissionDialog.CompanyId)] = _application!.CompanyId,
+            [nameof(CvSubmissionDialog.Kind)] = _application.Kind
+        };
+
+        IDialogReference dialog = await DialogService.ShowAsync<CvSubmissionDialog>(
+            "Record CV submission",
+            parameters);
+
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task DownloadSubmissionDocumentAsync(
+        GetJobApplication.CvSubmissionDocumentItem document)
+    {
+        Result<CandidateDocumentService.DownloadedFile> result =
+            await CandidateDocumentService.DownloadAsync(document.FileId);
+
+        if (result.IsFailure || result.Value is null)
+        {
+            Snackbar.Add(
+                result.Error?.Message ?? "The submitted document could not be downloaded.",
+                Severity.Error);
+            return;
+        }
+
+        await JsRuntime.InvokeVoidAsync(
+            "jobWize.downloadFile",
+            result.Value.FileName,
+            result.Value.ContentType,
+            Convert.ToBase64String(result.Value.Content));
+    }
+
+    private static string GetSubmissionMethodLabel(CvSubmissionMethod method)
+    {
+        return method switch
+        {
+            CvSubmissionMethod.JobPortal => "Submitted through a job portal",
+            CvSubmissionMethod.CompanyWebsite => "Submitted through the company website",
+            CvSubmissionMethod.InPerson => "Submitted in person",
+            CvSubmissionMethod.Email => "Submitted by email",
+            CvSubmissionMethod.Recruiter => "Submitted to a recruiter",
+            _ => "CV submitted"
+        };
+    }
+
+    private static string FormatContactRole(string? roleTitle)
+    {
+        return string.IsNullOrWhiteSpace(roleTitle)
+            ? string.Empty
+            : $" ({roleTitle})";
     }
 
     private async Task OpenInterviewResultDialogAsync(GetJobApplication.InterviewItem interview)

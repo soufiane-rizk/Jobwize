@@ -48,7 +48,9 @@ public static class DownloadFileAsset
         public async Task<Result<FileDownload>> HandleAsync(Query query, CancellationToken cancellationToken)
         {
             Domain.FileAsset? file = await files.GetByIdAsync(query.DocumentId, userContext.UserId, cancellationToken);
-            if (file is null || file.IsArchived || file.Kind != Domain.FileAssetKind.CandidateDocument)
+            if (file is null ||
+                file.Kind != Domain.FileAssetKind.CandidateDocument ||
+                (file.IsArchived && !file.HasActiveBindings))
             {
                 return Result<FileDownload>.Failure(FilesErrors.DocumentNotFound);
             }
