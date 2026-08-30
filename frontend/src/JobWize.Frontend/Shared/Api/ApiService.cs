@@ -277,9 +277,14 @@ namespace JobWize.Frontend.Shared.Api
 
                 if (queryAttribute is not null)
                 {
+                    if (value is null)
+                    {
+                        continue;
+                    }
+
                     queryParameters.Add(new(
                         property.Name,
-                        value?.ToString()));
+                        value.ToString()));
 
                     continue;
                 }

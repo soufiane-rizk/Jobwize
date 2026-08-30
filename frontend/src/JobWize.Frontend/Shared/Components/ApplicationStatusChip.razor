@@ -1,0 +1,32 @@
+@using JobWize.Modules.Applications.Contracts.Public.JobApplications
+
+<MudChip
+    T="string"
+    Value="@Status.ToString()"
+    Size="Size.Small"
+    Variant="Variant.Text"
+    Color="@GetColor(Status)">
+    @Status
+</MudChip>
+
+@code {
+    [Parameter] public ApplicationStatus Status { get; set; }
+
+    private static Color GetColor(ApplicationStatus status)
+    {
+        return status switch
+        {
+            ApplicationStatus.Draft => Color.Default,
+            ApplicationStatus.Planned => Color.Warning,
+            ApplicationStatus.Applied => Color.Info,
+            ApplicationStatus.InProcess => Color.Primary,
+            ApplicationStatus.OfferReceived => Color.Success,
+            ApplicationStatus.Accepted => Color.Success,
+            ApplicationStatus.Rejected => Color.Error,
+            ApplicationStatus.Withdrawn => Color.Warning,
+            ApplicationStatus.Declined => Color.Default,
+            ApplicationStatus.Archived => Color.Default,
+            _ => Color.Default
+        };
+    }
+}
