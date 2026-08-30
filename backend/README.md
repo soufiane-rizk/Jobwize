@@ -101,6 +101,18 @@ Jwt__Audience
 
 JWT configuration used for token generation and validation.
 
+### Initial SuperAdmin Bootstrap
+
+```
+InitialSuperAdmin__Email
+InitialSuperAdmin__TemporaryPassword
+```
+
+Provide both values as deployment secrets for the first deployment. The API creates
+one SuperAdmin only when the system has none; it never overwrites an existing
+account or creates a second SuperAdmin. Do not commit these values or use the example
+password in any environment.
+
 ---
 
 # Health Checks
@@ -132,6 +144,10 @@ The readiness check verifies required dependencies such as database connectivity
 Database migrations are not automatically applied when the application starts.
 
 Migrations should be handled by deployment processes such as CI/CD pipelines.
+
+For a first deployment, run the Identity migrations before starting the API, provide
+the two `InitialSuperAdmin__*` secrets, then sign in as the seeded SuperAdmin and
+change the temporary password once the forced-password-change feature is deployed.
 
 ---
 

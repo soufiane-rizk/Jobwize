@@ -1,4 +1,5 @@
 using JobWize.Modules.Identity.Domain;
+using JobWize.Modules.Identity.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -10,6 +11,7 @@ namespace JobWize.Modules.Identity.Persistence
     {
         Task<User?> GetByIdAsync(Guid userId, CancellationToken cancellationToken = default);
         Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
+        Task<bool> HasSuperAdminAsync(CancellationToken cancellationToken = default);
         Task<User?> GetByRefreshTokenHashAsync(string tokenHash, CancellationToken cancellationToken = default);
         Task SaveAsync(User user, CancellationToken cancellationToken = default);
     }
@@ -35,6 +37,13 @@ namespace JobWize.Modules.Identity.Persistence
             return await _dbContext.Users
                 .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(user => user.Email == email, cancellationToken);
+        }
+
+        public Task<bool> HasSuperAdminAsync(CancellationToken cancellationToken = default)
+        {
+            return _dbContext.Users
+                .IgnoreQueryFilters()
+                .AnyAsync(user => user.Role == UserRole.SuperAdmin, cancellationToken);
         }
 
         public async Task<User?> GetByRefreshTokenHashAsync(string tokenHash, CancellationToken cancellationToken = default)
