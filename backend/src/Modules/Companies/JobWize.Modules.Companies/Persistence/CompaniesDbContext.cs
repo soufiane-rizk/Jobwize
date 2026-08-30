@@ -8,6 +8,7 @@ public sealed class CompaniesDbContext(DbContextOptions<CompaniesDbContext> opti
 {
     public DbSet<Company> Companies => Set<Company>();
     public DbSet<CompanyLocation> CompanyLocations => Set<CompanyLocation>();
+    public DbSet<CompanyContact> CompanyContacts => Set<CompanyContact>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -5,7 +5,13 @@
 
 <MudDialog>
     <DialogContent>
-        <MudTextField @bind-Value="_note" Label="Note" Lines="3" />
+        <MudTextField
+            @bind-Value="_note"
+            Label="Note"
+            Lines="3"
+            Required="true"
+            Error="@(_showValidation && string.IsNullOrWhiteSpace(_note))"
+            ErrorText="Note is required." />
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="MudDialog.Cancel">Cancel</MudButton>
@@ -17,10 +23,16 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public Guid ApplicationId { get; set; }
     private string? _note;
+    private bool _showValidation;
 
     private async Task SaveAsync()
     {
-        if (string.IsNullOrWhiteSpace(_note)) return;
+        _showValidation = true;
+
+        if (string.IsNullOrWhiteSpace(_note))
+        {
+            return;
+        }
         Result<bool> result = await JobApplicationService.AddNoteAsync(new AddNoteContract.Request(ApplicationId, _note));
         if (!result.IsSuccess) { Snackbar.Add(result.Error?.Message ?? "Unable to add note.", Severity.Error); return; }
         MudDialog.Close(DialogResult.Ok(true));

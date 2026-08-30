@@ -12,8 +12,8 @@
         <MudGrid>
             <MudItem xs="12" md="6"><MudSelect T="InterviewType" @bind-Value="_type" Label="Interview type">@foreach (InterviewType item in Enum.GetValues<InterviewType>()) { <MudSelectItem Value="item">@item</MudSelectItem> }</MudSelect></MudItem>
             <MudItem xs="12" md="6"><MudSelect T="InterviewFormat" @bind-Value="_format" Label="Format">@foreach (InterviewFormat item in Enum.GetValues<InterviewFormat>()) { <MudSelectItem Value="item">@item</MudSelectItem> }</MudSelect></MudItem>
-            <MudItem xs="12" md="6"><MudDatePicker @bind-Date="_date" Label="Date" Required="true" /></MudItem>
-            <MudItem xs="12" md="6"><MudTextField @bind-Value="_time" Label="Time" InputType="InputType.Time" /></MudItem>
+            <MudItem xs="12" md="6"><MudDatePicker @bind-Date="_date" Label="Date" Required="true" Error="@(_showValidation && _date is null)" ErrorText="Date is required." /></MudItem>
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_time" Label="Time" InputType="InputType.Time" Required="true" Error="@(_showValidation && !TimeOnly.TryParse(_time, out _))" ErrorText="A valid time is required." /></MudItem>
             <MudItem xs="12" md="6"><MudTextField @bind-Value="_duration" Label="Duration (minutes)" InputType="InputType.Number" /></MudItem>
             <MudItem xs="12" md="6"><MudTextField @bind-Value="_location" Label="Location or meeting link" /></MudItem>
             <MudItem xs="12" md="6"><MudTextField @bind-Value="_interviewerName" Label="Interviewer name" /></MudItem>
@@ -40,6 +40,7 @@
     private string? _interviewerName;
     private string? _interviewerRole;
     private string? _notes;
+    private bool _showValidation;
 
     protected override void OnInitialized()
     {
@@ -53,7 +54,12 @@
 
     private async Task SaveAsync()
     {
-        if (_date is null || !TimeOnly.TryParse(_time, out TimeOnly time)) { Snackbar.Add("A date and time are required.", Severity.Warning); return; }
+        _showValidation = true;
+
+        if (_date is null || !TimeOnly.TryParse(_time, out TimeOnly time))
+        {
+            return;
+        }
         DateTime scheduledAt = DateTime.SpecifyKind(_date.Value.Date.Add(time.ToTimeSpan()), DateTimeKind.Local).ToUniversalTime();
         if (Interview is null)
         {

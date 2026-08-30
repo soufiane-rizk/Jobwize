@@ -78,7 +78,12 @@ public static class RebuildCompanyProjections
                 }
 
                 projection.SynchronizeLocations(
-                    company.Locations.Select(location => (location.Id, location.Label)));
+                    company.Locations.Select(location => (
+                        location.Id,
+                        location.Label,
+                        location.Visibility,
+                        location.CreatedByCandidateId,
+                        location.IsActive)));
             }
 
             List<CompanyProjection> removedCompanyProjections = await dbContext.CompanyProjections

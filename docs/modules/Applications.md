@@ -44,7 +44,7 @@ The application form provides a searchable company selector. If the search has n
 
 New applications store only `CompanyId` and an optional `CompanyLocationId`; they do not duplicate the company name. Application lists and details resolve the current display name from the local projection. Existing records created before the company link retain their old `CompanyName` database value as a nullable legacy fallback.
 
-The Companies module publishes company-created and company-promoted events. Applications handles these events by synchronizing its local projection through an internal module query. A SuperAdmin-only recovery endpoint, `POST /api/admin/applications/company-projections/rebuild`, performs a full idempotent rebuild. It marks projections absent from the Companies source inactive instead of deleting them, so historical application links remain intact.
+The Companies module publishes company-created, company-promoted, and company-catalogue-updated events. Applications handles these events by synchronizing its local projection through an internal module query. The projection retains location visibility, creator ownership, and active state. A SuperAdmin-only recovery endpoint, `POST /api/admin/applications/company-projections/rebuild`, performs a full idempotent rebuild. It marks projections absent from the Companies source inactive instead of deleting them, so historical application links remain intact.
 
 `GET /api/applications?companyId={companyId}` returns only the current candidate's applications for the selected company. The candidate-facing company details page composes this endpoint with `GET /api/companies/{id}` from the Companies module.
 
@@ -77,8 +77,7 @@ The Applications unit tests cover company availability and company-location owne
 
 The initial tracker intentionally does not yet include:
 
-- Company rename/update and removal events beyond the current created/promoted synchronization
-- Company-location management
+- Company removal events and removal policy
 - Completed-interview outcomes such as awaiting feedback, next round, offer expected, or rejected
 - Assessments and offer details
 - Follow-up and interview reminders

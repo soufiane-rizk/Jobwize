@@ -14,14 +14,16 @@ namespace JobWize.Modules.Companies.Application.Companies;
 
 public static class CreatePrivateCompany
 {
-    internal sealed record Location(string Label, string City, string Country, string? Address);
+    internal sealed record Location(string? Label, string City, string Country, string? Address);
+    internal sealed record Contact(int? LocationIndex, string Name, string? RoleTitle, string? Email, string? PhoneNumber);
 
     internal sealed record Command(
         string Name,
         string? Website,
         string? Industry,
         string? Description,
-        IReadOnlyList<Location> Locations) : ICommand<Contracts.Public.Companies.CreatePrivateCompany.Response>;
+        IReadOnlyList<Location> Locations,
+        IReadOnlyList<Contact> Contacts) : ICommand<Contracts.Public.Companies.CreatePrivateCompany.Response>;
 
     internal sealed class Validator : AbstractValidator<Command>
     {
@@ -35,6 +37,23 @@ public static class CreatePrivateCompany
             RuleFor(command => command.Industry).MaximumLength(200);
             RuleFor(command => command.Description).MaximumLength(8000);
             RuleForEach(command => command.Locations).SetValidator(new LocationValidator());
+            RuleForEach(command => command.Contacts).SetValidator(new ContactValidator());
+            RuleForEach(command => command.Contacts)
+                .Must((command, contact) =>
+                    contact.LocationIndex is null ||
+                    (contact.LocationIndex >= 0 && contact.LocationIndex < command.Locations.Count))
+                .WithMessage("A contact location must refer to a submitted location.");
+        }
+    }
+
+    internal sealed class ContactValidator : AbstractValidator<Contact>
+    {
+        public ContactValidator()
+        {
+            RuleFor(contact => contact.Name).NotEmpty().MaximumLength(200);
+            RuleFor(contact => contact.RoleTitle).MaximumLength(200);
+            RuleFor(contact => contact.Email).MaximumLength(320).EmailAddress();
+            RuleFor(contact => contact.PhoneNumber).MaximumLength(50);
         }
     }
 
@@ -42,7 +61,7 @@ public static class CreatePrivateCompany
     {
         public LocationValidator()
         {
-            RuleFor(location => location.Label).NotEmpty().MaximumLength(200);
+            RuleFor(location => location.Label).MaximumLength(200);
             RuleFor(location => location.City).NotEmpty().MaximumLength(200);
             RuleFor(location => location.Country).NotEmpty().MaximumLength(200);
             RuleFor(location => location.Address).MaximumLength(500);
@@ -66,8 +85,8 @@ public static class CreatePrivateCompany
                             request.Industry,
                             request.Description,
                             request.Locations
-                                .Select(location => new Location(location.Label, location.City, location.Country, location.Address))
-                                .ToList());
+                                .Select(location => new Location(location.Label, location.City, location.Country, location.Address)).ToList(),
+                            request.Contacts.Select(contact => new Contact(contact.LocationIndex, contact.Name, contact.RoleTitle, contact.Email, contact.PhoneNumber)).ToList());
 
                         Result<Contracts.Public.Companies.CreatePrivateCompany.Response> result =
                             await dispatcher.SendAsync(command, cancellationToken);
@@ -93,7 +112,8 @@ public static class CreatePrivateCompany
                 command.Website,
                 command.Industry,
                 command.Description,
-                command.Locations.Select(location => (location.Label, location.City, location.Country, location.Address)));
+                command.Locations.Select(location => (location.Label, location.City, location.Country, location.Address)),
+                command.Contacts.Select(contact => (contact.LocationIndex, contact.Name, contact.RoleTitle, contact.Email, contact.PhoneNumber)));
 
             await companies.SaveAsync(company, cancellationToken);
 

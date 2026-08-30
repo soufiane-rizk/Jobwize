@@ -31,6 +31,9 @@ namespace JobWize.Modules.Applications.Persistence.Migrations
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("CreatedByCandidateId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
@@ -39,9 +42,15 @@ namespace JobWize.Modules.Applications.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("Shared");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyId", "IsActive");
+                    b.HasIndex("CompanyId", "IsActive", "Visibility", "CreatedByCandidateId");
 
                     b.ToTable("CompanyLocationProjections", "applications");
                 });

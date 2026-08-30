@@ -1,4 +1,5 @@
 using JobWize.Modules.Companies.Contracts.Public.Companies;
+using JobWize.Modules.Companies.Contracts.Public.CompanyContacts;
 using JobWize.Shared.Domain;
 
 namespace JobWize.Modules.Companies.Domain;
@@ -17,6 +18,8 @@ public sealed class Company : DomainModel
 
     private readonly List<CompanyLocation> _locations = [];
     public IReadOnlyCollection<CompanyLocation> Locations => _locations.AsReadOnly();
+    private readonly List<CompanyContact> _contacts = [];
+    public IReadOnlyCollection<CompanyContact> Contacts => _contacts.AsReadOnly();
 
     private Company()
     {
@@ -28,7 +31,8 @@ public sealed class Company : DomainModel
         string? website,
         string? industry,
         string? description,
-        IEnumerable<(string Label, string City, string Country, string? Address)> locations)
+        IEnumerable<(string? Label, string City, string Country, string? Address)> locations,
+        IEnumerable<(int? LocationIndex, string Name, string? RoleTitle, string? Email, string? PhoneNumber)>? contacts = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
@@ -43,9 +47,15 @@ public sealed class Company : DomainModel
             CreatedByCandidateId = candidateId
         };
 
-        foreach ((string label, string city, string country, string? address) in locations)
+        foreach ((string? label, string city, string country, string? address) in locations)
         {
-            company.AddLocation(label, city, country, address);
+            company.AddPrivateLocation(candidateId, label, city, country, address);
+        }
+
+        foreach ((int? locationIndex, string contactName, string? roleTitle, string? email, string? phoneNumber) in contacts ?? [])
+        {
+            Guid? locationId = locationIndex is null ? null : company._locations.ElementAt(locationIndex.Value).Id;
+            company.AddPrivateContact(candidateId, locationId, contactName, roleTitle, email, phoneNumber);
         }
 
         return company;
@@ -70,12 +80,106 @@ public sealed class Company : DomainModel
         };
     }
 
-    public void AddLocation(string label, string city, string country, string? address)
+    public void AddPrivateLocation(Guid candidateId, string? label, string city, string country, string? address)
     {
-        _locations.Add(CompanyLocation.Create(Id, label, city, country, Normalize(address)));
+        _locations.Add(CompanyLocation.CreatePrivate(Id, candidateId, label, city, country, Normalize(address)));
     }
 
-    public void Approve(Guid reviewerId, DateTime reviewedAt, string? reason)
+    public CompanyLocation AddSharedLocation(string? label, string city, string country, string? address)
+    {
+        CompanyLocation location = CompanyLocation.CreateShared(
+            Id,
+            label,
+            city,
+            country,
+            Normalize(address));
+
+        _locations.Add(location);
+
+        return location;
+    }
+
+    public void UpdateLocation(Guid locationId, string? label, string city, string country, string? address)
+    {
+        GetLocation(locationId).UpdateInformation(label, city, country, address);
+    }
+
+    public CompanyContact AddPrivateContact(
+        Guid candidateId,
+        Guid? companyLocationId,
+        string name,
+        string? roleTitle,
+        string? email,
+        string? phoneNumber)
+    {
+        ValidateLocationForCandidate(companyLocationId, candidateId);
+
+        CompanyContact contact = CompanyContact.CreatePrivate(
+            Id,
+            companyLocationId,
+            candidateId,
+            name,
+            roleTitle,
+            email,
+            phoneNumber);
+
+        _contacts.Add(contact);
+
+        return contact;
+    }
+
+    public CompanyContact AddSharedContact(
+        Guid? companyLocationId,
+        string name,
+        string? roleTitle,
+        string? email,
+        string? phoneNumber)
+    {
+        if (!IsSharedActiveLocation(companyLocationId))
+        {
+            throw new ArgumentException(
+                "A shared contact requires an active shared location.",
+                nameof(companyLocationId));
+        }
+
+        CompanyContact contact = CompanyContact.CreateShared(
+            Id,
+            companyLocationId,
+            name,
+            roleTitle,
+            email,
+            phoneNumber);
+
+        _contacts.Add(contact);
+
+        return contact;
+    }
+
+    public void ApproveContact(
+        Guid contactId,
+        Guid reviewerId,
+        DateTime reviewedAt,
+        string? reason,
+        Guid? companyLocationId,
+        string name,
+        string? roleTitle,
+        string? email,
+        string? phoneNumber)
+    {
+        CompanyContact contact = GetContact(contactId);
+
+        ValidateLocation(companyLocationId);
+        contact.UpdateInformation(companyLocationId, name, roleTitle, email, phoneNumber);
+        contact.Approve(reviewerId, reviewedAt, reason);
+    }
+
+    public void RejectContact(Guid contactId, Guid reviewerId, DateTime reviewedAt, string reason)
+    {
+        CompanyContact contact = GetContact(contactId);
+        contact.Reject(reviewerId, reviewedAt, reason);
+    }
+
+    public void Approve(Guid reviewerId, DateTime reviewedAt, string? reason, bool approvePendingChildren = true)
     {
         if (Visibility == CompanyVisibility.Shared)
         {
@@ -86,6 +190,85 @@ public sealed class Company : DomainModel
         ReviewedByUserId = reviewerId;
         ReviewedAt = reviewedAt;
         ReviewReason = Normalize(reason);
+
+        if (!approvePendingChildren)
+        {
+            return;
+        }
+
+        foreach (CompanyContact contact in _contacts.Where(contact =>
+                     contact.Visibility == CompanyContactVisibility.Private &&
+                     contact.ReviewedAt is null))
+        {
+            contact.Approve(reviewerId, reviewedAt, reason);
+        }
+
+        foreach (CompanyLocation location in _locations.Where(location =>
+                     location.Visibility == CompanyLocationVisibility.Private &&
+                     location.ReviewedAt is null))
+        {
+            location.Approve(reviewerId, reviewedAt, reason);
+        }
+
+    }
+
+    public void ApproveLocation(Guid locationId, Guid reviewerId, DateTime reviewedAt, string? reason)
+    {
+        GetLocation(locationId).Approve(reviewerId, reviewedAt, reason);
+    }
+
+    public void RejectLocation(Guid locationId, Guid reviewerId, DateTime reviewedAt, string reason)
+    {
+        GetLocation(locationId).Reject(reviewerId, reviewedAt, reason);
+    }
+
+    public void SetLocationActive(Guid locationId, bool isActive)
+    {
+        GetLocation(locationId).SetActive(isActive);
+    }
+
+    public void UpdateContact(
+        Guid contactId,
+        Guid? companyLocationId,
+        string name,
+        string? roleTitle,
+        string? email,
+        string? phoneNumber)
+    {
+        ValidateLocation(companyLocationId);
+        GetContact(contactId).UpdateInformation(
+            companyLocationId,
+            name,
+            roleTitle,
+            email,
+            phoneNumber);
+    }
+
+    public void SetContactActive(Guid contactId, bool isActive)
+    {
+        GetContact(contactId).SetActive(isActive);
+    }
+
+    public bool IsSharedActiveLocation(Guid? locationId)
+    {
+        if (locationId is null)
+        {
+            return true;
+        }
+
+        CompanyLocation? location = _locations.SingleOrDefault(item => item.Id == locationId);
+
+        return location is not null &&
+               location.IsActive &&
+               location.Visibility == CompanyLocationVisibility.Shared;
+    }
+
+    public bool HasInvalidActiveSharedContactLocation()
+    {
+        return _contacts.Any(contact =>
+            contact.IsActive &&
+            contact.Visibility == CompanyContactVisibility.Shared &&
+            !IsSharedActiveLocation(contact.CompanyLocationId));
     }
 
     public void UpdateBasicInformation(
@@ -115,6 +298,20 @@ public sealed class Company : DomainModel
         }
     }
 
+    public void ReplaceBasicInformation(
+        string name,
+        string? website,
+        string? industry,
+        string? description)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        Name = name.Trim();
+        Website = Normalize(website);
+        Industry = Normalize(industry);
+        Description = Normalize(description);
+    }
+
     public void Reject(Guid reviewerId, DateTime reviewedAt, string reason)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
@@ -133,5 +330,45 @@ public sealed class Company : DomainModel
     private static string? Normalize(string? value)
     {
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private void ValidateLocation(Guid? companyLocationId)
+    {
+        if (companyLocationId is not null && _locations.All(location => location.Id != companyLocationId))
+        {
+            throw new ArgumentException("The location does not belong to this company.", nameof(companyLocationId));
+        }
+    }
+
+    private void ValidateLocationForCandidate(Guid? companyLocationId, Guid candidateId)
+    {
+        if (companyLocationId is null)
+        {
+            return;
+        }
+
+        CompanyLocation? location = _locations.SingleOrDefault(item => item.Id == companyLocationId);
+
+        if (location is null ||
+            !location.IsActive ||
+            (location.Visibility != CompanyLocationVisibility.Shared &&
+             location.CreatedByCandidateId != candidateId))
+        {
+            throw new ArgumentException(
+                "The location is not selectable for this candidate.",
+                nameof(companyLocationId));
+        }
+    }
+
+    private CompanyContact GetContact(Guid contactId)
+    {
+        return _contacts.SingleOrDefault(contact => contact.Id == contactId)
+            ?? throw new InvalidOperationException("The company contact was not found.");
+    }
+
+    private CompanyLocation GetLocation(Guid locationId)
+    {
+        return _locations.SingleOrDefault(location => location.Id == locationId)
+            ?? throw new InvalidOperationException("The company location was not found.");
     }
 }

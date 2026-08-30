@@ -1,42 +1,335 @@
 @using JobWize.Modules.Companies.Contracts.Public.Companies
+
 @inject CompanyModerationService CompanyModerationService
 @inject ISnackbar Snackbar
 
 <MudDialog>
     <DialogContent>
-        <MudSwitch @bind-Value="_approved" Color="Color.Success">Approve and share this company</MudSwitch>
+        <MudSwitch @bind-Value="_approved" Color="Color.Success">
+            Approve and share this company
+        </MudSwitch>
+
         @if (_approved)
         {
-            <MudTextField @bind-Value="_name" Label="Name" />
+            <MudText Typo="Typo.h6" Class="mt-3 mb-2">Company information</MudText>
+            <MudTextField @bind-Value="_name" Label="Name" Required="true" Error="@(_showValidation && string.IsNullOrWhiteSpace(_name))" ErrorText="Company name is required." />
             <MudTextField @bind-Value="_website" Label="Website" />
             <MudTextField @bind-Value="_industry" Label="Industry" />
             <MudTextField @bind-Value="_description" Label="Description" Lines="3" />
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-4 mb-2">
+                <MudText Typo="Typo.h6">Locations</MudText>
+                <MudSpacer />
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" OnClick="AddLocation">
+                    Add location
+                </MudButton>
+            </MudStack>
+
+            @foreach (LocationInput location in _locations)
+            {
+                <MudPaper Outlined="true" Class="pa-3 mb-2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.subtitle2">@(location.IsNew ? "New shared location" : "Candidate-submitted location")</MudText>
+                        <MudSpacer />
+                        @if (location.IsNew)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline" Color="Color.Error" aria-label="Remove new location" OnClick="@(() => RemoveLocation(location))" />
+                        }
+                        else
+                        {
+                            <MudSwitch @bind-Value="location.Approved" Color="Color.Success">
+                                @(location.Approved ? "Approve" : "Reject")
+                            </MudSwitch>
+                        }
+                    </MudStack>
+
+                    @if (location.IsNew || location.Approved)
+                    {
+                        <MudTextField @bind-Value="location.Label" Label="Label (optional)" />
+                        <MudTextField
+                            @bind-Value="location.City"
+                            Label="City"
+                            Required="true"
+                            Error="@(_showValidation && string.IsNullOrWhiteSpace(location.City))"
+                            ErrorText="City is required." />
+                        <MudTextField
+                            @bind-Value="location.Country"
+                            Label="Country"
+                            Required="true"
+                            Error="@(_showValidation && string.IsNullOrWhiteSpace(location.Country))"
+                            ErrorText="Country is required." />
+                        <MudTextField @bind-Value="location.Address" Label="Address (optional)" />
+                    }
+                    else
+                    {
+                        <MudTextField @bind-Value="location.Reason" Label="Rejection reason" Required="true" Error="@(_showValidation && string.IsNullOrWhiteSpace(location.Reason))" ErrorText="A rejection reason is required." />
+                    }
+                </MudPaper>
+            }
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-4 mb-2">
+                <MudText Typo="Typo.h6">Contacts</MudText>
+                <MudSpacer />
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" OnClick="AddContact">
+                    Add contact
+                </MudButton>
+            </MudStack>
+
+            @foreach (ContactInput contact in _contacts)
+            {
+                <MudPaper Outlined="true" Class="pa-3 mb-2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.subtitle2">@(contact.IsNew ? "New shared contact" : "Candidate-submitted contact")</MudText>
+                        <MudSpacer />
+                        @if (contact.IsNew)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline" Color="Color.Error" aria-label="Remove new contact" OnClick="@(() => RemoveContact(contact))" />
+                        }
+                        else
+                        {
+                            <MudSwitch @bind-Value="contact.Approved" Color="Color.Success">
+                                @(contact.Approved ? "Approve" : "Reject")
+                            </MudSwitch>
+                        }
+                    </MudStack>
+
+                    @if (contact.IsNew || contact.Approved)
+                    {
+                        <MudTextField
+                            @bind-Value="contact.Name"
+                            Label="Name"
+                            Required="true"
+                            Error="@(_showValidation && string.IsNullOrWhiteSpace(contact.Name))"
+                            ErrorText="Name is required." />
+                        <MudTextField @bind-Value="contact.RoleTitle" Label="Role (optional)" />
+                        <MudTextField @bind-Value="contact.Email" Label="Email (optional)" />
+                        <MudTextField @bind-Value="contact.PhoneNumber" Label="Phone (optional)" />
+                        <MudSelect T="int?" @bind-Value="contact.LocationIndex" Label="Location (optional)" Clearable="true">
+                            @for (int index = 0; index < _locations.Count; index++)
+                            {
+                                int locationIndex = index;
+                                @if (!contact.Approved || _locations[locationIndex].Approved)
+                                {
+                                    <MudSelectItem T="int?" Value="@((int?)locationIndex)">
+                                        @GetLocationName(_locations[locationIndex])
+                                    </MudSelectItem>
+                                }
+                            }
+                        </MudSelect>
+                    }
+                    else
+                    {
+                        <MudTextField @bind-Value="contact.Reason" Label="Rejection reason" Required="true" Error="@(_showValidation && string.IsNullOrWhiteSpace(contact.Reason))" ErrorText="A rejection reason is required." />
+                    }
+                </MudPaper>
+            }
         }
         else
         {
-            <MudTextField @bind-Value="_reason" Label="Rejection reason" Required="true" Lines="3" />
+            <MudTextField @bind-Value="_reason" Label="Company rejection reason" Required="true" Lines="3" Error="@(_showValidation && string.IsNullOrWhiteSpace(_reason))" ErrorText="A rejection reason is required." />
         }
     </DialogContent>
-    <DialogActions><MudButton OnClick="MudDialog.Cancel">Cancel</MudButton><MudButton Color="@(_approved ? Color.Success : Color.Error)" OnClick="SaveAsync">@(_approved ? "Approve" : "Reject")</MudButton></DialogActions>
+    <DialogActions>
+        <MudButton OnClick="MudDialog.Cancel">Cancel</MudButton>
+        <MudButton Color="@(_approved ? Color.Success : Color.Error)" Disabled="@_saving" OnClick="SaveAsync">@(_approved ? "Approve" : "Reject")</MudButton>
+    </DialogActions>
 </MudDialog>
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public GetCompaniesForReview.Item Company { get; set; } = null!;
+
+    private readonly List<LocationInput> _locations = [];
+    private readonly List<ContactInput> _contacts = [];
     private bool _approved = true;
+    private bool _showValidation;
+    private bool _saving;
     private string? _name;
     private string? _website;
     private string? _industry;
     private string? _description;
     private string? _reason;
 
-    protected override void OnInitialized() { _name = Company.Name; _website = Company.Website; _industry = Company.Industry; _description = Company.Description; }
+    protected override void OnInitialized()
+    {
+        _name = Company.Name;
+        _website = Company.Website;
+        _industry = Company.Industry;
+        _description = Company.Description;
+        _locations.AddRange(Company.Locations.Select(location => new LocationInput
+        {
+            Id = location.Id,
+            Approved = true,
+            Label = location.Label,
+            City = location.City,
+            Country = location.Country,
+            Address = location.Address
+        }));
+        _contacts.AddRange(Company.Contacts.Select(contact => new ContactInput
+        {
+            Id = contact.Id,
+            Approved = true,
+            LocationIndex = FindLocationIndex(contact.CompanyLocationId),
+            Name = contact.Name,
+            RoleTitle = contact.RoleTitle,
+            Email = contact.Email,
+            PhoneNumber = contact.PhoneNumber
+        }));
+    }
 
     private async Task SaveAsync()
     {
-        if (!_approved && string.IsNullOrWhiteSpace(_reason)) return;
-        Result<bool> result = await CompanyModerationService.ReviewAsync(new(Company.Id, _approved, _reason, _approved ? _name : null, _approved ? _website : null, _approved ? _industry : null, _approved ? _description : null));
-        if (!result.IsSuccess) { Snackbar.Add(result.Error?.Message ?? "Unable to review company.", Severity.Error); return; }
+        _showValidation = true;
+        if ((!_approved && string.IsNullOrWhiteSpace(_reason)) || (_approved && !IsApprovalValid()))
+        {
+            return;
+        }
+
+        _saving = true;
+        IReadOnlyList<ReviewCompany.Location>? locations = _approved
+            ? _locations.Select(location => new ReviewCompany.Location(
+                location.Id,
+                location.Approved,
+                location.Reason,
+                location.Label,
+                location.City!,
+                location.Country!,
+                location.Address)).ToList()
+            : null;
+        IReadOnlyList<ReviewCompany.Contact>? contacts = _approved
+            ? _contacts.Select(contact => new ReviewCompany.Contact(
+                contact.Id,
+                contact.Approved,
+                contact.Reason,
+                contact.LocationIndex,
+                contact.Name!,
+                contact.RoleTitle,
+                contact.Email,
+                contact.PhoneNumber)).ToList()
+            : null;
+        var request = new ReviewCompany.Request(
+            Company.Id,
+            _approved,
+            _reason,
+            _approved ? _name : null,
+            _approved ? _website : null,
+            _approved ? _industry : null,
+            _approved ? _description : null,
+            locations,
+            contacts);
+
+        Result<bool> result = await CompanyModerationService.ReviewAsync(request);
+        _saving = false;
+
+        if (!result.IsSuccess)
+        {
+            Snackbar.Add(result.Error?.Message ?? "Unable to review company.", Severity.Error);
+            return;
+        }
+
         MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private bool IsApprovalValid()
+    {
+        return !string.IsNullOrWhiteSpace(_name) &&
+               _locations.All(location =>
+                   !string.IsNullOrWhiteSpace(location.City) &&
+                   !string.IsNullOrWhiteSpace(location.Country) &&
+                   (location.IsNew || location.Approved || !string.IsNullOrWhiteSpace(location.Reason))) &&
+               _contacts.All(contact =>
+                   !string.IsNullOrWhiteSpace(contact.Name) &&
+                   (contact.IsNew || contact.Approved || !string.IsNullOrWhiteSpace(contact.Reason)) &&
+                   IsContactLocationValid(contact));
+    }
+
+    private bool IsContactLocationValid(ContactInput contact)
+    {
+        return !contact.Approved ||
+               contact.LocationIndex is null ||
+               (contact.LocationIndex >= 0 &&
+                contact.LocationIndex < _locations.Count &&
+                _locations[contact.LocationIndex.Value].Approved);
+    }
+
+    private void AddLocation()
+    {
+        _locations.Add(new LocationInput
+        {
+            Approved = true
+        });
+    }
+
+    private void RemoveLocation(LocationInput location)
+    {
+        int removedIndex = _locations.IndexOf(location);
+        _locations.Remove(location);
+        foreach (ContactInput contact in _contacts)
+        {
+            if (contact.LocationIndex == removedIndex)
+            {
+                contact.LocationIndex = null;
+            }
+            else if (contact.LocationIndex > removedIndex)
+            {
+                contact.LocationIndex--;
+            }
+        }
+    }
+
+    private void AddContact()
+    {
+        _contacts.Add(new ContactInput
+        {
+            Approved = true
+        });
+    }
+
+    private void RemoveContact(ContactInput contact)
+    {
+        _contacts.Remove(contact);
+    }
+
+    private int? FindLocationIndex(Guid? locationId)
+    {
+        if (locationId is null)
+        {
+            return null;
+        }
+
+        int index = _locations.FindIndex(location => location.Id == locationId);
+        return index < 0 ? null : index;
+    }
+
+    private static string GetLocationName(LocationInput location)
+    {
+        return string.IsNullOrWhiteSpace(location.Label)
+            ? $"{location.City}, {location.Country}"
+            : location.Label;
+    }
+
+    private sealed class LocationInput
+    {
+        public Guid? Id { get; set; }
+        public bool IsNew => Id is null;
+        public bool Approved { get; set; }
+        public string? Reason { get; set; }
+        public string? Label { get; set; }
+        public string? City { get; set; }
+        public string? Country { get; set; }
+        public string? Address { get; set; }
+    }
+
+    private sealed class ContactInput
+    {
+        public Guid? Id { get; set; }
+        public bool IsNew => Id is null;
+        public bool Approved { get; set; }
+        public string? Reason { get; set; }
+        public int? LocationIndex { get; set; }
+        public string? Name { get; set; }
+        public string? RoleTitle { get; set; }
+        public string? Email { get; set; }
+        public string? PhoneNumber { get; set; }
     }
 }

@@ -1,0 +1,130 @@
+@using JobWize.Modules.Companies.Contracts.Public.CompanyContacts
+@using JobWize.Modules.Companies.Contracts.Public.Companies
+
+@inject CompanyModerationService CompanyModerationService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <LoadingIndicator Loading="@_loadingLocations">
+            <MudSwitch @bind-Value="_approved" Color="Color.Success">
+                Approve and share this contact
+            </MudSwitch>
+
+            @if (_approved)
+            {
+                <MudTextField
+                    @bind-Value="_name"
+                    Label="Name"
+                    Required="true"
+                    Error="@(_showValidation && string.IsNullOrWhiteSpace(_name))"
+                    ErrorText="Name is required." />
+                <MudTextField @bind-Value="_roleTitle" Label="Role (optional)" />
+                <MudTextField @bind-Value="_email" Label="Email (optional)" />
+                <MudTextField @bind-Value="_phoneNumber" Label="Phone (optional)" />
+                <MudSelect T="Guid?" @bind-Value="_locationId" Label="Location (optional)" Clearable="true">
+                    @foreach (GetCompanyForManagement.Location location in _locations)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)location.Id)">
+                            @GetLocationName(location)
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            }
+            else
+            {
+                <MudTextField
+                    @bind-Value="_reason"
+                    Label="Rejection reason"
+                    Required="true"
+                    Lines="3"
+                    Error="@(_showValidation && string.IsNullOrWhiteSpace(_reason))"
+                    ErrorText="A rejection reason is required." />
+            }
+        </LoadingIndicator>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="MudDialog.Cancel">Cancel</MudButton>
+        <MudButton Color="@(_approved ? Color.Success : Color.Error)" Disabled="@_loadingLocations" OnClick="SaveAsync">
+            @(_approved ? "Approve" : "Reject")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public GetCompanyContactsForReview.Item Contact { get; set; } = null!;
+
+    private readonly List<GetCompanyForManagement.Location> _locations = [];
+    private bool _approved = true;
+    private bool _loadingLocations = true;
+    private bool _showValidation;
+    private Guid? _locationId;
+    private string? _name;
+    private string? _roleTitle;
+    private string? _email;
+    private string? _phoneNumber;
+    private string? _reason;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _locationId = Contact.CompanyLocationId;
+        _name = Contact.Name;
+        _roleTitle = Contact.RoleTitle;
+        _email = Contact.Email;
+        _phoneNumber = Contact.PhoneNumber;
+
+        Result<GetCompanyForManagement.Response> result =
+            await CompanyModerationService.GetForManagementAsync(Contact.CompanyId);
+
+        if (result.IsSuccess && result.Value is not null)
+        {
+            _locations.AddRange(result.Value.Locations.Where(location =>
+                location.Visibility == CompanyLocationVisibility.Shared &&
+                location.IsActive));
+        }
+        else
+        {
+            Snackbar.Add(result.Error?.Message ?? "Unable to load company locations.", Severity.Error);
+        }
+
+        _loadingLocations = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        _showValidation = true;
+
+        if ((_approved && string.IsNullOrWhiteSpace(_name)) ||
+            (!_approved && string.IsNullOrWhiteSpace(_reason)))
+        {
+            return;
+        }
+
+        Result<bool> result = await CompanyModerationService.ReviewContactAsync(
+            new ReviewCompanyContact.Request(
+                Contact.Id,
+                _approved,
+                _reason,
+                _approved ? _locationId : null,
+                _approved ? _name : null,
+                _approved ? _roleTitle : null,
+                _approved ? _email : null,
+                _approved ? _phoneNumber : null));
+
+        if (!result.IsSuccess)
+        {
+            Snackbar.Add(result.Error?.Message ?? "Unable to review contact.", Severity.Error);
+            return;
+        }
+
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private static string GetLocationName(GetCompanyForManagement.Location location)
+    {
+        return string.IsNullOrWhiteSpace(location.Label)
+            ? $"{location.City}, {location.Country}"
+            : location.Label;
+    }
+}

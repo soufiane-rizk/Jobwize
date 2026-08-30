@@ -12,7 +12,23 @@ public static class GetCompaniesForReview
         string? Description,
         Guid CandidateId,
         DateTime CreatedAt,
-        IReadOnlyList<GetCompanies.Location> Locations);
+        IReadOnlyList<Location> Locations,
+        IReadOnlyList<CompanyContact> Contacts);
+
+    public sealed record Location(
+        Guid Id,
+        string? Label,
+        string City,
+        string Country,
+        string? Address);
+
+    public sealed record CompanyContact(
+        Guid Id,
+        Guid? CompanyLocationId,
+        string Name,
+        string? RoleTitle,
+        string? Email,
+        string? PhoneNumber);
 
     public sealed record Response(IReadOnlyList<Item> Companies);
 }

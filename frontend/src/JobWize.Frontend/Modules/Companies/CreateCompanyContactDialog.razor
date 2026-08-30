@@ -1,0 +1,72 @@
+@using JobWize.Modules.Companies.Contracts.Public.CompanyContacts
+@using JobWize.Modules.Companies.Contracts.Public.Companies
+
+@inject CandidateCompanyService CompanyService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField
+            @bind-Value="_name"
+            Label="Name"
+            Required="true"
+            Error="@(_showValidation && string.IsNullOrWhiteSpace(_name))"
+            ErrorText="Name is required." />
+        <MudTextField @bind-Value="_roleTitle" Label="Role (optional)" />
+        <MudTextField @bind-Value="_email" Label="Email (optional)" />
+        <MudTextField @bind-Value="_phoneNumber" Label="Phone (optional)" />
+        <MudSelect T="Guid?" @bind-Value="_locationId" Label="Location (optional)" Clearable="true">
+            @foreach (GetCompanies.Location location in Locations)
+            {
+                <MudSelectItem T="Guid?" Value="@((Guid?)location.Id)">@location.Label</MudSelectItem>
+            }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="MudDialog.Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Disabled="@_saving" OnClick="SaveAsync">Add contact</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid CompanyId { get; set; }
+    [Parameter] public IReadOnlyList<GetCompanies.Location> Locations { get; set; } = [];
+    private bool _saving;
+    private bool _showValidation;
+    private Guid? _locationId;
+    private string? _name;
+    private string? _roleTitle;
+    private string? _email;
+    private string? _phoneNumber;
+    private async Task SaveAsync()
+    {
+        _showValidation = true;
+
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            return;
+        }
+
+        _saving = true;
+
+        Result<CreateCompanyContact.Response> result = await CompanyService.CreateContactAsync(
+            new(
+                CompanyId,
+                _locationId,
+                _name,
+                _roleTitle,
+                _email,
+                _phoneNumber));
+
+        _saving = false;
+
+        if (!result.IsSuccess)
+        {
+            Snackbar.Add(result.Error?.Message ?? "Unable to add contact.", Severity.Error);
+            return;
+        }
+
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

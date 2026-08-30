@@ -1,0 +1,5 @@
+.catalogue-item-disabled {
+    background-color: var(--mud-palette-background-gray);
+    border-color: var(--mud-palette-lines-default);
+    opacity: 0.72;
+}
