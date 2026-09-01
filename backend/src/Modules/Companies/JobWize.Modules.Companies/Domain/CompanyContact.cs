@@ -1,5 +1,6 @@
 using JobWize.Modules.Companies.Contracts.Public.CompanyContacts;
 using JobWize.Shared.Domain;
+using JobWize.Shared.Errors;
 
 namespace JobWize.Modules.Companies.Domain;
 
@@ -32,7 +33,10 @@ public sealed class CompanyContact : Entity
         string? email,
         string? phoneNumber)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new BusinessRuleException(DomainErrors.CompanyContactNameRequired);
+        }
 
         return new CompanyContact
         {
@@ -78,7 +82,10 @@ public sealed class CompanyContact : Entity
         string? email,
         string? phoneNumber)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new BusinessRuleException(DomainErrors.CompanyContactNameRequired);
+        }
 
         CompanyLocationId = companyLocationId;
         Name = name.Trim();
@@ -91,7 +98,7 @@ public sealed class CompanyContact : Entity
     {
         if (Visibility == CompanyContactVisibility.Shared)
         {
-            throw new InvalidOperationException("A shared company contact cannot be reviewed again.");
+            throw new BusinessRuleException(DomainErrors.CompanyContactCannotBeReviewedAgain);
         }
 
         Visibility = CompanyContactVisibility.Shared;
@@ -102,11 +109,14 @@ public sealed class CompanyContact : Entity
 
     internal void Reject(Guid reviewerId, DateTime reviewedAt, string reason)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            throw new BusinessRuleException(DomainErrors.ReviewReasonRequired);
+        }
 
         if (Visibility == CompanyContactVisibility.Shared)
         {
-            throw new InvalidOperationException("A shared company contact cannot be reviewed again.");
+            throw new BusinessRuleException(DomainErrors.CompanyContactCannotBeReviewedAgain);
         }
 
         Visibility = CompanyContactVisibility.Private;

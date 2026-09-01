@@ -1,6 +1,7 @@
 using FluentAssertions;
 using JobWize.Runtime.Contracts.Pipelines;
 using JobWize.Shared.Application.Results;
+using JobWize.Shared.Errors;
 using JobWize.Shared.Runtime.Behaviors;
 using JobWize.Shared.Runtime.Contracts;
 using Microsoft.Extensions.DependencyInjection;
@@ -53,6 +54,26 @@ namespace JobWize.Shared.UnitTests.Runtime.Behaviors
             logger.Entries.Should().ContainSingle(entry =>
                 entry.Level == LogLevel.Error &&
                 entry.Exception == exception);
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_Return_Business_Rule_Error_Without_Logging_An_Unhandled_Error()
+        {
+            RecordingLogger<ExceptionHandlingBehavior<TestCommand, Guid>> logger = new();
+            ExceptionHandlingBehavior<TestCommand, Guid> behavior = new(logger);
+            Error expectedError = new(
+                "Test.BusinessRule",
+                "The requested action is not allowed.",
+                ErrorType.Validation);
+
+            Result<Guid> result = await behavior.HandleAsync(
+                CreateContext(),
+                () => throw new BusinessRuleException(expectedError));
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(expectedError);
+            logger.Entries.Should().ContainSingle(entry => entry.Level == LogLevel.Information);
+            logger.Entries.Should().NotContain(entry => entry.Level == LogLevel.Error);
         }
 
         private static ExecutionContext<TestCommand, Result<Guid>> CreateContext()

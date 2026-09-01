@@ -3,6 +3,7 @@ using JobWize.Modules.Applications.Contracts.Public.JobApplications;
 using JobWize.Modules.Applications.Contracts.Public.Interviews;
 using JobWize.Modules.Applications.Contracts.Public.Reminders;
 using JobWize.Modules.Applications.Domain;
+using JobWize.Shared.Errors;
 
 namespace JobWize.Modules.Applications.UnitTests.JobApplications;
 
@@ -42,7 +43,8 @@ public sealed class JobApplicationReminderTests
             DateTime.UtcNow.AddDays(3),
             null);
 
-        action.Should().Throw<ArgumentException>();
+        action.Should().Throw<BusinessRuleException>()
+            .Which.Error.Should().Be(DomainErrors.CvSubmissionNotInApplication);
     }
 
     [Fact]
@@ -109,7 +111,8 @@ public sealed class JobApplicationReminderTests
         Action action = () => application.ChangeReminderState(reminder.Id, ReminderState.Dismissed);
 
         reminder.State.Should().Be(ReminderState.Completed);
-        action.Should().Throw<InvalidOperationException>();
+        action.Should().Throw<BusinessRuleException>()
+            .Which.Error.Should().Be(DomainErrors.ReminderCannotChangeState);
     }
 
     private static JobApplication CreateApplication()

@@ -1,5 +1,6 @@
 ﻿using JobWize.Runtime.Contracts.Pipelines;
 using JobWize.Shared.Application.Results;
+using JobWize.Shared.Errors;
 using JobWize.Shared.Runtime.Contracts;
 using System;
 using System.Collections.Generic;

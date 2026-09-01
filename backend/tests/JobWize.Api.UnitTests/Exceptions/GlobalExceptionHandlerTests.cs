@@ -1,6 +1,7 @@
 using FluentAssertions;
 using JobWize.Api.Exceptions;
 using JobWize.Shared.Application.Results;
+using JobWize.Shared.Errors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

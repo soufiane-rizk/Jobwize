@@ -10,6 +10,7 @@ using JobWize.Runtime.Contracts.Dispatching;
 using JobWize.Runtime.Contracts.Notifications;
 using JobWize.Runtime.Contracts.Requests;
 using JobWize.Shared.Application.Results;
+using JobWize.Shared.Errors;
 using IdentityApplication = JobWize.Modules.Identity.Application;
 using IdentityContracts = JobWize.Modules.Identity.Contracts.Public.Authentication;
 

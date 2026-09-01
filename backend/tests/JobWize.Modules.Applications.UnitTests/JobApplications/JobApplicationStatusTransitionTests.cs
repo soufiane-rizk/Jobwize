@@ -1,6 +1,7 @@
 using FluentAssertions;
 using JobWize.Modules.Applications.Contracts.Public.JobApplications;
 using JobWize.Modules.Applications.Domain;
+using JobWize.Shared.Errors;
 
 namespace JobWize.Modules.Applications.UnitTests.JobApplications;
 
@@ -23,7 +24,8 @@ public sealed class JobApplicationStatusTransitionTests
 
         Action action = () => application.ChangeStatus(ApplicationStatus.Draft, null, null);
 
-        action.Should().Throw<InvalidOperationException>();
+        action.Should().Throw<BusinessRuleException>()
+            .Which.Error.Should().Be(DomainErrors.ApplicationStatusTransitionNotAllowed);
     }
 
     [Fact]
@@ -32,7 +34,8 @@ public sealed class JobApplicationStatusTransitionTests
         JobApplication application = Create(ApplicationStatus.Declined);
 
         Action rejected = () => application.ChangeStatus(ApplicationStatus.InProcess, null, null);
-        rejected.Should().Throw<InvalidOperationException>();
+        rejected.Should().Throw<BusinessRuleException>()
+            .Which.Error.Should().Be(DomainErrors.ApplicationStatusTransitionNotAllowed);
 
         application.ChangeStatus(ApplicationStatus.Archived, null, null);
         application.Status.Should().Be(ApplicationStatus.Archived);
