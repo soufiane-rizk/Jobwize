@@ -18,8 +18,13 @@ public static class GetJobApplication
 
     public sealed record InterviewParticipantItem(
         Guid Id,
+        Guid? CompanyContactId,
+        Guid? CompanyLocationId,
+        string? CompanyLocationLabel,
         string Name,
-        string? RoleTitle);
+        string? RoleTitle,
+        string? Email,
+        string? PhoneNumber);
 
     public sealed record InterviewItem(
         Guid Id,
@@ -54,6 +59,7 @@ public static class GetJobApplication
     public sealed record Response(
         Guid Id,
         Guid? CompanyId,
+        Guid? CompanyLocationId,
         string CompanyName,
         string? CompanyLocationLabel,
         string? RoleTitle,

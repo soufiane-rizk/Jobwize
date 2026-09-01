@@ -1,0 +1,198 @@
+@using JobWize.Frontend.Modules.Companies
+@using JobWize.Modules.Applications.Contracts.Public.CompanyContacts
+@using JobWize.Modules.Companies.Contracts.Public.Companies
+
+@inject JobApplicationService JobApplicationService
+@inject CandidateCompanyService CandidateCompanyService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudStack Spacing="1">
+    <MudAutocomplete
+        T="Guid?"
+        @ref="_autocomplete"
+        Value="_selectedContactId"
+        ValueChanged="SelectContactAsync"
+        @bind-Text="_search"
+        Label="Company contacts"
+        Placeholder="Search and add one or more contacts"
+        Clearable="true"
+        Disabled="@(CompanyId is null || _loading)"
+        SearchFunc="SearchContactsAsync"
+        ToStringFunc="GetContactName"
+        CoerceText="false">
+        <NoItemsTemplate>
+            <MudStack Spacing="1" Class="pa-2">
+                <MudText Typo="Typo.body2">No contacts found.</MudText>
+                <MudText Typo="Typo.caption">
+                    Add a private contact for this company to use in this interview.
+                </MudText>
+                <MudButton Color="Color.Primary" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateContactAsync">
+                    Add contact
+                </MudButton>
+            </MudStack>
+        </NoItemsTemplate>
+    </MudAutocomplete>
+
+    @if (SelectedContactIds.Count > 0)
+    {
+        <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1">
+            @foreach (Guid contactId in SelectedContactIds)
+            {
+                GetSelectableCompanyContacts.Item? contact = _contacts.SingleOrDefault(item => item.Id == contactId);
+                if (contact is null)
+                {
+                    <MudChip T="Guid" Value="contactId" Color="Color.Warning" OnClose="@(() => RemoveContactAsync(contactId))">
+                        Previously selected contact is no longer selectable
+                    </MudChip>
+                }
+                else
+                {
+                    <MudChip T="Guid" Value="contact.Id" Color="Color.Primary" OnClose="@(() => RemoveContactAsync(contact.Id))">
+                        @GetContactLabel(contact)
+                    </MudChip>
+                }
+            }
+        </MudStack>
+    }
+</MudStack>
+
+@code {
+    [Parameter] public Guid? CompanyId { get; set; }
+    [Parameter] public Guid? CompanyLocationId { get; set; }
+    [Parameter] public IReadOnlyList<Guid> SelectedContactIds { get; set; } = [];
+    [Parameter] public EventCallback<IReadOnlyList<Guid>> SelectedContactIdsChanged { get; set; }
+
+    private IReadOnlyList<GetSelectableCompanyContacts.Item> _contacts = [];
+    private MudAutocomplete<Guid?>? _autocomplete;
+    private (Guid? CompanyId, Guid? CompanyLocationId)? _loadedScope;
+    private Guid? _selectedContactId;
+    private string? _search;
+    private bool _loading;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var scope = (CompanyId, CompanyLocationId);
+        if (_loadedScope == scope)
+        {
+            return;
+        }
+
+        _loadedScope = scope;
+        _contacts = [];
+        _selectedContactId = null;
+        _search = null;
+
+        if (CompanyId is null)
+        {
+            await SetSelectedContactIdsAsync([]);
+            return;
+        }
+
+        await LoadContactsAsync();
+    }
+
+    private async Task LoadContactsAsync()
+    {
+        if (CompanyId is null)
+        {
+            return;
+        }
+
+        _loading = true;
+        Result<GetSelectableCompanyContacts.Response> result =
+            await JobApplicationService.GetSelectableCompanyContactsAsync(CompanyId, CompanyLocationId);
+        _loading = false;
+
+        if (result.IsFailure)
+        {
+            _contacts = [];
+            Snackbar.Add(result.Error?.Message ?? "Unable to load company contacts.", Severity.Error);
+            return;
+        }
+
+        _contacts = result.Value?.Contacts ?? [];
+    }
+
+    private Task<IEnumerable<Guid?>> SearchContactsAsync(string? searchText, CancellationToken cancellationToken)
+    {
+        _search = searchText;
+
+        IEnumerable<Guid?> contactIds = _contacts
+            .Where(contact =>
+                !SelectedContactIds.Contains(contact.Id) &&
+                (string.IsNullOrWhiteSpace(searchText) ||
+                 contact.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                 (!string.IsNullOrWhiteSpace(contact.RoleTitle) && contact.RoleTitle.Contains(searchText, StringComparison.OrdinalIgnoreCase))))
+            .Select(contact => (Guid?)contact.Id);
+
+        return Task.FromResult(contactIds);
+    }
+
+    private async Task SelectContactAsync(Guid? contactId)
+    {
+        if (contactId is Guid selectedId && !SelectedContactIds.Contains(selectedId))
+        {
+            await SetSelectedContactIdsAsync([.. SelectedContactIds, selectedId]);
+        }
+
+        _selectedContactId = null;
+        _search = null;
+    }
+
+    private Task RemoveContactAsync(Guid contactId) =>
+        SetSelectedContactIdsAsync(SelectedContactIds.Where(id => id != contactId).ToList());
+
+    private async Task CreateContactAsync()
+    {
+        if (CompanyId is null)
+        {
+            return;
+        }
+
+        if (_autocomplete is not null)
+        {
+            await _autocomplete.CloseMenuAsync();
+        }
+
+        Result<GetCompany.Response> companyResult = await CandidateCompanyService.GetByIdAsync(CompanyId.Value);
+        if (companyResult.IsFailure || companyResult.Value is null)
+        {
+            Snackbar.Add(companyResult.Error?.Message ?? "Unable to load company locations.", Severity.Error);
+            return;
+        }
+
+        var parameters = new DialogParameters
+        {
+            [nameof(CreateCompanyContactDialog.CompanyId)] = CompanyId.Value,
+            [nameof(CreateCompanyContactDialog.Locations)] = GetAvailableLocations(companyResult.Value.Locations),
+            [nameof(CreateCompanyContactDialog.InitialName)] = _search,
+            [nameof(CreateCompanyContactDialog.InitialLocationId)] = CompanyLocationId
+        };
+
+        IDialogReference dialog = await DialogService.ShowAsync<CreateCompanyContactDialog>("Add contact", parameters);
+        DialogResult? dialogResult = await dialog.Result;
+        if (dialogResult is null || dialogResult.Canceled || dialogResult.Data is not Guid contactId)
+        {
+            return;
+        }
+
+        await LoadContactsAsync();
+        await SelectContactAsync(contactId);
+    }
+
+    private Task SetSelectedContactIdsAsync(IReadOnlyList<Guid> contactIds) =>
+        SelectedContactIdsChanged.InvokeAsync(contactIds);
+
+    private string GetContactName(Guid? contactId)
+    {
+        GetSelectableCompanyContacts.Item? contact = _contacts.SingleOrDefault(item => item.Id == contactId);
+        return contact is null ? string.Empty : GetContactLabel(contact);
+    }
+
+    private IReadOnlyList<GetCompanies.Location> GetAvailableLocations(IReadOnlyList<GetCompanies.Location> locations) =>
+        CompanyLocationId is null ? locations : locations.Where(location => location.Id == CompanyLocationId.Value).ToList();
+
+    private static string GetContactLabel(GetSelectableCompanyContacts.Item contact) =>
+        string.IsNullOrWhiteSpace(contact.RoleTitle) ? contact.Name : $"{contact.Name} — {contact.RoleTitle}";
+}

@@ -41,6 +41,9 @@
     public Guid? CompanyId { get; set; }
 
     [Parameter]
+    public Guid? CompanyLocationId { get; set; }
+
+    [Parameter]
     public Guid? Value { get; set; }
 
     [Parameter]
@@ -51,18 +54,20 @@
 
     private IReadOnlyList<GetSelectableCompanyContacts.Item> _contacts = [];
     private MudAutocomplete<Guid?>? _autocomplete;
-    private Guid? _loadedCompanyId;
+    private (Guid? CompanyId, Guid? CompanyLocationId)? _loadedScope;
     private string? _search;
     private bool _loading;
 
     protected override async Task OnParametersSetAsync()
     {
-        if (_loadedCompanyId == CompanyId)
+        var scope = (CompanyId, CompanyLocationId);
+
+        if (_loadedScope == scope)
         {
             return;
         }
 
-        _loadedCompanyId = CompanyId;
+        _loadedScope = scope;
         _contacts = [];
         _search = null;
 
@@ -85,7 +90,7 @@
         _loading = true;
 
         Result<GetSelectableCompanyContacts.Response> result =
-            await JobApplicationService.GetSelectableCompanyContactsAsync(CompanyId);
+            await JobApplicationService.GetSelectableCompanyContactsAsync(CompanyId, CompanyLocationId);
 
         _loading = false;
 
@@ -154,8 +159,9 @@
         var parameters = new DialogParameters
         {
             [nameof(CreateCompanyContactDialog.CompanyId)] = CompanyId.Value,
-            [nameof(CreateCompanyContactDialog.Locations)] = companyResult.Value.Locations,
-            [nameof(CreateCompanyContactDialog.InitialName)] = _search
+            [nameof(CreateCompanyContactDialog.Locations)] = GetAvailableLocations(companyResult.Value.Locations),
+            [nameof(CreateCompanyContactDialog.InitialName)] = _search,
+            [nameof(CreateCompanyContactDialog.InitialLocationId)] = CompanyLocationId
         };
 
         IDialogReference dialog = await DialogService.ShowAsync<CreateCompanyContactDialog>(
@@ -185,4 +191,10 @@
             ? contact.Name
             : $"{contact.Name} — {contact.RoleTitle}";
     }
+
+    private IReadOnlyList<GetCompanies.Location> GetAvailableLocations(
+        IReadOnlyList<GetCompanies.Location> locations) =>
+        CompanyLocationId is null
+            ? locations
+            : locations.Where(location => location.Id == CompanyLocationId.Value).ToList();
 }

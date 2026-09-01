@@ -12,6 +12,7 @@ public static class GetJobApplications
     public sealed record Item(
         Guid Id,
         Guid? CompanyId,
+        Guid? CompanyLocationId,
         string CompanyName,
         string? CompanyLocationLabel,
         string? RoleTitle,

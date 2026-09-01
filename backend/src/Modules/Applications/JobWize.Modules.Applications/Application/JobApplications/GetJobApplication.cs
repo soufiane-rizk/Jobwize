@@ -107,8 +107,13 @@ public static class GetJobApplication
                     interview.Participants
                         .Select(participant => new Contracts.Public.JobApplications.GetJobApplication.InterviewParticipantItem(
                             participant.Id,
+                            participant.CompanyContactId,
+                            participant.CompanyLocationId,
+                            participant.CompanyLocationLabel,
                             participant.Name,
-                            participant.RoleTitle))
+                            participant.RoleTitle,
+                            participant.Email,
+                            participant.PhoneNumber))
                         .ToList()))
                 .ToList();
 
@@ -137,6 +142,7 @@ public static class GetJobApplication
             return Result<Contracts.Public.JobApplications.GetJobApplication.Response>.Success(new(
                 application.Id,
                 application.CompanyId,
+                application.CompanyLocationId,
                 companyName,
                 companyLocationLabel,
                 application.RoleTitle,

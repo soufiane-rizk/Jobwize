@@ -178,7 +178,14 @@
 
     private async Task OpenScheduleInterviewDialogAsync(GetJobApplications.Item application)
     {
-        var dialog = await DialogService.ShowAsync<InterviewDialog>("Schedule interview", new DialogParameters { [nameof(InterviewDialog.ApplicationId)] = application.Id });
+        var parameters = new DialogParameters
+        {
+            [nameof(InterviewDialog.ApplicationId)] = application.Id,
+            [nameof(InterviewDialog.CompanyId)] = application.CompanyId,
+            [nameof(InterviewDialog.CompanyLocationId)] = application.CompanyLocationId
+        };
+
+        var dialog = await DialogService.ShowAsync<InterviewDialog>("Schedule interview", parameters);
         if ((await dialog.Result) is { Canceled: false }) await LoadAsync();
     }
 
@@ -188,6 +195,7 @@
         {
             [nameof(CvSubmissionDialog.ApplicationId)] = application.Id,
             [nameof(CvSubmissionDialog.CompanyId)] = application.CompanyId,
+            [nameof(CvSubmissionDialog.CompanyLocationId)] = application.CompanyLocationId,
             [nameof(CvSubmissionDialog.Kind)] = application.Kind
         };
 

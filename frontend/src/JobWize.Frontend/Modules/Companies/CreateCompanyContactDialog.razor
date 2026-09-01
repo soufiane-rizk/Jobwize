@@ -33,6 +33,7 @@
     [Parameter] public Guid CompanyId { get; set; }
     [Parameter] public IReadOnlyList<GetCompanies.Location> Locations { get; set; } = [];
     [Parameter] public string? InitialName { get; set; }
+    [Parameter] public Guid? InitialLocationId { get; set; }
     private bool _saving;
     private bool _showValidation;
     private Guid? _locationId;
@@ -44,6 +45,7 @@
     protected override void OnParametersSet()
     {
         _name ??= InitialName;
+        _locationId ??= InitialLocationId;
     }
 
     private async Task SaveAsync()
