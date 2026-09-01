@@ -26,7 +26,8 @@ public static class ScheduleInterview
         InterviewFormat Format,
         string? Location,
         string? PreparationNotes,
-        IReadOnlyList<ScheduleInterviewContract.Participant> Participants)
+        IReadOnlyList<Guid> CompanyContactIds,
+        IReadOnlyList<ScheduleInterviewContract.ManualParticipant> ManualParticipants)
         : ICommand<ScheduleInterviewContract.Response>;
 
     internal sealed class Validator : AbstractValidator<Command>
@@ -40,7 +41,11 @@ public static class ScheduleInterview
                 .GreaterThan(0)
                 .When(command => command.DurationMinutes.HasValue);
 
-            RuleForEach(command => command.Participants)
+            RuleFor(command => command.CompanyContactIds)
+                .Must(ids => ids.Distinct().Count() == ids.Count)
+                .WithMessage("A company contact can only be selected once.");
+
+            RuleForEach(command => command.ManualParticipants)
                 .ChildRules(participant =>
                 {
                     participant.RuleFor(item => item.Name)
@@ -74,7 +79,8 @@ public static class ScheduleInterview
                                 request.Format,
                                 request.Location,
                                 request.PreparationNotes,
-                                request.Participants),
+                                request.CompanyContactIds,
+                                request.ManualParticipants),
                             cancellationToken);
 
                         return result.ToApiResult();
@@ -87,6 +93,7 @@ public static class ScheduleInterview
 
     internal sealed class Handler(
         IJobApplicationRepository applications,
+        ApplicationsDbContext dbContext,
         IUserContext currentUser,
         IDispatcher dispatcher)
         : ICommandHandler<Command, ScheduleInterviewContract.Response>
@@ -118,6 +125,21 @@ public static class ScheduleInterview
                     ApplicationsErrors.CannotScheduleInterviewForCurrentStatus);
             }
 
+            Result<IReadOnlyList<InterviewParticipantSnapshot>> participantSnapshots =
+                await InterviewParticipantSnapshots.CreateAsync(
+                    dbContext,
+                    application,
+                    currentUser.UserId,
+                    command.CompanyContactIds,
+                    command.ManualParticipants.Select(participant => (participant.Name, participant.RoleTitle)),
+                    cancellationToken);
+
+            if (participantSnapshots.IsFailure || participantSnapshots.Value is null)
+            {
+                return Result<ScheduleInterviewContract.Response>.Failure(
+                    participantSnapshots.Error!);
+            }
+
             if (application.Status == ApplicationStatus.Applied)
             {
                 application.ChangeStatus(
@@ -133,8 +155,7 @@ public static class ScheduleInterview
                 command.Format,
                 command.Location,
                 command.PreparationNotes,
-                command.Participants.Select(participant =>
-                    (participant.Name, participant.RoleTitle)));
+                participantSnapshots.Value);
 
             await applications.SaveAsync(application, cancellationToken);
 

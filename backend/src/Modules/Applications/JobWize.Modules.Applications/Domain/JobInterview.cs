@@ -28,7 +28,7 @@ public sealed class JobInterview : DomainModel
         InterviewFormat format,
         string? location,
         string? preparationNotes,
-        IEnumerable<(string Name, string? RoleTitle)> participants)
+        IEnumerable<InterviewParticipantSnapshot> participants)
     {
         if (scheduledAt == default)
         {
@@ -55,9 +55,9 @@ public sealed class JobInterview : DomainModel
             PreparationNotes = string.IsNullOrWhiteSpace(preparationNotes) ? null : preparationNotes.Trim()
         };
 
-        foreach ((string name, string? roleTitle) in participants)
+        foreach (InterviewParticipantSnapshot participant in participants)
         {
-            interview._participants.Add(JobInterviewParticipant.Create(interview.Id, name, roleTitle));
+            interview._participants.Add(JobInterviewParticipant.Create(interview.Id, participant));
         }
 
         return interview;
@@ -70,7 +70,7 @@ public sealed class JobInterview : DomainModel
         InterviewFormat format,
         string? location,
         string? preparationNotes,
-        IEnumerable<(string Name, string? RoleTitle)> participants)
+        IEnumerable<InterviewParticipantSnapshot> participants)
     {
         if (State != InterviewState.Scheduled)
         {
@@ -96,9 +96,9 @@ public sealed class JobInterview : DomainModel
 
         _participants.Clear();
 
-        foreach ((string name, string? roleTitle) in participants)
+        foreach (InterviewParticipantSnapshot participant in participants)
         {
-            _participants.Add(JobInterviewParticipant.Create(Id, name, roleTitle));
+            _participants.Add(JobInterviewParticipant.Create(Id, participant));
         }
     }
 
@@ -127,7 +127,7 @@ public sealed class JobInterview : DomainModel
             Format,
             Location,
             PreparationNotes,
-            Participants.Select(participant => (participant.Name, participant.RoleTitle)));
+            Participants.Select(participant => participant.ToSnapshot()));
     }
 
     private static DateTime ToUtc(DateTime value)

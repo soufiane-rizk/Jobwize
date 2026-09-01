@@ -118,6 +118,9 @@ public static class RecordCvSubmission
                         item =>
                             item.Id == command.CompanyContactId &&
                             item.CompanyId == application.CompanyId &&
+                            (application.CompanyLocationId == null ||
+                             item.CompanyLocationId == null ||
+                             item.CompanyLocationId == application.CompanyLocationId) &&
                             item.IsActive &&
                             !item.IsRejected &&
                             (item.Visibility == JobWize.Modules.Companies.Contracts.Public.CompanyContacts.CompanyContactVisibility.Shared ||

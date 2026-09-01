@@ -63,6 +63,7 @@ public sealed class GetSelectableCompanyContactsTests
 
         dbContext.CompanyContactProjections.AddRange(
             CreateContact(companyId, CompanyContactVisibility.Shared, null, true, "Matching", selectedLocationId),
+            CreateContact(companyId, CompanyContactVisibility.Shared, null, true, "Company-wide"),
             CreateContact(companyId, CompanyContactVisibility.Shared, null, true, "Other", Guid.NewGuid()));
         await dbContext.SaveChangesAsync();
 
@@ -74,7 +75,8 @@ public sealed class GetSelectableCompanyContactsTests
             new GetSelectableCompanyContactsFeature.Query(companyId, selectedLocationId, null),
             CancellationToken.None);
 
-        result.Value.Contacts.Should().ContainSingle().Which.Name.Should().Be("Matching");
+        result.Value.Contacts.Select(contact => contact.Name).Should().BeEquivalentTo(
+            ["Matching", "Company-wide"]);
     }
 
     private static CompanyContactProjection CreateContact(
