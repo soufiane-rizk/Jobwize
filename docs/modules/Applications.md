@@ -19,7 +19,7 @@ Each application records:
 - Applied-on date
 - Optional source URL and notes
 - Activity timeline
-- Scheduled and historical interviews, including interviewers, format, duration, location, and preparation notes
+- Scheduled and historical interviews, including one or more company-contact or manual participants, immutable participant snapshots, format, duration, location, and preparation notes
 - CV submissions with sent time, channel, notes, immutable document metadata, and an optional immutable recipient snapshot
 
 The current API is protected by authentication:
@@ -41,6 +41,12 @@ Commands publish integration events for application creation, status changes, no
 The application details screen can record a submission using one or more active documents from the candidate's Files library. Job-posting applications default to the job-portal channel; spontaneous applications default to email. Both application kinds support all channels and an optional company contact. The recipient picker searches contacts for the application’s existing company; when no suitable contact exists, the candidate can create a private contact in place and use it immediately.
 
 Applications validates document ownership and availability through a Files internal module query. It stores immutable document metadata and contact details so later file, contact, approval, or catalogue changes do not rewrite history. The underlying file identifiers remain owned by Files, which creates permanent owner-only submission bindings from the published `JobApplicationCvSubmitted` event.
+
+## Interviews and Participants
+
+An interview can include multiple contacts from the application’s company and any number of manual participants. Contact selection reads only the Applications contact projection: for an application with a selected location, the candidate can choose contacts at that location and company-wide contacts; an application without a location can choose all selectable contacts for the company. An in-place contact form is available when the desired person is absent, defaulting to the application location while still allowing a company-wide contact.
+
+At scheduling and scheduled-interview edit time, Applications validates that every selected contact is active, non-rejected, visible to the candidate, belongs to the application company, and is valid for the application location. It snapshots the selected contact identifier, location label, name, role, email, and phone into the interview aggregate. Manual participant names and roles are also stored in that aggregate. Contact changes, later review, disabling, or removal therefore cannot rewrite interview history; editing a still-scheduled interview intentionally creates a fresh snapshot from the contacts selected then.
 
 Recording a submission on a `Draft` or `Planned` application automatically moves it to `Applied` and sets `AppliedOn` from the actual sent date. Submission history preserves that sent time, while the status-change and CV-submission timeline activities record when the candidate entered the action in JobWize. This keeps backdated submissions chronologically clear. Archived documents are not selectable for new submissions, while previously submitted and subsequently archived documents remain downloadable by their owner from submission history.
 
@@ -82,6 +88,7 @@ The Companies module publishes company-created, company-promoted, company-catalo
 - CV submissions and their document snapshots are owned by the job application aggregate.
 - A CV submission requires at least one unique, active candidate-owned document.
 - Submission recipient data is copied from an active selectable contact in the Applications projection.
+- Interview participant data is copied from active selectable contacts in the Applications projection, or recorded manually, and remains immutable for historical interviews.
 - A postponed interview creates a copied replacement interview in the `Scheduled` state with the supplied new date and time.
 
 The applied-date invariant is enforced by both request validation and the domain factory.
@@ -97,4 +104,3 @@ The initial tracker intentionally does not yet include:
 - Assessments and offer details
 - Follow-up and interview reminders
 - Cover-letter-specific behavior and document categorization beyond candidate documents
-- Linking contact snapshots to interviews

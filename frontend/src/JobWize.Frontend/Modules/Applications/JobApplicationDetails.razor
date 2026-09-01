@@ -112,7 +112,7 @@ else if (_application is not null)
                             @if (interview.Participants.Count > 0)
                             {
                                 <MudText Typo="Typo.body2">
-                                    With @string.Join(", ", interview.Participants.Select(participant => participant.RoleTitle is null ? participant.Name : $"{participant.Name} ({participant.RoleTitle})"))
+                                    With @string.Join(", ", interview.Participants.Select(FormatInterviewParticipant))
                                 </MudText>
                             }
                         </MudPaper>
@@ -272,6 +272,8 @@ else if (_application is not null)
         var parameters = new DialogParameters
         {
             [nameof(InterviewDialog.ApplicationId)] = Id,
+            [nameof(InterviewDialog.CompanyId)] = _application!.CompanyId,
+            [nameof(InterviewDialog.CompanyLocationId)] = _application.CompanyLocationId,
             [nameof(InterviewDialog.Interview)] = interview
         };
         var dialog = await DialogService.ShowAsync<InterviewDialog>("Edit interview", parameters);
@@ -293,7 +295,14 @@ else if (_application is not null)
 
     private async Task OpenScheduleInterviewDialogAsync()
     {
-        var dialog = await DialogService.ShowAsync<InterviewDialog>("Schedule interview", new DialogParameters { [nameof(InterviewDialog.ApplicationId)] = Id });
+        var parameters = new DialogParameters
+        {
+            [nameof(InterviewDialog.ApplicationId)] = Id,
+            [nameof(InterviewDialog.CompanyId)] = _application!.CompanyId,
+            [nameof(InterviewDialog.CompanyLocationId)] = _application.CompanyLocationId
+        };
+
+        var dialog = await DialogService.ShowAsync<InterviewDialog>("Schedule interview", parameters);
         if ((await dialog.Result) is { Canceled: false }) await LoadAsync();
     }
 
@@ -303,6 +312,7 @@ else if (_application is not null)
         {
             [nameof(CvSubmissionDialog.ApplicationId)] = Id,
             [nameof(CvSubmissionDialog.CompanyId)] = _application!.CompanyId,
+            [nameof(CvSubmissionDialog.CompanyLocationId)] = _application.CompanyLocationId,
             [nameof(CvSubmissionDialog.Kind)] = _application.Kind
         };
 
@@ -355,6 +365,18 @@ else if (_application is not null)
         return string.IsNullOrWhiteSpace(roleTitle)
             ? string.Empty
             : $" ({roleTitle})";
+    }
+
+    private static string FormatInterviewParticipant(
+        GetJobApplication.InterviewParticipantItem participant)
+    {
+        string label = string.IsNullOrWhiteSpace(participant.RoleTitle)
+            ? participant.Name
+            : $"{participant.Name} ({participant.RoleTitle})";
+
+        return string.IsNullOrWhiteSpace(participant.CompanyLocationLabel)
+            ? label
+            : $"{label} · {participant.CompanyLocationLabel}";
     }
 
     private async Task OpenInterviewResultDialogAsync(GetJobApplication.InterviewItem interview)

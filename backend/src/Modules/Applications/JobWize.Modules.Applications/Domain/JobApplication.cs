@@ -167,7 +167,7 @@ public sealed class JobApplication : DomainModel
         InterviewFormat format,
         string? location,
         string? preparationNotes,
-        IEnumerable<(string Name, string? RoleTitle)> participants)
+        IEnumerable<InterviewParticipantSnapshot> participants)
     {
         JobInterview interview = JobInterview.Schedule(
             Id,

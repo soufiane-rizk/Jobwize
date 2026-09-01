@@ -93,6 +93,7 @@ public static class GetJobApplications
                     return new Contracts.Public.JobApplications.GetJobApplications.Item(
                         application.Id,
                         application.CompanyId,
+                        application.CompanyLocationId,
                         GetCompanyName(application, companyNames),
                         GetCompanyLocationLabel(application, companyLocationLabels),
                         application.RoleTitle,

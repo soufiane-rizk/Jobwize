@@ -66,7 +66,9 @@ public static class GetSelectableCompanyContacts
 
             if (query.CompanyLocationId is not null)
             {
-                contacts = contacts.Where(contact => contact.CompanyLocationId == query.CompanyLocationId.Value);
+                contacts = contacts.Where(contact =>
+                    contact.CompanyLocationId == null ||
+                    contact.CompanyLocationId == query.CompanyLocationId.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(query.Search))

@@ -48,7 +48,10 @@
                 </MudItem>
 
                 <MudItem xs="12">
-                    <CompanyContactPicker CompanyId="CompanyId" @bind-Value="_companyContactId" />
+                    <CompanyContactPicker
+                        CompanyId="CompanyId"
+                        CompanyLocationId="CompanyLocationId"
+                        @bind-Value="_companyContactId" />
                 </MudItem>
 
                 <MudItem xs="12" md="6">
@@ -108,6 +111,9 @@
 
     [Parameter]
     public Guid? CompanyId { get; set; }
+
+    [Parameter]
+    public Guid? CompanyLocationId { get; set; }
 
     [Parameter]
     public ApplicationKind Kind { get; set; }

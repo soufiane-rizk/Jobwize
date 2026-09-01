@@ -25,7 +25,8 @@ public static class UpdateInterview
         InterviewFormat Format,
         string? Location,
         string? PreparationNotes,
-        IReadOnlyList<UpdateInterviewContract.Participant> Participants) : ICommand<bool>;
+        IReadOnlyList<Guid> CompanyContactIds,
+        IReadOnlyList<UpdateInterviewContract.ManualParticipant> ManualParticipants) : ICommand<bool>;
 
     internal sealed class Validator : AbstractValidator<Command>
     {
@@ -35,6 +36,15 @@ public static class UpdateInterview
             RuleFor(command => command.DurationMinutes)
                 .GreaterThan(0)
                 .When(command => command.DurationMinutes.HasValue);
+            RuleFor(command => command.CompanyContactIds)
+                .Must(ids => ids.Distinct().Count() == ids.Count)
+                .WithMessage("A company contact can only be selected once.");
+            RuleForEach(command => command.ManualParticipants)
+                .ChildRules(participant =>
+                {
+                    participant.RuleFor(item => item.Name).NotEmpty().MaximumLength(200);
+                    participant.RuleFor(item => item.RoleTitle).MaximumLength(200);
+                });
         }
     }
 
@@ -47,7 +57,7 @@ public static class UpdateInterview
                     async (Guid applicationId, Guid interviewId, UpdateInterviewContract.Request request, IDispatcher dispatcher, CancellationToken cancellationToken) =>
                     {
                         Result<bool> result = await dispatcher.SendAsync(
-                            new Command(applicationId, interviewId, request.Type, request.ScheduledAt, request.DurationMinutes, request.Format, request.Location, request.PreparationNotes, request.Participants),
+                            new Command(applicationId, interviewId, request.Type, request.ScheduledAt, request.DurationMinutes, request.Format, request.Location, request.PreparationNotes, request.CompanyContactIds, request.ManualParticipants),
                             cancellationToken);
 
                         return result.ToApiResult();
@@ -58,7 +68,10 @@ public static class UpdateInterview
         }
     }
 
-    internal sealed class Handler(IJobApplicationRepository applications, IUserContext currentUser) : ICommandHandler<Command, bool>
+    internal sealed class Handler(
+        IJobApplicationRepository applications,
+        ApplicationsDbContext dbContext,
+        IUserContext currentUser) : ICommandHandler<Command, bool>
     {
         public async Task<Result<bool>> HandleAsync(Command command, CancellationToken cancellationToken)
         {
@@ -76,6 +89,20 @@ public static class UpdateInterview
                 return Result<bool>.Failure(ApplicationsErrors.InterviewNotFound);
             }
 
+            Result<IReadOnlyList<InterviewParticipantSnapshot>> participantSnapshots =
+                await InterviewParticipantSnapshots.CreateAsync(
+                    dbContext,
+                    application,
+                    currentUser.UserId,
+                    command.CompanyContactIds,
+                    command.ManualParticipants.Select(participant => (participant.Name, participant.RoleTitle)),
+                    cancellationToken);
+
+            if (participantSnapshots.IsFailure || participantSnapshots.Value is null)
+            {
+                return Result<bool>.Failure(participantSnapshots.Error!);
+            }
+
             interview.Update(
                 command.Type,
                 command.ScheduledAt,
@@ -83,7 +110,7 @@ public static class UpdateInterview
                 command.Format,
                 command.Location,
                 command.PreparationNotes,
-                command.Participants.Select(participant => (participant.Name, participant.RoleTitle)));
+                participantSnapshots.Value);
 
             application.AddNote("Scheduled interview updated.");
 
