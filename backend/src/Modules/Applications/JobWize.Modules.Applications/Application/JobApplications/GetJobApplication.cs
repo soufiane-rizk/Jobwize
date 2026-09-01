@@ -40,7 +40,8 @@ public static class GetJobApplication
 
     internal sealed class Handler(
         ApplicationsDbContext dbContext,
-        IUserContext userContext) : IQueryHandler<Query, Contracts.Public.JobApplications.GetJobApplication.Response>
+        IUserContext userContext)
+        : IQueryHandler<Query, Contracts.Public.JobApplications.GetJobApplication.Response>
     {
         public async Task<Result<Contracts.Public.JobApplications.GetJobApplication.Response>> HandleAsync(
             Query query,
@@ -53,6 +54,7 @@ public static class GetJobApplication
                 .ThenInclude(interview => interview.Participants)
                 .Include(item => item.CvSubmissions)
                 .ThenInclude(submission => submission.Documents)
+                .Include(item => item.Reminders)
                 .SingleOrDefaultAsync(
                     item => item.Id == query.Id && item.CandidateId == userContext.UserId,
                     cancellationToken);
@@ -139,6 +141,19 @@ public static class GetJobApplication
                         .ToList()))
                 .ToList();
 
+            var reminders = application.Reminders
+                .OrderBy(item => item.DueAt)
+                .Select(item => new Contracts.Public.JobApplications.GetJobApplication.ReminderItem(
+                    item.Id,
+                    item.Kind,
+                    item.State,
+                    item.CvSubmissionId,
+                    item.InterviewId,
+                    item.Title,
+                    item.DueAt,
+                    item.Note))
+                .ToList();
+
             return Result<Contracts.Public.JobApplications.GetJobApplication.Response>.Success(new(
                 application.Id,
                 application.CompanyId,
@@ -154,6 +169,7 @@ public static class GetJobApplication
                 activities,
                 interviews,
                 submissions,
+                reminders,
                 application.AllowedNextStatuses));
         }
     }

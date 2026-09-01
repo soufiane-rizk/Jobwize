@@ -47,6 +47,7 @@ internal sealed class JobApplicationRepository : IJobApplicationRepository
             .ThenInclude(interview => interview.Participants)
             .Include(application => application.CvSubmissions)
             .ThenInclude(submission => submission.Documents)
+            .Include(application => application.Reminders)
             .SingleOrDefaultAsync(
                 application => application.Id == applicationId && application.CandidateId == candidateId,
                 cancellationToken);

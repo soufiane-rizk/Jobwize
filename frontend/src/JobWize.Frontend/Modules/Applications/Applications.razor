@@ -3,10 +3,12 @@
 
 @using JobWize.Modules.Applications.Contracts.Public.JobApplications
 @using JobWize.Modules.Applications.Contracts.Public.Interviews
+@using JobWize.Modules.Applications.Contracts.Public.Reminders
 
 @inject JobApplicationService JobApplicationService
 @inject NavigationManager Navigation
 @inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
 <PageTitle>Applications</PageTitle>
 
@@ -106,6 +108,9 @@
                             <MudMenuItem OnClick="@(() => OpenCvSubmissionDialogAsync(context))">
                                 Record CV submission
                             </MudMenuItem>
+                            <MudMenuItem OnClick="@(() => OpenReminderDialogAsync(context))">
+                                Add reminder
+                            </MudMenuItem>
                         }
                         <MudMenuItem Href="@($"/applications/{context.Id}")">View details</MudMenuItem>
                     </MudMenu>
@@ -166,14 +171,38 @@
 
     private async Task OpenNoteDialogAsync(GetJobApplications.Item application)
     {
-        var dialog = await DialogService.ShowAsync<NoteDialog>("Add note", new DialogParameters { [nameof(NoteDialog.ApplicationId)] = application.Id });
-        if ((await dialog.Result) is { Canceled: false }) await LoadAsync();
+        var parameters = new DialogParameters
+        {
+            [nameof(NoteDialog.ApplicationId)] = application.Id
+        };
+
+        IDialogReference dialog = await DialogService.ShowAsync<NoteDialog>(
+            "Add note",
+            parameters);
+
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await LoadAsync();
+        }
     }
 
     private async Task OpenStatusDialogAsync(GetJobApplications.Item application)
     {
-        var dialog = await DialogService.ShowAsync<ChangeStatusDialog>("Change status", new DialogParameters { [nameof(ChangeStatusDialog.ApplicationId)] = application.Id, [nameof(ChangeStatusDialog.CurrentStatus)] = application.Status, [nameof(ChangeStatusDialog.AllowedNextStatuses)] = application.AllowedNextStatuses });
-        if ((await dialog.Result) is { Canceled: false }) await LoadAsync();
+        var parameters = new DialogParameters
+        {
+            [nameof(ChangeStatusDialog.ApplicationId)] = application.Id,
+            [nameof(ChangeStatusDialog.CurrentStatus)] = application.Status,
+            [nameof(ChangeStatusDialog.AllowedNextStatuses)] = application.AllowedNextStatuses
+        };
+
+        IDialogReference dialog = await DialogService.ShowAsync<ChangeStatusDialog>(
+            "Change status",
+            parameters);
+
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await LoadAsync();
+        }
     }
 
     private async Task OpenScheduleInterviewDialogAsync(GetJobApplications.Item application)
@@ -185,8 +214,14 @@
             [nameof(InterviewDialog.CompanyLocationId)] = application.CompanyLocationId
         };
 
-        var dialog = await DialogService.ShowAsync<InterviewDialog>("Schedule interview", parameters);
-        if ((await dialog.Result) is { Canceled: false }) await LoadAsync();
+        IDialogReference dialog = await DialogService.ShowAsync<InterviewDialog>(
+            "Schedule interview",
+            parameters);
+
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await LoadAsync();
+        }
     }
 
     private async Task OpenCvSubmissionDialogAsync(GetJobApplications.Item application)
@@ -201,6 +236,36 @@
 
         IDialogReference dialog = await DialogService.ShowAsync<CvSubmissionDialog>(
             "Record CV submission",
+            parameters);
+
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task OpenReminderDialogAsync(GetJobApplications.Item application)
+    {
+        Result<GetJobApplication.Response> result = await JobApplicationService.GetByIdAsync(application.Id);
+
+        if (result.IsFailure || result.Value is null)
+        {
+            Snackbar.Add(
+                result.Error?.Message ?? "Unable to load the application for the reminder.",
+                Severity.Error);
+            return;
+        }
+
+        GetJobApplication.Response applicationDetails = result.Value;
+        var parameters = new DialogParameters
+        {
+            [nameof(ReminderDialog.ApplicationId)] = applicationDetails.Id,
+            [nameof(ReminderDialog.CvSubmissions)] = applicationDetails.CvSubmissions,
+            [nameof(ReminderDialog.Interviews)] = applicationDetails.Interviews
+        };
+
+        IDialogReference dialog = await DialogService.ShowAsync<ReminderDialog>(
+            "Add reminder",
             parameters);
 
         if ((await dialog.Result) is { Canceled: false })

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace JobWize.Modules.Applications.Persistence.Configurations;
+
 internal sealed class JobApplicationConfiguration : IEntityTypeConfiguration<JobApplication>
 {
     public void Configure(EntityTypeBuilder<JobApplication> builder)
@@ -69,6 +70,15 @@ internal sealed class JobApplicationConfiguration : IEntityTypeConfiguration<Job
 
         builder.Metadata
             .FindNavigation(nameof(JobApplication.CvSubmissions))!
+            .SetPropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(application => application.Reminders)
+            .WithOne()
+            .HasForeignKey(reminder => reminder.JobApplicationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Metadata
+            .FindNavigation(nameof(JobApplication.Reminders))!
             .SetPropertyAccessMode(PropertyAccessMode.Field);
     }
 }

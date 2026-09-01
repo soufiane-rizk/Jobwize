@@ -11,12 +11,48 @@ using RecordInterviewResultContract = JobWize.Modules.Applications.Contracts.Pub
 using GetSelectableCompaniesContract = JobWize.Modules.Applications.Contracts.Public.Companies.GetSelectableCompanies;
 using RecordCvSubmissionContract = JobWize.Modules.Applications.Contracts.Public.JobApplications.RecordCvSubmission;
 using GetSelectableCompanyContactsContract = JobWize.Modules.Applications.Contracts.Public.CompanyContacts.GetSelectableCompanyContacts;
+using GetAgendaContract = JobWize.Modules.Applications.Contracts.Public.Reminders.GetAgenda;
+using CreateReminderContract = JobWize.Modules.Applications.Contracts.Public.Reminders.CreateReminder;
+using UpdateReminderStateContract = JobWize.Modules.Applications.Contracts.Public.Reminders.UpdateReminderState;
+
 namespace JobWize.Frontend.Modules.Applications;
+
 public sealed class JobApplicationService(
     IHttpClientFactory httpClientFactory,
     JobWizeAuthenticationStateProvider authenticationStateProvider)
     : ApiService(httpClientFactory, authenticationStateProvider)
 {
+    public Task<Result<GetAgendaContract.Response>> GetAgendaAsync(
+        DateTime from,
+        DateTime to,
+        CancellationToken cancellationToken = default)
+    {
+        return GetAsync<GetAgendaContract.Request, GetAgendaContract.Response>(
+            GetAgendaContract.Route,
+            new(from, to),
+            cancellationToken);
+    }
+
+    public Task<Result<CreateReminderContract.Response>> CreateReminderAsync(
+        CreateReminderContract.Request request,
+        CancellationToken cancellationToken = default)
+    {
+        return PostAsync<CreateReminderContract.Request, CreateReminderContract.Response>(
+            CreateReminderContract.Route,
+            request,
+            cancellationToken);
+    }
+
+    public Task<Result<bool>> UpdateReminderStateAsync(
+        UpdateReminderStateContract.Request request,
+        CancellationToken cancellationToken = default)
+    {
+        return PatchAsync<UpdateReminderStateContract.Request, bool>(
+            UpdateReminderStateContract.Route,
+            request,
+            cancellationToken);
+    }
+
     public Task<Result<GetJobApplications.Response>> GetAsync(
         CancellationToken cancellationToken = default)
     {
@@ -35,6 +71,7 @@ public sealed class JobApplicationService(
             new GetJobApplications.Request(companyId),
             cancellationToken);
     }
+
     public Task<Result<CreateJobApplicationContract.Response>> CreateAsync(
         CreateJobApplicationContract.Request request,
         CancellationToken cancellationToken = default)
