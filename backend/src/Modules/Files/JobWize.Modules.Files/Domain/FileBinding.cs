@@ -1,3 +1,5 @@
+using JobWize.Shared.Errors;
+
 namespace JobWize.Modules.Files.Domain;
 
 public sealed class FileBinding
@@ -23,8 +25,15 @@ public sealed class FileBinding
         string usage,
         FileBindingAccessPolicy accessPolicy)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(resourceType);
-        ArgumentException.ThrowIfNullOrWhiteSpace(usage);
+        if (string.IsNullOrWhiteSpace(resourceType))
+        {
+            throw new BusinessRuleException(DomainErrors.BindingResourceTypeRequired);
+        }
+
+        if (string.IsNullOrWhiteSpace(usage))
+        {
+            throw new BusinessRuleException(DomainErrors.BindingUsageRequired);
+        }
 
         return new FileBinding
         {

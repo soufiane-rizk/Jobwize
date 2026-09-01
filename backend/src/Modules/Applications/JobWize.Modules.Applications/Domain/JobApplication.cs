@@ -2,6 +2,7 @@ using JobWize.Modules.Applications.Contracts.Public.JobApplications;
 using JobWize.Modules.Applications.Contracts.Public.Interviews;
 using JobWize.Modules.Applications.Contracts.Public.Reminders;
 using JobWize.Shared.Domain;
+using JobWize.Shared.Errors;
 
 namespace JobWize.Modules.Applications.Domain;
 
@@ -45,9 +46,7 @@ public sealed class JobApplication : DomainModel
     {
         if (RequiresAppliedOn(status) && appliedOn is null)
         {
-            throw new ArgumentException(
-                "Applied on is required when the application has been sent.",
-                nameof(appliedOn));
+            throw new BusinessRuleException(DomainErrors.AppliedOnRequired);
         }
 
         var application = new JobApplication
@@ -78,22 +77,19 @@ public sealed class JobApplication : DomainModel
     {
         if (status == Status)
         {
-            throw new ArgumentException("The new status must be different from the current status.", nameof(status));
+            throw new BusinessRuleException(DomainErrors.ApplicationStatusUnchanged);
         }
 
         if (!AllowedNextStatuses.Contains(status))
         {
-            throw new InvalidOperationException(
-                $"Cannot change an application from {Status} to {status}.");
+            throw new BusinessRuleException(DomainErrors.ApplicationStatusTransitionNotAllowed);
         }
 
         DateOnly? effectiveAppliedOn = appliedOn ?? AppliedOn;
 
         if (RequiresAppliedOn(status) && effectiveAppliedOn is null)
         {
-            throw new ArgumentException(
-                "Applied on is required once an application has been sent.",
-                nameof(appliedOn));
+            throw new BusinessRuleException(DomainErrors.AppliedOnRequired);
         }
 
         Status = status;
@@ -104,7 +100,10 @@ public sealed class JobApplication : DomainModel
 
     public void AddNote(string note)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(note);
+        if (string.IsNullOrWhiteSpace(note))
+        {
+            throw new BusinessRuleException(DomainErrors.NoteRequired);
+        }
 
         AddActivity(JobApplicationActivity.CreateNote(Id, note));
     }
@@ -127,12 +126,12 @@ public sealed class JobApplication : DomainModel
 
         if (documentSnapshots.Length == 0)
         {
-            throw new ArgumentException("At least one document is required.", nameof(documents));
+            throw new BusinessRuleException(DomainErrors.CvSubmissionDocumentRequired);
         }
 
         if (documentSnapshots.Select(document => document.FileId).Distinct().Count() != documentSnapshots.Length)
         {
-            throw new ArgumentException("A document can only be submitted once.", nameof(documents));
+            throw new BusinessRuleException(DomainErrors.DuplicateCvSubmissionDocument);
         }
 
         JobApplicationCvSubmission submission = JobApplicationCvSubmission.Create(
@@ -172,6 +171,16 @@ public sealed class JobApplication : DomainModel
         string? preparationNotes,
         IEnumerable<InterviewParticipantSnapshot> participants)
     {
+        if (Status is ApplicationStatus.Draft or ApplicationStatus.Planned)
+        {
+            throw new BusinessRuleException(DomainErrors.ApplicationMustBeSentBeforeInterview);
+        }
+
+        if (Status is not (ApplicationStatus.Applied or ApplicationStatus.InProcess))
+        {
+            throw new BusinessRuleException(DomainErrors.CannotScheduleInterviewForCurrentStatus);
+        }
+
         JobInterview interview = JobInterview.Schedule(
             Id,
             interviewType,
@@ -192,7 +201,7 @@ public sealed class JobApplication : DomainModel
         return interview;
     }
 
-    public JobInterview? RecordInterviewResult(
+    public JobInterview RecordInterviewResult(
         Guid interviewId,
         InterviewState state,
         DateTime? rescheduledAt,
@@ -202,7 +211,7 @@ public sealed class JobApplication : DomainModel
 
         if (interview is null)
         {
-            return null;
+            throw new BusinessRuleException(DomainErrors.InterviewNotInApplication);
         }
 
         interview.RecordResult(state);
@@ -213,7 +222,7 @@ public sealed class JobApplication : DomainModel
         {
             if (rescheduledAt is null)
             {
-                throw new ArgumentException("A new date is required when postponing an interview.", nameof(rescheduledAt));
+                throw new BusinessRuleException(DomainErrors.InterviewRescheduleDateRequired);
             }
 
             replacementInterview = interview.CreateRescheduledInterview(rescheduledAt.Value);
@@ -236,17 +245,13 @@ public sealed class JobApplication : DomainModel
         if (cvSubmissionId is not null &&
             !_cvSubmissions.Any(item => item.Id == cvSubmissionId))
         {
-            throw new ArgumentException(
-                "The selected CV submission does not belong to this application.",
-                nameof(cvSubmissionId));
+            throw new BusinessRuleException(DomainErrors.CvSubmissionNotInApplication);
         }
 
         if (interviewId is not null &&
             !_interviews.Any(item => item.Id == interviewId))
         {
-            throw new ArgumentException(
-                "The selected interview does not belong to this application.",
-                nameof(interviewId));
+            throw new BusinessRuleException(DomainErrors.InterviewNotInApplication);
         }
 
         JobApplicationReminder reminder = JobApplicationReminder.Create(

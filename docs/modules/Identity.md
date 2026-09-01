@@ -8,6 +8,8 @@ This module is the owner of the `User` aggregate.
 
 No other module may modify or directly access the Identity database. Cross-module communication must occur through application contracts and integration events.
 
+Identity aggregate invariants are catalogued in the Identity Domain `DomainErrors` class and raised as `BusinessRuleException` instances. Application errors remain focused on authentication, authorization, and user lookup outcomes.
+
 ---
 
 # Responsibilities

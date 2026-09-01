@@ -1,4 +1,5 @@
 using JobWize.Shared.Domain;
+using JobWize.Shared.Errors;
 
 namespace JobWize.Modules.Applications.Domain;
 
@@ -21,7 +22,10 @@ public sealed class JobInterviewParticipant : Entity
         Guid interviewId,
         InterviewParticipantSnapshot snapshot)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(snapshot.Name);
+        if (string.IsNullOrWhiteSpace(snapshot.Name))
+        {
+            throw new BusinessRuleException(DomainErrors.InterviewParticipantNameRequired);
+        }
 
         return new JobInterviewParticipant
         {

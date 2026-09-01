@@ -11,6 +11,7 @@ using JobWize.Runtime.Contracts.Dispatching;
 using JobWize.Runtime.Contracts.Notifications;
 using JobWize.Runtime.Contracts.Requests;
 using JobWize.Shared.Application.Results;
+using JobWize.Shared.Errors;
 using JobWize.Shared.Application.Security;
 using Microsoft.EntityFrameworkCore;
 using CreateJobApplicationContract = JobWize.Modules.Applications.Contracts.Public.JobApplications.CreateJobApplication;
@@ -54,9 +55,8 @@ public sealed class CreateJobApplicationTests
             null,
             null);
 
-        act.Should()
-            .Throw<ArgumentException>()
-            .WithParameterName("appliedOn");
+        act.Should().Throw<BusinessRuleException>()
+            .Which.Error.Should().Be(DomainErrors.AppliedOnRequired);
     }
 
     [Fact]

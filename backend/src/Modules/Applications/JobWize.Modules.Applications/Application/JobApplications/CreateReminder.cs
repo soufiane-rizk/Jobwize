@@ -92,16 +92,6 @@ public static class CreateReminder
                     ApplicationsErrors.JobApplicationNotFound);
             }
 
-            if (!HasValidRelation(command) ||
-                (command.CvSubmissionId is Guid cvSubmissionId &&
-                 !application.CvSubmissions.Any(item => item.Id == cvSubmissionId)) ||
-                (command.InterviewId is Guid interviewId &&
-                 !application.Interviews.Any(item => item.Id == interviewId)))
-            {
-                return Result<Contracts.Public.Reminders.CreateReminder.Response>.Failure(
-                    ApplicationsErrors.InvalidReminderRelation);
-            }
-
             JobApplicationReminder reminder = application.CreateReminder(
                 command.Kind,
                 command.CvSubmissionId,

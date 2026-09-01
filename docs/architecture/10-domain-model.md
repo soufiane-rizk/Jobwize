@@ -201,7 +201,9 @@ JobWize distinguishes between expected business failures and invariant violation
 
 Expected business failures are represented using `Result`.
 
-Invariant violations indicate incorrect usage of the Domain Model and throw a `BusinessRuleViolationException` containing one of the predefined business `Error` objects.
+Invariant violations indicate incorrect usage of the Domain Model and throw a `BusinessRuleException` containing one of the predefined domain `Error` objects from the module's `DomainErrors` catalogue.
+
+The shared `Error`, `ErrorDetail`, `ErrorType`, `SharedErrors`, and `BusinessRuleException` types live in `JobWize.Shared.Errors`. `Result` and its application execution contracts remain in `JobWize.Shared.Application.Results`.
 
 Technical failures continue to use standard exceptions.
 

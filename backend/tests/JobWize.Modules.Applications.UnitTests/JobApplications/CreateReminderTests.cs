@@ -9,6 +9,7 @@ using JobWize.Runtime.Contracts.Dispatching;
 using JobWize.Runtime.Contracts.Notifications;
 using JobWize.Runtime.Contracts.Requests;
 using JobWize.Shared.Application.Security;
+using JobWize.Shared.Errors;
 using CreateReminderFeature = JobWize.Modules.Applications.Application.JobApplications.CreateReminder;
 using UpdateReminderStateFeature = JobWize.Modules.Applications.Application.JobApplications.UpdateReminderState;
 
@@ -57,7 +58,7 @@ public sealed class CreateReminderTests
             new FakeUserContext(candidateId),
             dispatcher);
 
-        var result = await handler.HandleAsync(
+        Func<Task> action = () => handler.HandleAsync(
             new CreateReminderFeature.Command(
                 application.Id,
                 ReminderKind.CvSubmission,
@@ -68,8 +69,8 @@ public sealed class CreateReminderTests
                 null),
             CancellationToken.None);
 
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(ApplicationsErrors.InvalidReminderRelation);
+        (await action.Should().ThrowAsync<BusinessRuleException>())
+            .Which.Error.Should().Be(DomainErrors.CvSubmissionNotInApplication);
         repository.WasSaved.Should().BeFalse();
         dispatcher.PublishedNotification.Should().BeNull();
     }
@@ -151,15 +152,15 @@ public sealed class CreateReminderTests
             new FakeUserContext(candidateId),
             dispatcher);
 
-        var result = await handler.HandleAsync(
+        Func<Task> action = () => handler.HandleAsync(
             new UpdateReminderStateFeature.Command(
                 application.Id,
                 reminder.Id,
                 ReminderState.Dismissed),
             CancellationToken.None);
 
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(ApplicationsErrors.ReminderCannotChangeState);
+        (await action.Should().ThrowAsync<BusinessRuleException>())
+            .Which.Error.Should().Be(DomainErrors.ReminderCannotChangeState);
         reminder.State.Should().Be(ReminderState.Completed);
         repository.WasSaved.Should().BeFalse();
         dispatcher.PublishedNotification.Should().BeNull();

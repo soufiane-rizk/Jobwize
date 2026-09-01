@@ -1,6 +1,7 @@
 ﻿using JobWize.Runtime.Contracts.Pipelines;
 using JobWize.Runtime.Contracts.Requests;
 using JobWize.Shared.Application.Results;
+using JobWize.Shared.Errors;
 using JobWize.Shared.Runtime.Contracts;
 using Microsoft.Extensions.Logging;
 
@@ -21,6 +22,15 @@ namespace JobWize.Shared.Runtime.Behaviors
             try
             {
                 return await next();
+            }
+            catch (BusinessRuleException exception)
+            {
+                _logger.LogInformation(
+                    "Business rule prevented {Command}: {ErrorCode}.",
+                    typeof(TCommand).Name,
+                    exception.Error.Code);
+
+                return Result<TResult>.Failure(exception.Error);
             }
             catch (Exception exception)
             {

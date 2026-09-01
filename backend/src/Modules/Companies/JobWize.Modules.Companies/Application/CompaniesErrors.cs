@@ -1,4 +1,5 @@
 using JobWize.Shared.Application.Results;
+using JobWize.Shared.Errors;
 
 namespace JobWize.Modules.Companies.Application;
 
@@ -16,13 +17,4 @@ public static class CompaniesErrors
         "The requested company contact was not found.",
         ErrorType.NotFound);
 
-    public static readonly Error CompanyMustBeSharedBeforeContactApproval = new(
-        "Companies.CompanyMustBeSharedBeforeContactApproval",
-        "Approve the company before sharing one of its contacts.",
-        ErrorType.Validation);
-
-    public static readonly Error SharedContactRequiresSharedActiveLocation = new(
-        "Companies.SharedContactRequiresSharedActiveLocation",
-        "A shared contact can only use an active shared company location.",
-        ErrorType.Validation);
 }

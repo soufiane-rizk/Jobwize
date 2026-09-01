@@ -50,7 +50,7 @@ Current roadmap order:
 
 -   Modules own their domain model, persistence, schema, application logic, and public contracts. Do not access another module's implementation or database tables directly.
 -   Endpoints are thin: transport request -> command/query -> `IDispatcher` -> `Result` -> HTTP response.
--   Expected failures use `Result`; unexpected dispatcher exceptions become the shared unexpected result. Exceptions outside dispatcher execution are handled by the API global exception handler.
+-   Expected application failures use `Result`; Domain Models raise `BusinessRuleException` with module `DomainErrors`, which the dispatcher maps to failed results. Other dispatcher exceptions become the shared unexpected result, while exceptions outside dispatcher execution are handled by the API global exception handler.
 -   API failures use problem details. Preserve the `code` extension and validation `errors` in client handling.
 -   The frontend communicates only over HTTP and does not contain business rules.
 -   The frontend owns feedback presentation: inline errors for forms, snackbars for transient cross-page/background feedback, and a safe global boundary for unhandled UI errors.

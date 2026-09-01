@@ -2,6 +2,7 @@
 using JobWize.Runtime.Contracts.Pipelines;
 using JobWize.Runtime.UnitTests.Helpers;
 using JobWize.Shared.Application.Results;
+using JobWize.Shared.Errors;
 using JobWize.Shared.Runtime.Behaviors;
 using Microsoft.Extensions.DependencyInjection;
 using System;
