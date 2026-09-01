@@ -1,0 +1,196 @@
+@attribute [Route(ApplicationsRoutes.Agenda)]
+@attribute [Authorize]
+
+@using JobWize.Modules.Applications.Contracts.Public.Reminders
+
+@inject JobApplicationService JobApplicationService
+@inject NavigationManager Navigation
+
+<PageTitle>Agenda</PageTitle>
+
+<MudStack Spacing="3">
+    <MudStack Row="true" AlignItems="AlignItems.Center">
+        <div>
+            <MudText Typo="Typo.h4">Agenda</MudText>
+            <MudText Typo="Typo.subtitle2">
+                Interviews and open reminders
+            </MudText>
+        </div>
+        <MudSpacer />
+        <MudButton Variant="Variant.Text" OnClick="ShowCurrentWeekAsync">Today</MudButton>
+        <MudIconButton
+            Icon="@Icons.Material.Filled.ChevronLeft"
+            OnClick="ShowPreviousWeekAsync"
+            aria-label="Previous week" />
+        <MudIconButton
+            Icon="@Icons.Material.Filled.ChevronRight"
+            OnClick="ShowNextWeekAsync"
+            aria-label="Next week" />
+    </MudStack>
+
+    <MudPaper Class="pa-4">
+        <MudText Typo="Typo.h6">
+            @_weekStart.ToString("dd MMM") – @_weekStart.AddDays(6).ToString("dd MMM yyyy")
+        </MudText>
+    </MudPaper>
+
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error">@_error.Message</MudAlert>
+    }
+    else if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else if (_items.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info">
+            No interviews or open reminders in this week.
+        </MudAlert>
+    }
+    else
+    {
+        @foreach (IGrouping<DateOnly, GetAgenda.Item> day in GroupedItems)
+        {
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-2">
+                    @day.Key.ToString("dddd, dd MMMM")
+                </MudText>
+
+                <MudStack Spacing="2">
+                    @foreach (GetAgenda.Item item in day)
+                    {
+                        <MudPaper
+                            Outlined="true"
+                            Class="pa-3"
+                            Style="cursor: pointer"
+                            @onclick="@(() => OpenApplication(item.ApplicationId))">
+                            <MudStack Row="true" AlignItems="AlignItems.Center">
+                                <MudIcon
+                                    Icon="@GetItemIcon(item)"
+                                    Color="@GetItemColor(item)" />
+                                <div>
+                                    <MudText Typo="Typo.subtitle1">@item.Title</MudText>
+                                    <MudText Typo="Typo.caption">
+                                        @item.OccursAt.ToLocalTime().ToString("HH:mm") · @item.CompanyName@FormatRole(item.RoleTitle)
+                                    </MudText>
+
+                                    @if (!string.IsNullOrWhiteSpace(item.Note))
+                                    {
+                                        <MudText Typo="Typo.body2">@item.Note</MudText>
+                                    }
+                                </div>
+                                <MudSpacer />
+                                <MudChip
+                                    T="string"
+                                    Value="@GetItemLabel(item)"
+                                    Size="Size.Small"
+                                    Color="@GetItemColor(item)">
+                                    @GetItemLabel(item)
+                                </MudChip>
+                            </MudStack>
+                        </MudPaper>
+                    }
+                </MudStack>
+            </MudPaper>
+        }
+    }
+</MudStack>
+
+@code {
+    private DateOnly _weekStart = GetWeekStart(DateOnly.FromDateTime(DateTime.Today));
+    private IReadOnlyList<GetAgenda.Item> _items = [];
+    private Error? _error;
+    private bool _loading = true;
+
+    private IEnumerable<IGrouping<DateOnly, GetAgenda.Item>> GroupedItems => _items
+        .GroupBy(item => DateOnly.FromDateTime(item.OccursAt.ToLocalTime()))
+        .OrderBy(group => group.Key);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task ShowCurrentWeekAsync()
+    {
+        _weekStart = GetWeekStart(DateOnly.FromDateTime(DateTime.Today));
+        await LoadAsync();
+    }
+
+    private async Task ShowPreviousWeekAsync()
+    {
+        _weekStart = _weekStart.AddDays(-7);
+        await LoadAsync();
+    }
+
+    private async Task ShowNextWeekAsync()
+    {
+        _weekStart = _weekStart.AddDays(7);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        DateTime localFrom = DateTime.SpecifyKind(
+            _weekStart.ToDateTime(TimeOnly.MinValue),
+            DateTimeKind.Local);
+        DateTime localTo = localFrom.AddDays(7);
+
+        Result<GetAgenda.Response> result = await JobApplicationService.GetAgendaAsync(
+            localFrom.ToUniversalTime(),
+            localTo.ToUniversalTime());
+
+        if (result.IsSuccess)
+        {
+            _items = result.Value?.Items ?? [];
+        }
+        else
+        {
+            _items = [];
+            _error = result.Error;
+        }
+
+        _loading = false;
+    }
+
+    private void OpenApplication(Guid applicationId)
+    {
+        Navigation.NavigateTo($"/applications/{applicationId}");
+    }
+
+    private static DateOnly GetWeekStart(DateOnly date)
+    {
+        int daysFromMonday = ((int)date.DayOfWeek + 6) % 7;
+        return date.AddDays(-daysFromMonday);
+    }
+
+    private static string GetItemIcon(GetAgenda.Item item) =>
+        item.ReminderKind is null
+            ? Icons.Material.Filled.Event
+            : Icons.Material.Filled.NotificationsActive;
+
+    private static Color GetItemColor(GetAgenda.Item item) =>
+        item.ReminderKind is null ? Color.Info : Color.Warning;
+
+    private static string GetItemLabel(GetAgenda.Item item)
+    {
+        if (item.ReminderKind is null)
+        {
+            return item.InterviewState?.ToString() ?? "Interview";
+        }
+
+        return item.ReminderKind switch
+        {
+            ReminderKind.CvSubmission => "CV reminder",
+            ReminderKind.Interview => "Interview reminder",
+            _ => "Custom reminder"
+        };
+    }
+
+    private static string FormatRole(string? roleTitle) =>
+        string.IsNullOrWhiteSpace(roleTitle) ? string.Empty : $" · {roleTitle}";
+}

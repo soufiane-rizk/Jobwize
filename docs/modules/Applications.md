@@ -8,7 +8,7 @@ The module owns application data in the `applications` database schema. It does 
 
 ## Current Capability
 
-A candidate can create, list, and view only their own applications. They can also add timeline notes, move an application through its lifecycle, record one or more CV submissions, schedule interviews, edit scheduled interviews, and record interview results.
+A candidate can create, list, and view only their own applications. They can also add timeline notes, move an application through its lifecycle, record one or more CV submissions, schedule interviews, edit scheduled interviews, record interview results, and manage application reminders.
 
 Each application records:
 
@@ -21,6 +21,7 @@ Each application records:
 - Activity timeline
 - Scheduled and historical interviews, including one or more company-contact or manual participants, immutable participant snapshots, format, duration, location, and preparation notes
 - CV submissions with sent time, channel, notes, immutable document metadata, and an optional immutable recipient snapshot
+- Reminders related to a CV submission, an interview, or a custom application task
 
 The current API is protected by authentication:
 
@@ -33,8 +34,11 @@ The current API is protected by authentication:
 - `PUT /api/applications/{applicationId}/interviews/{interviewId}` edits a scheduled interview.
 - `POST /api/applications/{applicationId}/interviews/{interviewId}/result` records a completed, cancelled, or postponed result.
 - `POST /api/applications/{id}/cv-submissions` records a first-class CV submission.
+- `POST /api/applications/{id}/reminders` creates an application reminder.
+- `PATCH /api/applications/{applicationId}/reminders/{reminderId}/state` completes or dismisses an open reminder.
+- `GET /api/applications/agenda?from={utc}&to={utc}` returns the current candidate's interviews and open reminders in a date range.
 
-Commands publish integration events for application creation, status changes, notes, CV submissions, interview scheduling, and interview results.
+Commands publish integration events for application creation, status changes, notes, CV submissions, interview scheduling, interview results, reminder creation, and reminder state changes.
 
 ## CV Submissions
 
@@ -49,6 +53,14 @@ An interview can include multiple contacts from the application’s company and 
 At scheduling and scheduled-interview edit time, Applications validates that every selected contact is active, non-rejected, visible to the candidate, belongs to the application company, and is valid for the application location. It snapshots the selected contact identifier, location label, name, role, email, and phone into the interview aggregate. Manual participant names and roles are also stored in that aggregate. Contact changes, later review, disabling, or removal therefore cannot rewrite interview history; editing a still-scheduled interview intentionally creates a fresh snapshot from the contacts selected then.
 
 Recording a submission on a `Draft` or `Planned` application automatically moves it to `Applied` and sets `AppliedOn` from the actual sent date. Submission history preserves that sent time, while the status-change and CV-submission timeline activities record when the candidate entered the action in JobWize. This keeps backdated submissions chronologically clear. Archived documents are not selectable for new submissions, while previously submitted and subsequently archived documents remain downloadable by their owner from submission history.
+
+## Reminders and Agenda
+
+Reminders belong to the job application aggregate. A reminder is either related to exactly one CV submission, related to exactly one interview, or custom with no related activity. Related submission and interview identifiers are validated against the owning application before the reminder is created.
+
+New reminders start open and can be completed or dismissed. Closed reminders remain visible in application details as history but are excluded from the agenda. Reminder creation and state changes publish integration events so a future notification module can react without accessing the Applications database. The candidate agenda combines all interviews with open reminders for the selected week and resolves company names from Applications' local company projection. The frontend sends UTC range boundaries derived from the candidate's local week so events near midnight remain in the correct displayed day.
+
+The initial agenda deliberately uses the existing MudBlazor components and provides weekly navigation. Notification delivery, preferences, recurring reminders, and a drag-and-drop month calendar are deferred.
 
 ## Company Selection and Local Projections
 
@@ -90,10 +102,14 @@ The Companies module publishes company-created, company-promoted, company-catalo
 - Submission recipient data is copied from an active selectable contact in the Applications projection.
 - Interview participant data is copied from active selectable contacts in the Applications projection, or recorded manually, and remains immutable for historical interviews.
 - A postponed interview creates a copied replacement interview in the `Scheduled` state with the supplied new date and time.
+- A CV-submission reminder references exactly one submission owned by the same application.
+- An interview reminder references exactly one interview owned by the same application.
+- A custom reminder does not reference a submission or interview.
+- Only an open reminder can be completed or dismissed.
 
 The applied-date invariant is enforced by both request validation and the domain factory.
 
-The Applications unit tests cover company and location availability, CV-submission domain rules, document validation behavior, recipient selection, automatic status transitions, snapshots, and integration events.
+The Applications unit tests cover company and location availability, CV-submission domain rules, document validation behavior, recipient selection, automatic status transitions, snapshots, reminder relations and state transitions, and integration events.
 
 ## Deferred Work
 
@@ -102,5 +118,5 @@ The initial tracker intentionally does not yet include:
 - Company removal events and removal policy
 - Completed-interview outcomes such as awaiting feedback, next round, offer expected, or rejected
 - Assessments and offer details
-- Follow-up and interview reminders
+- Reminder notification delivery, recurrence, preferences, and external calendar synchronization
 - Cover-letter-specific behavior and document categorization beyond candidate documents
