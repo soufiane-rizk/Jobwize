@@ -1,5 +1,6 @@
 using JobWize.Modules.Applications.Contracts.Public.Interviews;
 using JobWize.Shared.Domain;
+using JobWize.Shared.Errors;
 
 namespace JobWize.Modules.Applications.Domain;
 
@@ -32,12 +33,12 @@ public sealed class JobInterview : DomainModel
     {
         if (scheduledAt == default)
         {
-            throw new ArgumentException("An interview date is required.", nameof(scheduledAt));
+            throw new BusinessRuleException(DomainErrors.InterviewDateRequired);
         }
 
         if (durationMinutes is <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(durationMinutes));
+            throw new BusinessRuleException(DomainErrors.InterviewDurationMustBePositive);
         }
 
         DateTime scheduledAtUtc = ToUtc(scheduledAt);
@@ -74,17 +75,17 @@ public sealed class JobInterview : DomainModel
     {
         if (State != InterviewState.Scheduled)
         {
-            throw new InvalidOperationException("Only a scheduled interview can be updated.");
+            throw new BusinessRuleException(DomainErrors.InterviewCannotBeUpdated);
         }
 
         if (scheduledAt == default)
         {
-            throw new ArgumentException("An interview date is required.", nameof(scheduledAt));
+            throw new BusinessRuleException(DomainErrors.InterviewDateRequired);
         }
 
         if (durationMinutes is <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(durationMinutes));
+            throw new BusinessRuleException(DomainErrors.InterviewDurationMustBePositive);
         }
 
         Type = type;
@@ -106,12 +107,12 @@ public sealed class JobInterview : DomainModel
     {
         if (State != InterviewState.Scheduled)
         {
-            throw new InvalidOperationException("Only a scheduled interview can have a result recorded.");
+            throw new BusinessRuleException(DomainErrors.InterviewCannotHaveResult);
         }
 
         if (state == InterviewState.Scheduled)
         {
-            throw new ArgumentException("Select a completed, cancelled, or postponed result.", nameof(state));
+            throw new BusinessRuleException(DomainErrors.InterviewResultMustBeFinal);
         }
 
         State = state;

@@ -1,4 +1,5 @@
 using JobWize.Shared.Application.Results;
+using JobWize.Shared.Errors;
 
 namespace JobWize.Modules.Applications.Application;
 
@@ -9,25 +10,10 @@ public static class ApplicationsErrors
         "The requested job application was not found.",
         ErrorType.NotFound);
 
-    public static readonly Error ApplicationMustBeSentBeforeInterview = new(
-        "Applications.ApplicationMustBeSentBeforeInterview",
-        "Mark the application as applied before scheduling an interview.",
-        ErrorType.Validation);
-
-    public static readonly Error CannotScheduleInterviewForCurrentStatus = new(
-        "Applications.CannotScheduleInterviewForCurrentStatus",
-        "An interview can only be scheduled for an applied application that is in process.",
-        ErrorType.Validation);
-
     public static readonly Error InterviewNotFound = new(
         "Applications.InterviewNotFound",
         "The requested interview was not found.",
         ErrorType.NotFound);
-
-    public static readonly Error InterviewResultMustBeFinal = new(
-        "Applications.InterviewResultMustBeFinal",
-        "Select completed, cancelled, or postponed as the interview result.",
-        ErrorType.Validation);
 
     public static readonly Error CompanyNotAvailable = new(
         "Applications.CompanyNotAvailable",
@@ -49,18 +35,9 @@ public static class ApplicationsErrors
         "One or more selected documents are not available.",
         ErrorType.Validation);
 
-    public static readonly Error InvalidReminderRelation = new(
-        "Applications.InvalidReminderRelation",
-        "Select exactly the related CV submission or interview required by the reminder type.",
-        ErrorType.Validation);
-
     public static readonly Error ReminderNotFound = new(
         "Applications.ReminderNotFound",
         "The requested reminder was not found.",
         ErrorType.NotFound);
 
-    public static readonly Error ReminderCannotChangeState = new(
-        "Applications.ReminderCannotChangeState",
-        "Only an open reminder can be completed or dismissed.",
-        ErrorType.Validation);
 }

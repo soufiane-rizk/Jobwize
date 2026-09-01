@@ -1,5 +1,6 @@
 using FluentAssertions;
 using JobWize.Modules.Files.Domain;
+using JobWize.Shared.Errors;
 
 namespace JobWize.Modules.Files.UnitTests.FileAssets;
 
@@ -17,7 +18,8 @@ public sealed class FileAssetTests
             0,
             "candidate/document");
 
-        act.Should().Throw<ArgumentOutOfRangeException>();
+        act.Should().Throw<BusinessRuleException>()
+            .Which.Error.Should().Be(DomainErrors.FileSizeMustBePositive);
     }
 
     [Fact]
@@ -38,7 +40,8 @@ public sealed class FileAssetTests
         document.FileName.Should().Be("cv.pdf");
         document.StorageKey.Should().Be("candidate/document");
         Action act = () => document.Archive(DateTime.UtcNow);
-        act.Should().Throw<InvalidOperationException>();
+        act.Should().Throw<BusinessRuleException>()
+            .Which.Error.Should().Be(DomainErrors.FileAlreadyArchived);
     }
 
     [Fact]

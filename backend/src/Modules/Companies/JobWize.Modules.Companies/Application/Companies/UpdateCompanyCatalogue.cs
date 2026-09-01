@@ -167,11 +167,6 @@ public static class UpdateCompanyCatalogue
 
                 if (contact.Id is null)
                 {
-                    if (!company.IsSharedActiveLocation(locationId))
-                    {
-                        return Result<bool>.Failure(CompaniesErrors.SharedContactRequiresSharedActiveLocation);
-                    }
-
                     company.AddSharedContact(
                         locationId,
                         contact.Name,
@@ -192,10 +187,7 @@ public static class UpdateCompanyCatalogue
                 }
             }
 
-            if (company.HasInvalidActiveSharedContactLocation())
-            {
-                return Result<bool>.Failure(CompaniesErrors.SharedContactRequiresSharedActiveLocation);
-            }
+            company.EnsureActiveSharedContactsUseActiveLocations();
 
             await companies.SaveAsync(company, cancellationToken);
             await dispatcher.PublishAsync(

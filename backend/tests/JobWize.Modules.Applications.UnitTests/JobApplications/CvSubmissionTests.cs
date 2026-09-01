@@ -8,6 +8,7 @@ using JobWize.Runtime.Contracts.Dispatching;
 using JobWize.Runtime.Contracts.Notifications;
 using JobWize.Runtime.Contracts.Requests;
 using JobWize.Shared.Application.Results;
+using JobWize.Shared.Errors;
 using JobWize.Shared.Application.Security;
 using Microsoft.EntityFrameworkCore;
 using RecordCvSubmissionFeature = JobWize.Modules.Applications.Application.JobApplications.RecordCvSubmission;
@@ -64,7 +65,8 @@ public sealed class CvSubmissionTests
                 (fileId, "cv.pdf", "application/pdf", 100)
             ]);
 
-        act.Should().Throw<ArgumentException>().WithParameterName("documents");
+        act.Should().Throw<BusinessRuleException>()
+            .Which.Error.Should().Be(DomainErrors.DuplicateCvSubmissionDocument);
         application.CvSubmissions.Should().BeEmpty();
     }
 

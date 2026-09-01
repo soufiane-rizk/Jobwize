@@ -1,6 +1,7 @@
 using JobWize.Modules.Identity.Domain.Entities;
 using JobWize.Modules.Identity.Domain.Enums;
 using JobWize.Shared.Domain;
+using JobWize.Shared.Errors;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -35,10 +36,10 @@ namespace JobWize.Modules.Identity.Domain
             string firstName,
             string lastName)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(email, nameof(email));
-            ArgumentException.ThrowIfNullOrWhiteSpace(passwordHash, nameof(passwordHash));
-            ArgumentException.ThrowIfNullOrWhiteSpace(firstName, nameof(firstName));
-            ArgumentException.ThrowIfNullOrWhiteSpace(lastName, nameof(lastName));
+            EnsureRequired(email);
+            EnsureRequired(passwordHash);
+            EnsureRequired(firstName);
+            EnsureRequired(lastName);
 
             return new User
             {
@@ -58,8 +59,8 @@ namespace JobWize.Modules.Identity.Domain
 
         public static User CreateSuperAdmin(string email, string passwordHash)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(email, nameof(email));
-            ArgumentException.ThrowIfNullOrWhiteSpace(passwordHash, nameof(passwordHash));
+            EnsureRequired(email);
+            EnsureRequired(passwordHash);
 
             return new User
             {
@@ -85,10 +86,10 @@ namespace JobWize.Modules.Identity.Domain
 
         public static User CreateAdmin(string email, string passwordHash, string firstName, string lastName)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(email);
-            ArgumentException.ThrowIfNullOrWhiteSpace(passwordHash);
-            ArgumentException.ThrowIfNullOrWhiteSpace(firstName);
-            ArgumentException.ThrowIfNullOrWhiteSpace(lastName);
+            EnsureRequired(email);
+            EnsureRequired(passwordHash);
+            EnsureRequired(firstName);
+            EnsureRequired(lastName);
 
             return new User { Id = Guid.NewGuid(), Email = email, PasswordHash = passwordHash, FirstName = firstName, LastName = lastName, Role = UserRole.Admin, Status = UserStatus.Active, MustChangePassword = true };
         }
@@ -103,8 +104,8 @@ namespace JobWize.Modules.Identity.Domain
 
         public void UpdatePersonalInformation(string firstName, string lastName)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(firstName, nameof(firstName));
-            ArgumentException.ThrowIfNullOrWhiteSpace(lastName, nameof(lastName));
+            EnsureRequired(firstName);
+            EnsureRequired(lastName);
 
             FirstName = firstName;
             LastName = lastName;
@@ -117,7 +118,7 @@ namespace JobWize.Modules.Identity.Domain
 
         public void ChangePassword(string passwordHash)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(passwordHash, nameof(passwordHash));
+            EnsureRequired(passwordHash);
 
             PasswordHash = passwordHash;
             MustChangePassword = false;
@@ -141,6 +142,14 @@ namespace JobWize.Modules.Identity.Domain
             }
 
             refreshToken.Revoke(revokedAt);
+        }
+
+        private static void EnsureRequired(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                throw new BusinessRuleException(DomainErrors.RequiredValue);
+            }
         }
     }
 }

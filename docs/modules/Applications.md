@@ -40,6 +40,8 @@ The current API is protected by authentication:
 
 Commands publish integration events for application creation, status changes, notes, CV submissions, interview scheduling, interview results, reminder creation, and reminder state changes.
 
+Domain invariants are represented by `DomainErrors` in the Applications Domain namespace. Domain Models throw `BusinessRuleException` with those errors; the shared exception behavior maps them to failed results. Application errors remain reserved for request orchestration, authorization, missing aggregates, and cross-module projection checks.
+
 ## CV Submissions
 
 The application details screen can record a submission using one or more active documents from the candidate's Files library. Job-posting applications default to the job-portal channel; spontaneous applications default to email. Both application kinds support all channels and an optional company contact. The recipient picker searches contacts for the application’s existing company; when no suitable contact exists, the candidate can create a private contact in place and use it immediately.

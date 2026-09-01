@@ -113,18 +113,6 @@ public static class ScheduleInterview
                     ApplicationsErrors.JobApplicationNotFound);
             }
 
-            if (application.Status is ApplicationStatus.Draft or ApplicationStatus.Planned)
-            {
-                return Result<ScheduleInterviewContract.Response>.Failure(
-                    ApplicationsErrors.ApplicationMustBeSentBeforeInterview);
-            }
-
-            if (application.Status is not (ApplicationStatus.Applied or ApplicationStatus.InProcess))
-            {
-                return Result<ScheduleInterviewContract.Response>.Failure(
-                    ApplicationsErrors.CannotScheduleInterviewForCurrentStatus);
-            }
-
             Result<IReadOnlyList<InterviewParticipantSnapshot>> participantSnapshots =
                 await InterviewParticipantSnapshots.CreateAsync(
                     dbContext,

@@ -20,6 +20,8 @@ Candidates can open a company details page that shows the company profile, its l
 
 Contacts are currently reusable company data and may optionally reference a company location. Binding contacts to interviews, CV deliveries, recruiters, and hiring managers remains deferred to those workflows.
 
+Company aggregate invariants are catalogued in the Companies Domain `DomainErrors` class and raised as `BusinessRuleException` instances. Application errors remain focused on authorization, aggregate lookup, and request orchestration.
+
 ## Module boundary
 
 Companies owns its `companies` schema, persistence, contracts, domain model, and candidate-facing endpoints. Other modules must use these public endpoints/contracts and must not query the Companies database directly.

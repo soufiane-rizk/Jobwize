@@ -81,12 +81,6 @@ public static class UpdateReminderState
                 return Result<bool>.Failure(ApplicationsErrors.ReminderNotFound);
             }
 
-            if (reminder.State != ReminderState.Open ||
-                command.State is not (ReminderState.Completed or ReminderState.Dismissed))
-            {
-                return Result<bool>.Failure(ApplicationsErrors.ReminderCannotChangeState);
-            }
-
             application.ChangeReminderState(command.ReminderId, command.State);
 
             await applications.SaveAsync(application, cancellationToken);

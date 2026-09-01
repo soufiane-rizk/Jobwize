@@ -1,4 +1,5 @@
 using JobWize.Shared.Application.Results;
+using JobWize.Shared.Errors;
 using System;
 using System.Collections.Generic;
 using System.Text;

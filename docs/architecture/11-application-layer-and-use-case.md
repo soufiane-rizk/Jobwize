@@ -129,7 +129,7 @@ Additional behaviors, such as authorization, logging, metrics or caching, can be
 
 ## ExceptionHandlingBehavior
 
-`ExceptionHandlingBehavior` is the outermost application behavior. It catches unexpected exceptions raised while a use case is being dispatched, logs them, and returns the shared unexpected-failure `Result`.
+`ExceptionHandlingBehavior` is the outermost application behavior. It maps expected `BusinessRuleException` instances raised by Domain Models into failed results containing their domain errors. Other exceptions are logged and converted into the shared unexpected-failure `Result`.
 
 This behavior does not replace ASP.NET Core exception handling. The API's global exception handler remains the final safety net for failures that occur outside the dispatcher scope.
 
@@ -301,7 +301,7 @@ Errors should be declared once and reused throughout the application.
 
 # Exceptions
 
-Exceptions represent situations that cannot be expressed as expected application results.
+Exceptions represent situations that cannot be expressed as expected application results, except for `BusinessRuleException`, which is the standard transport from a Domain Model invariant to the result pipeline.
 
 Typical examples include:
 
@@ -310,7 +310,7 @@ Typical examples include:
 -   Invalid application state.
 -   Programming errors.
 
-Exceptions raised during dispatcher execution are converted into the shared unexpected-failure `Result` by `ExceptionHandlingBehavior`. Exceptions outside that scope are handled by the API's global exception handler. In both cases, clients receive the same safe problem-details error contract rather than exception details.
+Business-rule exceptions raised during dispatcher execution are converted into their exact failed `Result` by `ExceptionHandlingBehavior`. Other exceptions raised during dispatcher execution are converted into the shared unexpected-failure result. Exceptions outside that scope are handled by the API's global exception handler. In all cases, clients receive the same safe problem-details error contract rather than exception details.
 
 ---
 

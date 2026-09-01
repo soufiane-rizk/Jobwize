@@ -207,11 +207,11 @@ Every failure contains:
 
 The frontend reads this contract and maps it back to its client-side `Result` abstraction. The `code` extension is therefore part of the API contract and must remain available when error handling evolves.
 
-## Unexpected Exceptions
+## Dispatcher Exceptions
 
-Unexpected exceptions are handled at two boundaries:
+Exceptions are handled at two boundaries:
 
-1. `ExceptionHandlingBehavior` converts an exception raised while dispatching a use case into the shared unexpected-failure result. This preserves the normal result contract for application execution.
+1. `ExceptionHandlingBehavior` converts a `BusinessRuleException` raised by a Domain Model into a failed `Result` containing its domain `Error`. These are expected business outcomes and are not logged as unhandled errors. Other exceptions raised while dispatching a use case are logged and converted into the shared unexpected-failure result.
 2. `GlobalExceptionHandler` is the final HTTP safety net for exceptions outside the dispatcher scope, such as middleware or endpoint failures. It logs the exception and returns the same safe problem-details shape with a 500 status when the response has not already started.
 
 Exception details must not be exposed to API consumers. Diagnostic information belongs in server-side logs.

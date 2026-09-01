@@ -1,4 +1,5 @@
 using JobWize.Shared.Application.Results;
+using JobWize.Shared.Errors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;

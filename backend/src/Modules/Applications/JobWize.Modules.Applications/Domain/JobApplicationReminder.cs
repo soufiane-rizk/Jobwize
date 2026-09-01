@@ -1,5 +1,6 @@
 using JobWize.Modules.Applications.Contracts.Public.Reminders;
 using JobWize.Shared.Domain;
+using JobWize.Shared.Errors;
 
 namespace JobWize.Modules.Applications.Domain;
 
@@ -27,16 +28,19 @@ public sealed class JobApplicationReminder : Entity
         DateTime dueAt,
         string? note)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(title);
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            throw new BusinessRuleException(DomainErrors.ReminderTitleRequired);
+        }
 
         if (dueAt == default)
         {
-            throw new ArgumentException("A reminder due date is required.", nameof(dueAt));
+            throw new BusinessRuleException(DomainErrors.ReminderDueAtRequired);
         }
 
         if (!HasValidRelation(kind, cvSubmissionId, interviewId))
         {
-            throw new ArgumentException("The reminder relation is invalid.");
+            throw new BusinessRuleException(DomainErrors.ReminderRelationInvalid);
         }
 
         return new JobApplicationReminder
@@ -57,12 +61,12 @@ public sealed class JobApplicationReminder : Entity
     {
         if (State != ReminderState.Open)
         {
-            throw new InvalidOperationException("Only an open reminder can be completed or dismissed.");
+            throw new BusinessRuleException(DomainErrors.ReminderCannotChangeState);
         }
 
         if (state is not (ReminderState.Completed or ReminderState.Dismissed))
         {
-            throw new ArgumentException("Select completed or dismissed as the reminder state.", nameof(state));
+            throw new BusinessRuleException(DomainErrors.ReminderStateInvalid);
         }
 
         State = state;

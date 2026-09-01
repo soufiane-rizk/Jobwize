@@ -89,33 +89,25 @@ public static class CreateCompanyContact
                     CompaniesErrors.CompanyNotFound);
             }
 
-            try
-            {
-                Domain.CompanyContact contact = company.AddPrivateContact(
-                    userContext.UserId,
-                    command.CompanyLocationId,
-                    command.Name,
-                    command.RoleTitle,
-                    command.Email,
-                    command.PhoneNumber);
+            Domain.CompanyContact contact = company.AddPrivateContact(
+                userContext.UserId,
+                command.CompanyLocationId,
+                command.Name,
+                command.RoleTitle,
+                command.Email,
+                command.PhoneNumber);
 
-                await companies.SaveAsync(company, cancellationToken);
+            await companies.SaveAsync(company, cancellationToken);
 
-                await dispatcher.PublishAsync(
-                    new CompanyContactCreated(
-                        company.Id,
-                        contact.Id,
-                        userContext.UserId),
-                    cancellationToken);
+            await dispatcher.PublishAsync(
+                new CompanyContactCreated(
+                    company.Id,
+                    contact.Id,
+                    userContext.UserId),
+                cancellationToken);
 
-                return Result<Contracts.Public.CompanyContacts.CreateCompanyContact.Response>.Success(
-                    new Contracts.Public.CompanyContacts.CreateCompanyContact.Response(contact.Id));
-            }
-            catch (ArgumentException)
-            {
-                return Result<Contracts.Public.CompanyContacts.CreateCompanyContact.Response>.Failure(
-                    CompaniesErrors.CompanyLocationNotFound);
-            }
+            return Result<Contracts.Public.CompanyContacts.CreateCompanyContact.Response>.Success(
+                new Contracts.Public.CompanyContacts.CreateCompanyContact.Response(contact.Id));
         }
     }
 }

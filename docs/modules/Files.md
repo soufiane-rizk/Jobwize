@@ -16,6 +16,8 @@ Files support bindings from an asset to a consuming resource and usage, such as 
 
 The module publishes document-uploaded and document-archived integration events.
 
+File aggregate invariants are catalogued in the Files Domain `DomainErrors` class and raised as `BusinessRuleException` instances. The shared dispatcher behavior maps those errors to the normal failed-result contract.
+
 ## Deferred Work
 
 - Referential integrity checks before a retention-policy-driven physical purge

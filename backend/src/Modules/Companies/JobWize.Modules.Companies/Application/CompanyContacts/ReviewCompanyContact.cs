@@ -99,55 +99,34 @@ public static class ReviewCompanyContact
                 return Result<bool>.Failure(CompaniesErrors.CompanyNotFound);
             }
 
-            try
+            if (command.Approved)
             {
-                if (command.Approved)
-                {
-                    if (company.Visibility != CompanyVisibility.Shared)
-                    {
-                        return Result<bool>.Failure(CompaniesErrors.CompanyMustBeSharedBeforeContactApproval);
-                    }
-
-                    if (!company.IsSharedActiveLocation(command.CompanyLocationId))
-                    {
-                        return Result<bool>.Failure(CompaniesErrors.SharedContactRequiresSharedActiveLocation);
-                    }
-
-                    company.ApproveContact(
-                        command.Id,
-                        userContext.UserId,
-                        DateTime.UtcNow,
-                        command.Reason,
-                        command.CompanyLocationId,
-                        command.Name!,
-                        command.RoleTitle,
-                        command.Email,
-                        command.PhoneNumber);
-                }
-                else
-                {
-                    company.RejectContact(
-                        command.Id,
-                        userContext.UserId,
-                        DateTime.UtcNow,
-                        command.Reason!);
-                }
-
-                await companies.SaveAsync(company, cancellationToken);
-                await dispatcher.PublishAsync(
-                    new CompanyContactReviewed(company.Id, command.Id, userContext.UserId),
-                    cancellationToken);
-
-                return Result<bool>.Success(true);
+                company.ApproveContact(
+                    command.Id,
+                    userContext.UserId,
+                    DateTime.UtcNow,
+                    command.Reason,
+                    command.CompanyLocationId,
+                    command.Name!,
+                    command.RoleTitle,
+                    command.Email,
+                    command.PhoneNumber);
             }
-            catch (ArgumentException)
+            else
             {
-                return Result<bool>.Failure(CompaniesErrors.CompanyLocationNotFound);
+                company.RejectContact(
+                    command.Id,
+                    userContext.UserId,
+                    DateTime.UtcNow,
+                    command.Reason!);
             }
-            catch (InvalidOperationException)
-            {
-                return Result<bool>.Failure(CompaniesErrors.CompanyContactNotFound);
-            }
+
+            await companies.SaveAsync(company, cancellationToken);
+            await dispatcher.PublishAsync(
+                new CompanyContactReviewed(company.Id, command.Id, userContext.UserId),
+                cancellationToken);
+
+            return Result<bool>.Success(true);
         }
     }
 }
