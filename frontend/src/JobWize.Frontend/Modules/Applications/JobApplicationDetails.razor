@@ -3,6 +3,7 @@
 
 @using JobWize.Modules.Applications.Contracts.Public.JobApplications
 @using JobWize.Modules.Applications.Contracts.Public.Interviews
+@using JobWize.Modules.Applications.Contracts.Public.Reminders
 @using JobWize.Frontend.Modules.Files
 
 @inject JobApplicationService JobApplicationService
@@ -81,7 +82,78 @@ else if (_application is not null)
                         <MudMenuItem OnClick="OpenScheduleInterviewDialogAsync">Schedule interview</MudMenuItem>
                     }
                     <MudMenuItem OnClick="OpenCvSubmissionDialogAsync">Record CV submission</MudMenuItem>
+                    <MudMenuItem OnClick="OpenReminderDialogAsync">Add reminder</MudMenuItem>
                 </MudMenu>
+            </MudPaper>
+        }
+
+        @if (_application.Reminders.Count > 0)
+        {
+            <MudPaper Class="pa-6">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                    <MudText Typo="Typo.h6">Reminders</MudText>
+                    <MudSpacer />
+                    <MudButton
+                        Variant="Variant.Text"
+                        StartIcon="@Icons.Material.Filled.CalendarMonth"
+                        Href="@ApplicationsRoutes.Agenda">
+                        Open agenda
+                    </MudButton>
+                </MudStack>
+
+                <MudStack Spacing="2">
+                    @foreach (GetJobApplication.ReminderItem reminder in _application.Reminders)
+                    {
+                        <MudPaper Outlined="true" Class="pa-4">
+                            <MudStack Row="true" AlignItems="AlignItems.Center">
+                                <div>
+                                    <MudText Typo="Typo.subtitle1">@reminder.Title</MudText>
+                                    <MudText Typo="Typo.caption">
+                                        @GetReminderKindLabel(reminder.Kind) · @reminder.DueAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")
+                                    </MudText>
+                                    @if (GetReminderRelationLabel(reminder) is string relationLabel)
+                                    {
+                                        <MudText Typo="Typo.caption" Class="d-block">
+                                            @relationLabel
+                                        </MudText>
+                                    }
+                                </div>
+                                <MudSpacer />
+                                <MudChip
+                                    T="string"
+                                    Value="@reminder.State.ToString()"
+                                    Size="Size.Small"
+                                    Color="@GetReminderStateColor(reminder.State)">
+                                    @reminder.State
+                                </MudChip>
+                            </MudStack>
+
+                            @if (!string.IsNullOrWhiteSpace(reminder.Note))
+                            {
+                                <MudText Typo="Typo.body2" Class="mt-2">@reminder.Note</MudText>
+                            }
+
+                            @if (reminder.State == ReminderState.Open)
+                            {
+                                <MudStack Row="true" Spacing="1" Class="mt-2">
+                                    <MudButton
+                                        Size="Size.Small"
+                                        Color="Color.Success"
+                                        Variant="Variant.Outlined"
+                                        OnClick="@(() => ChangeReminderStateAsync(reminder, ReminderState.Completed))">
+                                        Complete
+                                    </MudButton>
+                                    <MudButton
+                                        Size="Size.Small"
+                                        Variant="Variant.Text"
+                                        OnClick="@(() => ChangeReminderStateAsync(reminder, ReminderState.Dismissed))">
+                                        Dismiss
+                                    </MudButton>
+                                </MudStack>
+                            }
+                        </MudPaper>
+                    }
+                </MudStack>
             </MudPaper>
         }
 
@@ -96,15 +168,35 @@ else if (_application is not null)
                             <MudStack Row="true" AlignItems="AlignItems.Center">
                                 <MudText Typo="Typo.subtitle1">@GetInterviewTypeLabel(interview.Type)</MudText>
                                 <MudSpacer />
-                                <MudChip T="string" Value="@interview.State.ToString()" Size="Size.Small" Color="@GetInterviewStateColor(interview.State)" Variant="Variant.Text">@interview.State</MudChip>
+                                <MudChip
+                                    T="string"
+                                    Value="@interview.State.ToString()"
+                                    Size="Size.Small"
+                                    Color="@GetInterviewStateColor(interview.State)"
+                                    Variant="Variant.Text">
+                                    @interview.State
+                                </MudChip>
                             </MudStack>
                             @if (interview.State == InterviewState.Scheduled && _application.Status != ApplicationStatus.Archived)
                             {
-                                <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="@(() => EditInterviewAsync(interview))">Edit</MudButton>
-                                <MudButton Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled" OnClick="@(() => OpenInterviewResultDialogAsync(interview))">Record result</MudButton>
+                                <MudButton
+                                    Size="Size.Small"
+                                    Variant="Variant.Outlined"
+                                    OnClick="@(() => EditInterviewAsync(interview))">
+                                    Edit
+                                </MudButton>
+                                <MudButton
+                                    Size="Size.Small"
+                                    Color="Color.Primary"
+                                    Variant="Variant.Filled"
+                                    OnClick="@(() => OpenInterviewResultDialogAsync(interview))">
+                                    Record result
+                                </MudButton>
                             }
                             <MudText Typo="Typo.body2" Class="mt-2">@interview.ScheduledAt.ToLocalTime().ToString("dddd, dd MMM yyyy · HH:mm")</MudText>
-                            <MudText Typo="Typo.caption">@interview.Format@(interview.DurationMinutes is null ? "" : $" · {interview.DurationMinutes} min")</MudText>
+                            <MudText Typo="Typo.caption">
+                                @interview.Format@(interview.DurationMinutes is null ? "" : $" · {interview.DurationMinutes} min")
+                            </MudText>
                             @if (!string.IsNullOrWhiteSpace(interview.Location))
                             {
                                 <MudText Typo="Typo.body2">@interview.Location</MudText>
@@ -175,9 +267,19 @@ else if (_application is not null)
                 @foreach (GetJobApplication.ActivityItem item in _application.Activities)
                 {
                     <MudTimelineItem Color="@GetActivityColor(item.Type)">
-                        <MudChip T="string" Value="@GetActivityLabel(item)" Size="Size.Small" Color="@GetActivityColor(item.Type)" Variant="Variant.Text">@GetActivityLabel(item)</MudChip>
+                        <MudChip
+                            T="string"
+                            Value="@GetActivityLabel(item)"
+                            Size="Size.Small"
+                            Color="@GetActivityColor(item.Type)"
+                            Variant="Variant.Text">
+                            @GetActivityLabel(item)
+                        </MudChip>
                         <MudText Typo="Typo.caption">@item.OccurredAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</MudText>
-                        @if (!string.IsNullOrWhiteSpace(item.Note)) { <MudText>@item.Note</MudText> }
+                        @if (!string.IsNullOrWhiteSpace(item.Note))
+                        {
+                            <MudText>@item.Note</MudText>
+                        }
                     </MudTimelineItem>
                 }
             </MudTimeline>
@@ -186,7 +288,8 @@ else if (_application is not null)
 }
 
 @code {
-    [Parameter] public Guid Id { get; set; }
+    [Parameter]
+    public Guid Id { get; set; }
 
     private GetJobApplication.Response? _application;
     private Error? _error;
@@ -276,21 +379,51 @@ else if (_application is not null)
             [nameof(InterviewDialog.CompanyLocationId)] = _application.CompanyLocationId,
             [nameof(InterviewDialog.Interview)] = interview
         };
-        var dialog = await DialogService.ShowAsync<InterviewDialog>("Edit interview", parameters);
-        var result = await dialog.Result;
-        if (result is not null && !result.Canceled) await LoadAsync();
+        IDialogReference dialog = await DialogService.ShowAsync<InterviewDialog>(
+            "Edit interview",
+            parameters);
+        DialogResult? result = await dialog.Result;
+
+        if (result is not null && !result.Canceled)
+        {
+            await LoadAsync();
+        }
     }
 
     private async Task OpenNoteDialogAsync()
     {
-        var dialog = await DialogService.ShowAsync<NoteDialog>("Add note", new DialogParameters { [nameof(NoteDialog.ApplicationId)] = Id });
-        if ((await dialog.Result) is { Canceled: false }) await LoadAsync();
+        var parameters = new DialogParameters
+        {
+            [nameof(NoteDialog.ApplicationId)] = Id
+        };
+
+        IDialogReference dialog = await DialogService.ShowAsync<NoteDialog>(
+            "Add note",
+            parameters);
+
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await LoadAsync();
+        }
     }
 
     private async Task OpenStatusDialogAsync()
     {
-        var dialog = await DialogService.ShowAsync<ChangeStatusDialog>("Change status", new DialogParameters { [nameof(ChangeStatusDialog.ApplicationId)] = Id, [nameof(ChangeStatusDialog.CurrentStatus)] = _application!.Status, [nameof(ChangeStatusDialog.AllowedNextStatuses)] = _application.AllowedNextStatuses });
-        if ((await dialog.Result) is { Canceled: false }) await LoadAsync();
+        var parameters = new DialogParameters
+        {
+            [nameof(ChangeStatusDialog.ApplicationId)] = Id,
+            [nameof(ChangeStatusDialog.CurrentStatus)] = _application!.Status,
+            [nameof(ChangeStatusDialog.AllowedNextStatuses)] = _application.AllowedNextStatuses
+        };
+
+        IDialogReference dialog = await DialogService.ShowAsync<ChangeStatusDialog>(
+            "Change status",
+            parameters);
+
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await LoadAsync();
+        }
     }
 
     private async Task OpenScheduleInterviewDialogAsync()
@@ -302,8 +435,60 @@ else if (_application is not null)
             [nameof(InterviewDialog.CompanyLocationId)] = _application.CompanyLocationId
         };
 
-        var dialog = await DialogService.ShowAsync<InterviewDialog>("Schedule interview", parameters);
-        if ((await dialog.Result) is { Canceled: false }) await LoadAsync();
+        IDialogReference dialog = await DialogService.ShowAsync<InterviewDialog>(
+            "Schedule interview",
+            parameters);
+
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private static Color GetReminderStateColor(ReminderState state)
+    {
+        return state switch
+        {
+            ReminderState.Open => Color.Warning,
+            ReminderState.Completed => Color.Success,
+            ReminderState.Dismissed => Color.Default,
+            _ => Color.Default
+        };
+    }
+
+    private static string GetReminderKindLabel(ReminderKind kind)
+    {
+        return kind switch
+        {
+            ReminderKind.CvSubmission => "CV submission",
+            ReminderKind.Interview => "Interview",
+            _ => "Custom"
+        };
+    }
+
+    private string? GetReminderRelationLabel(GetJobApplication.ReminderItem reminder)
+    {
+        if (reminder.CvSubmissionId is Guid submissionId)
+        {
+            GetJobApplication.CvSubmissionItem? submission = _application!.CvSubmissions
+                .SingleOrDefault(item => item.Id == submissionId);
+
+            return submission is null
+                ? "Related CV submission"
+                : $"CV submitted {submission.SentAt.ToLocalTime():dd MMM yyyy, HH:mm}";
+        }
+
+        if (reminder.InterviewId is Guid interviewId)
+        {
+            GetJobApplication.InterviewItem? interview = _application!.Interviews
+                .SingleOrDefault(item => item.Id == interviewId);
+
+            return interview is null
+                ? "Related interview"
+                : $"{GetInterviewTypeLabel(interview.Type)} · {interview.ScheduledAt.ToLocalTime():dd MMM yyyy, HH:mm}";
+        }
+
+        return null;
     }
 
     private async Task OpenCvSubmissionDialogAsync()
@@ -324,6 +509,41 @@ else if (_application is not null)
         {
             await LoadAsync();
         }
+    }
+
+    private async Task OpenReminderDialogAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(ReminderDialog.ApplicationId)] = Id,
+            [nameof(ReminderDialog.CvSubmissions)] = _application!.CvSubmissions,
+            [nameof(ReminderDialog.Interviews)] = _application.Interviews
+        };
+
+        IDialogReference dialog = await DialogService.ShowAsync<ReminderDialog>(
+            "Add reminder",
+            parameters);
+
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task ChangeReminderStateAsync(
+        GetJobApplication.ReminderItem reminder,
+        ReminderState state)
+    {
+        Result<bool> result = await JobApplicationService.UpdateReminderStateAsync(
+            new(Id, reminder.Id, state));
+
+        if (result.IsFailure)
+        {
+            Snackbar.Add(result.Error?.Message ?? "Unable to update the reminder.", Severity.Error);
+            return;
+        }
+
+        await LoadAsync();
     }
 
     private async Task DownloadSubmissionDocumentAsync(
@@ -387,10 +607,13 @@ else if (_application is not null)
             [nameof(InterviewResultDialog.InterviewId)] = interview.Id
         };
 
-        var dialog = await DialogService.ShowAsync<InterviewResultDialog>(
+        IDialogReference dialog = await DialogService.ShowAsync<InterviewResultDialog>(
             "Record interview result",
             parameters);
 
-        if ((await dialog.Result) is { Canceled: false }) await LoadAsync();
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await LoadAsync();
+        }
     }
 }

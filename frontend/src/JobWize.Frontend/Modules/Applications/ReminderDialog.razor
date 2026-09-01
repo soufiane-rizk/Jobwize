@@ -1,0 +1,205 @@
+@using JobWize.Modules.Applications.Contracts.Public.JobApplications
+@using JobWize.Modules.Applications.Contracts.Public.Reminders
+@using CreateReminderContract = JobWize.Modules.Applications.Contracts.Public.Reminders.CreateReminder
+
+@inject JobApplicationService JobApplicationService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Add reminder</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="2">
+            <MudSelect
+                T="ReminderKind"
+                Value="_kind"
+                ValueChanged="ChangeKind"
+                Label="Regarding">
+                <MudSelectItem Value="ReminderKind.CvSubmission">CV submission</MudSelectItem>
+                <MudSelectItem Value="ReminderKind.Interview">Interview</MudSelectItem>
+                <MudSelectItem Value="ReminderKind.Custom">Custom</MudSelectItem>
+            </MudSelect>
+
+            @if (_kind == ReminderKind.CvSubmission)
+            {
+                <MudSelect
+                    T="Guid?"
+                    @bind-Value="_cvSubmissionId"
+                    Label="CV submission"
+                    Required="true"
+                    Error="@(_showValidation && _cvSubmissionId is null)"
+                    ErrorText="Select a CV submission.">
+                    @foreach (GetJobApplication.CvSubmissionItem submission in CvSubmissions)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)submission.Id)">
+                            @GetSubmissionLabel(submission)
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+
+                @if (CvSubmissions.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Warning">
+                        Record a CV submission before creating this type of reminder.
+                    </MudAlert>
+                }
+            }
+
+            @if (_kind == ReminderKind.Interview)
+            {
+                <MudSelect
+                    T="Guid?"
+                    @bind-Value="_interviewId"
+                    Label="Interview"
+                    Required="true"
+                    Error="@(_showValidation && _interviewId is null)"
+                    ErrorText="Select an interview.">
+                    @foreach (GetJobApplication.InterviewItem interview in Interviews)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)interview.Id)">
+                            @GetInterviewLabel(interview)
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+
+                @if (Interviews.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Warning">
+                        Schedule an interview before creating this type of reminder.
+                    </MudAlert>
+                }
+            }
+
+            <MudTextField
+                @bind-Value="_title"
+                Label="Title"
+                Required="true"
+                Error="@(_showValidation && string.IsNullOrWhiteSpace(_title))"
+                ErrorText="Title is required." />
+
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudDatePicker
+                        @bind-Date="_dueDate"
+                        Label="Due date"
+                        Required="true"
+                        Error="@(_showValidation && _dueDate is null)"
+                        ErrorText="Due date is required." />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField
+                        @bind-Value="_dueTime"
+                        Label="Due time"
+                        InputType="InputType.Time"
+                        Required="true"
+                        Error="@(_showValidation && !TimeOnly.TryParse(_dueTime, out _))"
+                        ErrorText="A valid time is required." />
+                </MudItem>
+            </MudGrid>
+
+            <MudTextField @bind-Value="_note" Label="Note (optional)" Lines="3" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="MudDialog.Cancel">Cancel</MudButton>
+        <MudButton
+            Color="Color.Primary"
+            Variant="Variant.Filled"
+            Disabled="@_saving"
+            OnClick="SaveAsync">
+            Add reminder
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public Guid ApplicationId { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<GetJobApplication.CvSubmissionItem> CvSubmissions { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyList<GetJobApplication.InterviewItem> Interviews { get; set; } = [];
+
+    private ReminderKind _kind = ReminderKind.Custom;
+    private Guid? _cvSubmissionId;
+    private Guid? _interviewId;
+    private string _title = "Follow up";
+    private DateTime? _dueDate = DateTime.Today.AddDays(1);
+    private string _dueTime = "09:00";
+    private string? _note;
+    private bool _showValidation;
+    private bool _saving;
+
+    private void ChangeKind(ReminderKind kind)
+    {
+        _kind = kind;
+        _cvSubmissionId = null;
+        _interviewId = null;
+        _title = kind switch
+        {
+            ReminderKind.CvSubmission => "Follow up on CV submission",
+            ReminderKind.Interview => "Prepare for interview",
+            _ => "Follow up"
+        };
+    }
+
+    private async Task SaveAsync()
+    {
+        _showValidation = true;
+
+        if (_dueDate is null ||
+            !TimeOnly.TryParse(_dueTime, out TimeOnly dueTime) ||
+            string.IsNullOrWhiteSpace(_title) ||
+            (_kind == ReminderKind.CvSubmission && _cvSubmissionId is null) ||
+            (_kind == ReminderKind.Interview && _interviewId is null))
+        {
+            return;
+        }
+
+        DateTime dueAt = DateTime.SpecifyKind(
+                _dueDate.Value.Date.Add(dueTime.ToTimeSpan()),
+                DateTimeKind.Local)
+            .ToUniversalTime();
+
+        _saving = true;
+
+        Result<CreateReminderContract.Response> result =
+            await JobApplicationService.CreateReminderAsync(new(
+                ApplicationId,
+                _kind,
+                _cvSubmissionId,
+                _interviewId,
+                _title,
+                dueAt,
+                _note));
+
+        _saving = false;
+
+        if (result.IsFailure)
+        {
+            Snackbar.Add(result.Error?.Message ?? "Unable to create the reminder.", Severity.Error);
+            return;
+        }
+
+        Snackbar.Add("Reminder added.", Severity.Success);
+        MudDialog.Close(DialogResult.Ok(result.Value!.ReminderId));
+    }
+
+    private static string GetSubmissionLabel(GetJobApplication.CvSubmissionItem submission)
+    {
+        string recipient = string.IsNullOrWhiteSpace(submission.ContactName)
+            ? string.Empty
+            : $" to {submission.ContactName}";
+
+        return $"{submission.SentAt.ToLocalTime():dd MMM yyyy, HH:mm} · {submission.Method}{recipient}";
+    }
+
+    private static string GetInterviewLabel(GetJobApplication.InterviewItem interview) =>
+        $"{interview.Type} · {interview.ScheduledAt.ToLocalTime():dd MMM yyyy, HH:mm}";
+}

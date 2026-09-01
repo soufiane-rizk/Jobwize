@@ -48,4 +48,19 @@ public static class ApplicationsErrors
         "Applications.CandidateDocumentNotAvailable",
         "One or more selected documents are not available.",
         ErrorType.Validation);
+
+    public static readonly Error InvalidReminderRelation = new(
+        "Applications.InvalidReminderRelation",
+        "Select exactly the related CV submission or interview required by the reminder type.",
+        ErrorType.Validation);
+
+    public static readonly Error ReminderNotFound = new(
+        "Applications.ReminderNotFound",
+        "The requested reminder was not found.",
+        ErrorType.NotFound);
+
+    public static readonly Error ReminderCannotChangeState = new(
+        "Applications.ReminderCannotChangeState",
+        "Only an open reminder can be completed or dismissed.",
+        ErrorType.Validation);
 }

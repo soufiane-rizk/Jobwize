@@ -1,5 +1,6 @@
 using JobWize.Modules.Applications.Contracts.Public.JobApplications;
 using JobWize.Modules.Applications.Contracts.Public.Interviews;
+using JobWize.Modules.Applications.Contracts.Public.Reminders;
 using JobWize.Shared.Domain;
 
 namespace JobWize.Modules.Applications.Domain;
@@ -23,6 +24,8 @@ public sealed class JobApplication : DomainModel
     public IReadOnlyCollection<JobInterview> Interviews => _interviews.AsReadOnly();
     private readonly List<JobApplicationCvSubmission> _cvSubmissions = [];
     public IReadOnlyCollection<JobApplicationCvSubmission> CvSubmissions => _cvSubmissions.AsReadOnly();
+    private readonly List<JobApplicationReminder> _reminders = [];
+    public IReadOnlyCollection<JobApplicationReminder> Reminders => _reminders.AsReadOnly();
     public IReadOnlyList<ApplicationStatus> AllowedNextStatuses => GetAllowedNextStatuses();
 
     private JobApplication()
@@ -220,6 +223,58 @@ public sealed class JobApplication : DomainModel
         AddActivity(JobApplicationActivity.CreateInterviewResult(Id, state, note));
 
         return replacementInterview ?? interview;
+    }
+
+    public JobApplicationReminder CreateReminder(
+        ReminderKind kind,
+        Guid? cvSubmissionId,
+        Guid? interviewId,
+        string title,
+        DateTime dueAt,
+        string? note)
+    {
+        if (cvSubmissionId is not null &&
+            !_cvSubmissions.Any(item => item.Id == cvSubmissionId))
+        {
+            throw new ArgumentException(
+                "The selected CV submission does not belong to this application.",
+                nameof(cvSubmissionId));
+        }
+
+        if (interviewId is not null &&
+            !_interviews.Any(item => item.Id == interviewId))
+        {
+            throw new ArgumentException(
+                "The selected interview does not belong to this application.",
+                nameof(interviewId));
+        }
+
+        JobApplicationReminder reminder = JobApplicationReminder.Create(
+            Id,
+            kind,
+            cvSubmissionId,
+            interviewId,
+            title,
+            dueAt,
+            note);
+
+        _reminders.Add(reminder);
+
+        return reminder;
+    }
+
+    public bool ChangeReminderState(Guid reminderId, ReminderState state)
+    {
+        JobApplicationReminder? reminder = _reminders.SingleOrDefault(item => item.Id == reminderId);
+
+        if (reminder is null)
+        {
+            return false;
+        }
+
+        reminder.ChangeState(state);
+
+        return true;
     }
 
     private void AddActivity(JobApplicationActivity activity)
