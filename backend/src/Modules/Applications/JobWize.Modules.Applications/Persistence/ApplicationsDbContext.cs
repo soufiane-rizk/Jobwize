@@ -12,6 +12,8 @@ public sealed class ApplicationsDbContext : ModuleDbContext
 
     public DbSet<JobApplication> JobApplications => Set<JobApplication>();
     public DbSet<JobInterview> JobInterviews => Set<JobInterview>();
+    public DbSet<CompanyProjection> CompanyProjections => Set<CompanyProjection>();
+    public DbSet<CompanyLocationProjection> CompanyLocationProjections => Set<CompanyLocationProjection>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

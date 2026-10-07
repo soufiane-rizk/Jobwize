@@ -42,7 +42,8 @@ public sealed class JobApplicationStatusTransitionTests
     {
         return JobApplication.Create(
             Guid.NewGuid(),
-            "Acme",
+            Guid.NewGuid(),
+            null,
             "Developer",
             ApplicationKind.JobPosting,
             status,

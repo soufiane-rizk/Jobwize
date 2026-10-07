@@ -1,0 +1,142 @@
+@using JobWize.Modules.Companies.Contracts.Public.Companies
+
+@inject CandidateCompanyService CandidateCompanyService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            Add a private company for this application. You will be the only candidate who can see it unless it is later approved for the shared catalogue.
+        </MudText>
+
+        <MudTextField @bind-Value="_name" Label="Company name" Required="true" />
+        <MudTextField @bind-Value="_website" Label="Website (optional)" />
+        <MudTextField @bind-Value="_industry" Label="Industry (optional)" />
+        <MudTextField @bind-Value="_description" Label="Description (optional)" Lines="3" />
+
+        <MudDivider Class="my-4" />
+
+        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+            <MudText Typo="Typo.subtitle1">Locations</MudText>
+            <MudSpacer />
+            <MudButton
+                Variant="Variant.Outlined"
+                StartIcon="@Icons.Material.Filled.Add"
+                OnClick="AddLocation">
+                Add location
+            </MudButton>
+        </MudStack>
+
+        @foreach (LocationInput location in _locations)
+        {
+            <MudPaper Outlined="true" Class="pa-3 mb-2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                    <MudText Typo="Typo.subtitle2">Location</MudText>
+                    <MudSpacer />
+                    <MudIconButton
+                        Icon="@Icons.Material.Filled.DeleteOutline"
+                        Color="Color.Error"
+                        AriaLabel="Remove location"
+                        OnClick="@(() => RemoveLocation(location))" />
+                </MudStack>
+
+                <MudTextField @bind-Value="location.Label" Label="Label" Required="true" />
+                <MudTextField @bind-Value="location.City" Label="City" Required="true" />
+                <MudTextField @bind-Value="location.Country" Label="Country" Required="true" />
+                <MudTextField @bind-Value="location.Address" Label="Address (optional)" />
+            </MudPaper>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="MudDialog.Cancel">Cancel</MudButton>
+        <MudButton
+            Color="Color.Primary"
+            Disabled="@_saving"
+            OnClick="SaveAsync">
+            Add company
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public string? InitialName { get; set; }
+
+    private bool _saving;
+    private string? _name;
+    private string? _website;
+    private string? _industry;
+    private string? _description;
+    private readonly List<LocationInput> _locations = [];
+
+    protected override void OnInitialized()
+    {
+        _name = InitialName;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            Snackbar.Add("Company name is required.", Severity.Warning);
+            return;
+        }
+
+        if (_locations.Any(location =>
+                string.IsNullOrWhiteSpace(location.Label) ||
+                string.IsNullOrWhiteSpace(location.City) ||
+                string.IsNullOrWhiteSpace(location.Country)))
+        {
+            Snackbar.Add("Each location needs a label, city, and country.", Severity.Warning);
+            return;
+        }
+
+        _saving = true;
+
+        Result<CreatePrivateCompany.Response> result = await CandidateCompanyService.CreatePrivateAsync(
+            new CreatePrivateCompany.Request(
+                _name,
+                _website,
+                _industry,
+                _description,
+                _locations
+                    .Select(location => new CreatePrivateCompany.Location(
+                        location.Label!,
+                        location.City!,
+                        location.Country!,
+                        location.Address))
+                    .ToList()));
+
+        _saving = false;
+
+        if (!result.IsSuccess || result.Value is null)
+        {
+            Snackbar.Add(result.Error?.Message ?? "Unable to add the company.", Severity.Error);
+            return;
+        }
+
+        MudDialog.Close(DialogResult.Ok(result.Value.Id));
+    }
+
+    private void AddLocation()
+    {
+        _locations.Add(new LocationInput());
+    }
+
+    private void RemoveLocation(LocationInput location)
+    {
+        _locations.Remove(location);
+    }
+
+    private sealed class LocationInput
+    {
+        public string? Label { get; set; }
+
+        public string? City { get; set; }
+
+        public string? Country { get; set; }
+
+        public string? Address { get; set; }
+    }
+}

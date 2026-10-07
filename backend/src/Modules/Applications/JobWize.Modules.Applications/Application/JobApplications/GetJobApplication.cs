@@ -61,6 +61,28 @@ public static class GetJobApplication
                     ApplicationsErrors.JobApplicationNotFound);
             }
 
+            string companyName = application.LegacyCompanyName ?? "Unknown company";
+            string? companyLocationLabel = null;
+
+            if (application.CompanyId is Guid companyId)
+            {
+                companyName = await dbContext.CompanyProjections
+                    .AsNoTracking()
+                    .Where(company => company.Id == companyId)
+                    .Select(company => company.Name)
+                    .SingleOrDefaultAsync(cancellationToken)
+                    ?? companyName;
+            }
+
+            if (application.CompanyLocationId is Guid companyLocationId)
+            {
+                companyLocationLabel = await dbContext.CompanyLocationProjections
+                    .AsNoTracking()
+                    .Where(location => location.Id == companyLocationId)
+                    .Select(location => location.Label)
+                    .SingleOrDefaultAsync(cancellationToken);
+            }
+
             var activities = application.Activities
                 .OrderByDescending(activity => activity.OccurredAt)
                 .Select(activity => new Contracts.Public.JobApplications.GetJobApplication.ActivityItem(
@@ -88,7 +110,8 @@ public static class GetJobApplication
 
             return Result<Contracts.Public.JobApplications.GetJobApplication.Response>.Success(new(
                 application.Id,
-                application.CompanyName,
+                companyName,
+                companyLocationLabel,
                 application.RoleTitle,
                 application.Kind,
                 application.Status,

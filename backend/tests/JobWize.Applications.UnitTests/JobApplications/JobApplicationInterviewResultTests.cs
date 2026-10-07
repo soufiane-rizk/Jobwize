@@ -11,7 +11,7 @@ public sealed class JobApplicationInterviewResultTests
     public void RecordInterviewResult_Should_Create_A_Scheduled_Replacement_When_Postponed()
     {
         JobApplication application = JobApplication.Create(
-            Guid.NewGuid(), "Acme", "Developer",
+            Guid.NewGuid(), Guid.NewGuid(), null, "Developer",
             ApplicationKind.JobPosting,
             ApplicationStatus.InProcess,
             new DateOnly(2026, 8, 27), null, null);

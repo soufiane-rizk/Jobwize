@@ -3,6 +3,7 @@ using JobWize.Modules.Applications.Application.JobApplications;
 using JobWize.Modules.Applications.Contracts.Public.JobApplications;
 using JobWize.Modules.Applications.Domain;
 using JobWize.Modules.Applications.Persistence;
+using JobWize.Modules.Companies.Contracts.Public.Companies;
 using JobWize.Shared.Application.Security;
 using Microsoft.EntityFrameworkCore;
 using GetJobApplicationsFeature = JobWize.Modules.Applications.Application.JobApplications.GetJobApplications;
@@ -23,9 +24,16 @@ public sealed class GetJobApplicationsTests
 
         await using var dbContext = new ApplicationsDbContext(options);
 
+        var acmeCompanyId = Guid.NewGuid();
+        var otherCompanyId = Guid.NewGuid();
+
+        dbContext.CompanyProjections.AddRange(
+            CompanyProjection.CreateOrUpdate(acmeCompanyId, "Acme", CompanyVisibility.Shared, null, true),
+            CompanyProjection.CreateOrUpdate(otherCompanyId, "Other", CompanyVisibility.Shared, null, true));
+
         dbContext.JobApplications.AddRange(
-            JobApplication.Create(candidateId, "Acme", "Backend developer", ApplicationKind.JobPosting, ApplicationStatus.Planned, null, null, null),
-            JobApplication.Create(anotherCandidateId, "Other", "Frontend developer", ApplicationKind.JobPosting, ApplicationStatus.Planned, null, null, null));
+            JobApplication.Create(candidateId, acmeCompanyId, null, "Backend developer", ApplicationKind.JobPosting, ApplicationStatus.Planned, null, null, null),
+            JobApplication.Create(anotherCandidateId, otherCompanyId, null, "Frontend developer", ApplicationKind.JobPosting, ApplicationStatus.Planned, null, null, null));
 
         await dbContext.SaveChangesAsync();
 
@@ -53,7 +61,8 @@ public sealed class GetJobApplicationsTests
 
         JobApplication application = JobApplication.Create(
             Guid.NewGuid(),
-            "Acme",
+            Guid.NewGuid(),
+            null,
             "Backend developer",
             ApplicationKind.JobPosting,
             ApplicationStatus.Planned,
