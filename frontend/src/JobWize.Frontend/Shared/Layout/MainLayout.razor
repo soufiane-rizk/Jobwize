@@ -1,4 +1,4 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 
 @using JobWize.Frontend.Modules.Identity
 @using JobWize.Frontend.Modules.Identity.Authentication
@@ -25,6 +25,12 @@
                 </MudText>
 
                 <MudSpacer />
+
+                <MudTooltip Text="Profile">
+                    <MudIconButton Icon="@Icons.Material.Filled.AccountCircle"
+                                   Color="Color.Inherit"
+                                   OnClick="@(() => Navigation.NavigateTo(IdentityRoutes.Profile))" />
+                </MudTooltip>
 
                 <MudIconButton Icon="@Icons.Material.Filled.Logout"
                                Color="Color.Inherit"

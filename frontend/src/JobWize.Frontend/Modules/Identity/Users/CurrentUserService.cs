@@ -21,5 +21,10 @@ namespace JobWize.Frontend.Modules.Identity.Users
                 new GetCurrentUser.Request(),
                 cancellationToken);
         }
+
+        public Task<Result<bool>> UpdateAsync(UpdateProfile.Request request, CancellationToken cancellationToken = default)
+        {
+            return PutAsync<UpdateProfile.Request, bool>(UpdateProfile.Route, request, cancellationToken);
+        }
     }
 }
