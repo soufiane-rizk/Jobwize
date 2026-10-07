@@ -1,0 +1,210 @@
+@attribute [Route(ApplicationsRoutes.List)]
+@attribute [Authorize]
+
+@using JobWize.Modules.Applications.Contracts.Public.JobApplications
+@using JobWize.Modules.Applications.Contracts.Public.Interviews
+
+@inject JobApplicationService JobApplicationService
+@inject NavigationManager Navigation
+@inject IDialogService DialogService
+
+<PageTitle>Applications</PageTitle>
+
+<MudStack Spacing="3">
+    <MudStack Row="true" AlignItems="AlignItems.Center">
+        <MudText Typo="Typo.h4">Job applications</MudText>
+
+        <MudSpacer />
+
+        <MudButton
+            Color="Color.Primary"
+            Variant="Variant.Filled"
+            StartIcon="@Icons.Material.Filled.Add"
+            OnClick="@(() => Navigation.NavigateTo(ApplicationsRoutes.Create))">
+            New application
+        </MudButton>
+    </MudStack>
+
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error">@_error.Message</MudAlert>
+    }
+    else if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        <MudTable Items="@_applications" Hover="true" Dense="true">
+            <HeaderContent>
+                <MudTh>Company</MudTh>
+                <MudTh>Role</MudTh>
+                <MudTh>Type</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Last activity</MudTh>
+                <MudTh>Last interview</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Company">
+                    <MudLink Href="@($"/applications/{context.Id}")">@context.CompanyName</MudLink>
+                </MudTd>
+                <MudTd DataLabel="Role">@(context.RoleTitle ?? "—")</MudTd>
+                <MudTd DataLabel="Type">@(context.Kind == ApplicationKind.JobPosting ? "Job posting" : "Spontaneous CV")</MudTd>
+                <MudTd DataLabel="Status">
+                    <MudChip
+                        T="string"
+                        Value="@context.Status.ToString()"
+                        Size="Size.Small"
+                        Variant="Variant.Text"
+                        Color="@GetStatusColor(context.Status)">
+                        @context.Status
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="Last activity">@context.LastActivityAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudTd>
+                <MudTd DataLabel="Last interview">
+                    @if (context.LastInterviewState is not null)
+                    {
+                        <MudChip
+                            T="string"
+                            Value="@context.LastInterviewState.ToString()"
+                            Size="Size.Small"
+                            Variant="Variant.Text"
+                            Color="@GetInterviewStateColor(context.LastInterviewState.Value)">
+                            @context.LastInterviewState
+                        </MudChip>
+                        <MudText Typo="Typo.caption" Class="d-block">
+                            @context.LastInterviewScheduledAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        </MudText>
+                    }
+                </MudTd>
+                <MudTd>
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true">
+                        @if (context.Status != ApplicationStatus.Archived)
+                        {
+                            <MudMenuItem OnClick="@(() => OpenNoteDialogAsync(context))">Add note</MudMenuItem>
+                            @if (context.AllowedNextStatuses.Count > 0)
+                            {
+                                <MudMenuItem OnClick="@(() => OpenStatusDialogAsync(context))">Change status</MudMenuItem>
+                            }
+                            @if (CanScheduleInterview(context.Status) && context.LastInterviewState != InterviewState.Scheduled)
+                            {
+                                <MudMenuItem OnClick="@(() => OpenScheduleInterviewDialogAsync(context))">Schedule interview</MudMenuItem>
+                            }
+                            @if (context.LastInterviewId is not null && context.LastInterviewState == InterviewState.Scheduled)
+                            {
+                                <MudMenuItem OnClick="@(() => OpenInterviewResultDialogAsync(context))">
+                                    Record interview result
+                                </MudMenuItem>
+                            }
+                        }
+                        <MudMenuItem Href="@($"/applications/{context.Id}")">View details</MudMenuItem>
+                    </MudMenu>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="pa-4">No applications yet. Add the first one you want to track.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    }
+</MudStack>
+
+@code {
+    private IReadOnlyList<GetJobApplications.Item> _applications = [];
+    private Error? _error;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+
+        Result<GetJobApplications.Response> result = await JobApplicationService.GetAsync();
+
+        if (result.IsSuccess)
+        {
+            _applications = result.Value?.Applications ?? [];
+        }
+        else
+        {
+            _error = result.Error;
+        }
+
+        _loading = false;
+    }
+
+    private async Task OpenInterviewResultDialogAsync(GetJobApplications.Item application)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(InterviewResultDialog.ApplicationId)] = application.Id,
+            [nameof(InterviewResultDialog.InterviewId)] = application.LastInterviewId!.Value
+        };
+
+        var dialog = await DialogService.ShowAsync<InterviewResultDialog>(
+            "Record interview result",
+            parameters);
+
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task OpenNoteDialogAsync(GetJobApplications.Item application)
+    {
+        var dialog = await DialogService.ShowAsync<NoteDialog>("Add note", new DialogParameters { [nameof(NoteDialog.ApplicationId)] = application.Id });
+        if ((await dialog.Result) is { Canceled: false }) await LoadAsync();
+    }
+
+    private async Task OpenStatusDialogAsync(GetJobApplications.Item application)
+    {
+        var dialog = await DialogService.ShowAsync<ChangeStatusDialog>("Change status", new DialogParameters { [nameof(ChangeStatusDialog.ApplicationId)] = application.Id, [nameof(ChangeStatusDialog.CurrentStatus)] = application.Status, [nameof(ChangeStatusDialog.AllowedNextStatuses)] = application.AllowedNextStatuses });
+        if ((await dialog.Result) is { Canceled: false }) await LoadAsync();
+    }
+
+    private async Task OpenScheduleInterviewDialogAsync(GetJobApplications.Item application)
+    {
+        var dialog = await DialogService.ShowAsync<InterviewDialog>("Schedule interview", new DialogParameters { [nameof(InterviewDialog.ApplicationId)] = application.Id });
+        if ((await dialog.Result) is { Canceled: false }) await LoadAsync();
+    }
+
+    private static Color GetStatusColor(ApplicationStatus status)
+    {
+        return status switch
+        {
+            ApplicationStatus.Draft => Color.Default,
+            ApplicationStatus.Planned => Color.Warning,
+            ApplicationStatus.Applied => Color.Info,
+            ApplicationStatus.InProcess => Color.Primary,
+            ApplicationStatus.OfferReceived => Color.Success,
+            ApplicationStatus.Accepted => Color.Success,
+            ApplicationStatus.Rejected => Color.Error,
+            ApplicationStatus.Withdrawn => Color.Warning,
+            ApplicationStatus.Declined => Color.Default,
+            ApplicationStatus.Archived => Color.Default,
+            _ => Color.Default
+        };
+    }
+
+    private static Color GetInterviewStateColor(InterviewState state)
+    {
+        return state switch
+        {
+            InterviewState.Scheduled => Color.Info,
+            InterviewState.Completed => Color.Success,
+            InterviewState.Cancelled => Color.Error,
+            InterviewState.Postponed => Color.Warning,
+            _ => Color.Default
+        };
+    }
+
+    private static bool CanScheduleInterview(ApplicationStatus status)
+    {
+        return status is ApplicationStatus.Applied or ApplicationStatus.InProcess;
+    }
+}
