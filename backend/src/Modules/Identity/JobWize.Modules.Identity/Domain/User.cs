@@ -56,6 +56,24 @@ namespace JobWize.Modules.Identity.Domain
             };
         }
 
+        public static User CreateSuperAdmin(string email, string passwordHash)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(email, nameof(email));
+            ArgumentException.ThrowIfNullOrWhiteSpace(passwordHash, nameof(passwordHash));
+
+            return new User
+            {
+                Id = Guid.NewGuid(),
+                Email = email,
+                PasswordHash = passwordHash,
+                FirstName = "Initial",
+                LastName = "SuperAdmin",
+                Role = UserRole.SuperAdmin,
+                Status = UserStatus.Active,
+                MustChangePassword = true
+            };
+        }
+
         public RefreshToken CreateRefreshToken(string tokenHash, DateTime expiresAt)
         {
             var refreshToken = RefreshToken.Create(Id, tokenHash, expiresAt);
