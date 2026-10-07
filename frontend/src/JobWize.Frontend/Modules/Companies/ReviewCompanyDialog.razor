@@ -1,0 +1,42 @@
+@using JobWize.Modules.Companies.Contracts.Public.Companies
+@inject CompanyModerationService CompanyModerationService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudSwitch @bind-Value="_approved" Color="Color.Success">Approve and share this company</MudSwitch>
+        @if (_approved)
+        {
+            <MudTextField @bind-Value="_name" Label="Name" />
+            <MudTextField @bind-Value="_website" Label="Website" />
+            <MudTextField @bind-Value="_industry" Label="Industry" />
+            <MudTextField @bind-Value="_description" Label="Description" Lines="3" />
+        }
+        else
+        {
+            <MudTextField @bind-Value="_reason" Label="Rejection reason" Required="true" Lines="3" />
+        }
+    </DialogContent>
+    <DialogActions><MudButton OnClick="MudDialog.Cancel">Cancel</MudButton><MudButton Color="@(_approved ? Color.Success : Color.Error)" OnClick="SaveAsync">@(_approved ? "Approve" : "Reject")</MudButton></DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public GetCompaniesForReview.Item Company { get; set; } = null!;
+    private bool _approved = true;
+    private string? _name;
+    private string? _website;
+    private string? _industry;
+    private string? _description;
+    private string? _reason;
+
+    protected override void OnInitialized() { _name = Company.Name; _website = Company.Website; _industry = Company.Industry; _description = Company.Description; }
+
+    private async Task SaveAsync()
+    {
+        if (!_approved && string.IsNullOrWhiteSpace(_reason)) return;
+        Result<bool> result = await CompanyModerationService.ReviewAsync(new(Company.Id, _approved, _reason, _approved ? _name : null, _approved ? _website : null, _approved ? _industry : null, _approved ? _description : null));
+        if (!result.IsSuccess) { Snackbar.Add(result.Error?.Message ?? "Unable to review company.", Severity.Error); return; }
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}
