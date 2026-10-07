@@ -1,4 +1,4 @@
-﻿@attribute [Route(IdentityRoutes.Login)]
+@attribute [Route(IdentityRoutes.Login)]
 
 @using Microsoft.AspNetCore.Components.Authorization
 @using JobWize.Frontend.Modules.Dashboard
@@ -74,6 +74,11 @@
                 Sign in
 
             </MudButton>
+
+            <MudText Typo="Typo.body2" Align="Align.Center">
+                New to JobWize?
+                <MudLink Href="@IdentityRoutes.RegisterCandidate">Create an account</MudLink>
+            </MudText>
 
         </MudStack>
 
