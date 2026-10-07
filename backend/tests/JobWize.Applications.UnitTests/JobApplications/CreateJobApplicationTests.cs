@@ -181,7 +181,10 @@ public sealed class CreateJobApplicationTests
         dbContext.CompanyLocationProjections.Add(CompanyLocationProjection.Create(
             locationId,
             otherCompanyId,
-            "Other HQ"));
+            "Other HQ",
+            CompanyLocationVisibility.Shared,
+            null,
+            true));
 
         await dbContext.SaveChangesAsync();
 

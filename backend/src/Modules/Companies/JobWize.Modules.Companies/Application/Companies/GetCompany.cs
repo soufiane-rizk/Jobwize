@@ -62,10 +62,16 @@ public static class GetCompany
                     item.Description,
                     item.Visibility,
                     item.Locations
-                        .OrderBy(location => location.Label)
+                        .Where(location =>
+                            location.IsActive &&
+                            (location.Visibility == CompanyLocationVisibility.Shared ||
+                             location.CreatedByCandidateId == userContext.UserId))
+                        .OrderBy(location => location.City)
+                        .ThenBy(location => location.Country)
+                        .ThenBy(location => location.Label)
                         .Select(location => new Contracts.Public.Companies.GetCompanies.Location(
                             location.Id,
-                            location.Label,
+                            location.Label ?? (location.City + ", " + location.Country),
                             location.City,
                             location.Country,
                             location.Address))

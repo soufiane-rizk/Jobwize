@@ -25,6 +25,8 @@
                     @bind-Text="_companySearch"
                     Label="Company"
                     Required="true"
+                    Error="@(_showValidation && _companyId is null)"
+                    ErrorText="Company is required."
                     Clearable="true"
                     SearchFunc="SearchCompaniesAsync"
                     ToStringFunc="GetCompanyName"
@@ -88,7 +90,12 @@
         @if (RequiresAppliedOn(_status))
         {
             <MudItem xs="12" md="4">
-                <MudDatePicker @bind-Date="_appliedOn" Label="Applied on" Required="true" />
+                <MudDatePicker
+                    @bind-Date="_appliedOn"
+                    Label="Applied on"
+                    Required="true"
+                    Error="@(_showValidation && RequiresAppliedOn(_status) && _appliedOn is null)"
+                    ErrorText="Applied on is required when the application has been sent." />
             </MudItem>
         }
 
@@ -118,6 +125,7 @@
 
 @code {
     private bool _saving;
+    private bool _showValidation;
     private IReadOnlyList<GetSelectableCompaniesContract.Item> _companies = [];
     private Guid? _companyId;
     private Guid? _companyLocationId;
@@ -139,15 +147,15 @@
 
     private async Task CreateAsync()
     {
+        _showValidation = true;
+
         if (_companyId is null)
         {
-            Snackbar.Add("Company is required.", Severity.Warning);
             return;
         }
 
         if (RequiresAppliedOn(_status) && _appliedOn is null)
         {
-            Snackbar.Add("Applied on is required when the application has been sent.", Severity.Warning);
             return;
         }
 

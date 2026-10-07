@@ -20,11 +20,16 @@ internal sealed class GetAllCompanyProjectionsHandler(CompaniesDbContext dbConte
                 company.Visibility,
                 company.CreatedByCandidateId,
                 company.Locations
-                    .OrderBy(location => location.Label)
+                    .OrderBy(location => location.City)
+                    .ThenBy(location => location.Country)
+                    .ThenBy(location => location.Label)
                     .Select(location => new Contracts.Internal.Companies.GetCompanyProjection.Location(
                         location.Id,
                         location.CompanyId,
-                        location.Label))
+                        location.Label ?? (location.City + ", " + location.Country),
+                        location.Visibility,
+                        location.CreatedByCandidateId,
+                        location.IsActive))
                     .ToList()))
             .ToListAsync(cancellationToken);
     }

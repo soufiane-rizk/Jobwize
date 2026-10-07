@@ -35,14 +35,16 @@ flowchart TB
 
     Companies --> C1["Companies"]
     Companies --> C2["CompanyLocations"]
-    Companies --> C3["Inbox"]
-    Companies --> C4["Outbox"]
+    Companies --> C3["CompanyContacts"]
+    Companies --> C4["Inbox"]
+    Companies --> C5["Outbox"]
 
     Applications --> A1["JobPostings"]
     Applications --> A2["JobApplications"]
-    Applications --> A3["UserProjection"]
-    Applications --> A4["Inbox"]
-    Applications --> A5["Outbox"]
+    Applications --> A3["CompanyProjections"]
+    Applications --> A4["CompanyLocationProjections"]
+    Applications --> A5["Inbox"]
+    Applications --> A6["Outbox"]
 
     Notifications --> N1["Notifications"]
     Notifications --> N2["Inbox"]
@@ -52,7 +54,7 @@ flowchart TB
     classDef module fill:#dcfce7,stroke:#16a34a,color:#000;
 
     class PostgreSQL database;
-    class Identity,Companies,Applications,Notifications,I1,I2,I3,I4,C1,C2,C3,C4,A1,A2,A3,A4,A5,N1,N2,N3 module;
+    class Identity,Companies,Applications,Notifications,I1,I2,I3,I4,C1,C2,C3,C4,C5,A1,A2,A3,A4,A5,A6,N1,N2,N3 module;
 ```
 
 Although every module shares the same PostgreSQL instance, each schema remains exclusively owned by its corresponding module.

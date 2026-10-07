@@ -68,7 +68,11 @@ public static class GetSelectableCompanies
                     item.Id,
                     item.Name,
                     dbContext.CompanyLocationProjections
-                        .Where(location => location.CompanyId == item.Id && location.IsActive)
+                        .Where(location =>
+                            location.CompanyId == item.Id &&
+                            location.IsActive &&
+                            (location.Visibility == JobWize.Modules.Companies.Contracts.Public.Companies.CompanyLocationVisibility.Shared ||
+                             location.CreatedByCandidateId == userContext.UserId))
                         .OrderBy(location => location.Label)
                         .Select(location => new Contracts.Public.Companies.GetSelectableCompanies.Location(
                             location.Id,

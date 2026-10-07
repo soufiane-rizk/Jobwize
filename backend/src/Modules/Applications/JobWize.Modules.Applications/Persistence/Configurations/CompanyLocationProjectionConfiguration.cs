@@ -11,7 +11,21 @@ internal sealed class CompanyLocationProjectionConfiguration : IEntityTypeConfig
     {
         builder.ToTable("CompanyLocationProjections", Schemas.Applications);
         builder.ConfigureEntityBase();
-        builder.Property(item => item.Label).HasMaxLength(200).IsRequired();
-        builder.HasIndex(item => new { item.CompanyId, item.IsActive });
+        builder.Property(item => item.Id)
+            .ValueGeneratedNever();
+        builder.Property(item => item.Label)
+            .HasMaxLength(200)
+            .IsRequired();
+        builder.Property(item => item.Visibility)
+            .HasConversion<string>()
+            .HasDefaultValue(JobWize.Modules.Companies.Contracts.Public.Companies.CompanyLocationVisibility.Shared)
+            .IsRequired();
+        builder.HasIndex(item => new
+        {
+            item.CompanyId,
+            item.IsActive,
+            item.Visibility,
+            item.CreatedByCandidateId
+        });
     }
 }

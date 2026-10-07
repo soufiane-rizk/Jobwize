@@ -19,8 +19,8 @@
 
         @if (_state == InterviewState.Postponed)
         {
-            <MudDatePicker @bind-Date="_rescheduledDate" Label="New interview date" Required="true" />
-            <MudTextField @bind-Value="_rescheduledTime" Label="New interview time" InputType="InputType.Time" />
+            <MudDatePicker @bind-Date="_rescheduledDate" Label="New interview date" Required="true" Error="@(_showValidation && _rescheduledDate is null)" ErrorText="New interview date is required." />
+            <MudTextField @bind-Value="_rescheduledTime" Label="New interview time" InputType="InputType.Time" Required="true" Error="@(_showValidation && !TimeOnly.TryParse(_rescheduledTime, out _))" ErrorText="A valid new interview time is required." />
         }
     </DialogContent>
     <DialogActions>
@@ -42,16 +42,18 @@
     private string? _note;
     private DateTime? _rescheduledDate;
     private string? _rescheduledTime;
+    private bool _showValidation;
 
     private async Task SaveAsync()
     {
+        _showValidation = true;
+
         DateTime? rescheduledAt = null;
 
         if (_state == InterviewState.Postponed)
         {
             if (_rescheduledDate is null || !TimeOnly.TryParse(_rescheduledTime, out TimeOnly rescheduledTime))
             {
-                Snackbar.Add("A new interview date and time are required.", Severity.Warning);
                 return;
             }
 

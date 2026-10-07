@@ -19,27 +19,70 @@ public static class GetCompaniesForReview
     {
         public void MapEndpoint(IEndpointRouteBuilder app)
         {
-            app.MapGet(Contracts.Public.Companies.GetCompaniesForReview.Route, async (IDispatcher dispatcher, CancellationToken cancellationToken) =>
-            {
-                Result<Contracts.Public.Companies.GetCompaniesForReview.Response> result = await dispatcher.SendAsync(new Query(), cancellationToken);
-                return result.ToApiResult();
-            })
-            .RequireAuthorization(global::JobWize.Modules.Identity.Contracts.Public.Authentication.AuthenticationPolicies.UserManagement)
-            .WithName("GetCompaniesForReview")
-            .WithTags("Companies");
+            app.MapGet(
+                    Contracts.Public.Companies.GetCompaniesForReview.Route,
+                    async (
+                        IDispatcher dispatcher,
+                        CancellationToken cancellationToken) =>
+                    {
+                        Result<Contracts.Public.Companies.GetCompaniesForReview.Response> result =
+                            await dispatcher.SendAsync(new Query(), cancellationToken);
+
+                        return result.ToApiResult();
+                    })
+                .RequireAuthorization(global::JobWize.Modules.Identity.Contracts.Public.Authentication.AuthenticationPolicies.UserManagement)
+                .WithName("GetCompaniesForReview")
+                .WithTags("Companies");
         }
     }
 
-    internal sealed class Handler(CompaniesDbContext dbContext) : IQueryHandler<Query, Contracts.Public.Companies.GetCompaniesForReview.Response>
+    internal sealed class Handler(CompaniesDbContext dbContext)
+        : IQueryHandler<Query, Contracts.Public.Companies.GetCompaniesForReview.Response>
     {
-        public async Task<Result<Contracts.Public.Companies.GetCompaniesForReview.Response>> HandleAsync(Query query, CancellationToken cancellationToken)
+        public async Task<Result<Contracts.Public.Companies.GetCompaniesForReview.Response>> HandleAsync(
+            Query query,
+            CancellationToken cancellationToken)
         {
-            var companies = await dbContext.Companies.AsNoTracking().Include(company => company.Locations)
-                .Where(company => company.Visibility == CompanyVisibility.Private && company.CreatedByCandidateId != null && company.ReviewedAt == null)
+            List<Contracts.Public.Companies.GetCompaniesForReview.Item> companies =
+                await dbContext.Companies
+                .AsNoTracking()
+                .Where(company =>
+                    company.Visibility == CompanyVisibility.Private &&
+                    company.CreatedByCandidateId != null &&
+                    company.ReviewedAt == null)
                 .OrderBy(company => company.CreatedAt)
-                .Select(company => new Contracts.Public.Companies.GetCompaniesForReview.Item(company.Id, company.Name, company.Website, company.Industry, company.Description, company.CreatedByCandidateId!.Value, company.CreatedAt, company.Locations.OrderBy(location => location.Label).Select(location => new Contracts.Public.Companies.GetCompanies.Location(location.Id, location.Label, location.City, location.Country, location.Address)).ToList()))
+                .Select(company => new Contracts.Public.Companies.GetCompaniesForReview.Item(
+                    company.Id,
+                    company.Name,
+                    company.Website,
+                    company.Industry,
+                    company.Description,
+                    company.CreatedByCandidateId!.Value,
+                    company.CreatedAt,
+                    company.Locations
+                        .OrderBy(location => location.City)
+                        .ThenBy(location => location.Country)
+                        .ThenBy(location => location.Label)
+                        .Select(location => new Contracts.Public.Companies.GetCompaniesForReview.Location(
+                            location.Id,
+                            location.Label,
+                            location.City,
+                            location.Country,
+                            location.Address))
+                        .ToList(),
+                    company.Contacts
+                        .Select(contact => new Contracts.Public.Companies.GetCompaniesForReview.CompanyContact(
+                            contact.Id,
+                            contact.CompanyLocationId,
+                            contact.Name,
+                            contact.RoleTitle,
+                            contact.Email,
+                            contact.PhoneNumber))
+                        .ToList()))
                 .ToListAsync(cancellationToken);
-            return Result<Contracts.Public.Companies.GetCompaniesForReview.Response>.Success(new(companies));
+
+            return Result<Contracts.Public.Companies.GetCompaniesForReview.Response>.Success(
+                new Contracts.Public.Companies.GetCompaniesForReview.Response(companies));
         }
     }
 }

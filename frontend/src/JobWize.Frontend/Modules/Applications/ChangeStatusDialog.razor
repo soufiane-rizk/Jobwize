@@ -6,7 +6,13 @@
 
 <MudDialog>
     <DialogContent>
-        <MudSelect T="ApplicationStatus?" @bind-Value="_status" Label="New status" Clearable="true">
+        <MudSelect
+            T="ApplicationStatus?"
+            @bind-Value="_status"
+            Label="New status"
+            Clearable="true"
+            Error="@(_showValidation && _status is null)"
+            ErrorText="Select a new status.">
             @foreach (ApplicationStatus item in AllowedNextStatuses)
             {
                 <MudSelectItem Value="item">@item</MudSelectItem>
@@ -15,7 +21,12 @@
 
         @if (_status == ApplicationStatus.Applied)
         {
-            <MudDatePicker @bind-Date="_appliedOn" Label="Applied on" Required="true" />
+            <MudDatePicker
+                @bind-Date="_appliedOn"
+                Label="Applied on"
+                Required="true"
+                Error="@(_showValidation && _appliedOn is null)"
+                ErrorText="Applied on is required." />
         }
 
         <MudTextField @bind-Value="_note" Label="Timeline note" Lines="2" />
@@ -38,6 +49,7 @@
     private ApplicationStatus? _status;
     private DateTime? _appliedOn;
     private string? _note;
+    private bool _showValidation;
 
     protected override void OnInitialized()
     {
@@ -46,7 +58,9 @@
 
     private async Task SaveAsync()
     {
-        if (_status is null)
+        _showValidation = true;
+
+        if (_status is null || (_status == ApplicationStatus.Applied && _appliedOn is null))
         {
             return;
         }
