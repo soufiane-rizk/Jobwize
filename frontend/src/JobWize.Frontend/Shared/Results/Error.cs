@@ -1,10 +1,12 @@
-﻿namespace JobWize.Frontend.Shared.Results
+namespace JobWize.Frontend.Shared.Results
 {
-    public sealed record Error(string Code, string Message, ErrorType Type, Dictionary<string, string[]>? ValidationErrors = null)
+    public sealed record Error(string Code, string Message, ErrorType Type, Dictionary<string, string[]>? ValidationErrors = null, IReadOnlyList<Confirmation>? Confirmations = null)
     {
         public bool IsValidation => Type == ErrorType.Validation;
 
         public bool IsConflict => Type == ErrorType.Conflict;
+
+        public bool NeedsConfirmation => Confirmations?.Count > 0;
 
         public bool IsNotFound => Type == ErrorType.NotFound;
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -6,7 +6,7 @@ namespace JobWize.Shared.Domain
 {
     public abstract class DomainModel : Entity
     {
-        public DateTime CreatedAt { get; private set; }
+        public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
 
         public DateTime? UpdatedAt { get; private set; }
 

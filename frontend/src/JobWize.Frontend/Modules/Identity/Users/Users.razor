@@ -1,0 +1,102 @@
+@attribute [Route(IdentityRoutes.Users)]
+@attribute [Authorize(Roles = "Admin,SuperAdmin")]
+
+@using JobWize.Frontend.Shared.Results
+@using JobWize.Modules.Identity.Contracts.Public.Users
+
+@inject UserManagementService UserManagementService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>Users</PageTitle>
+
+<LoadingIndicator Loading="@_isLoading">
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error">@_error.Message</MudAlert>
+    }
+    else
+    {
+        <MudStack Spacing="3">
+            <MudStack Row="true" AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.h4">Users</MudText>
+                <MudSpacer />
+                <AuthorizeView Roles="SuperAdmin"><Authorized><MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="@(() => Navigation.NavigateTo(IdentityRoutes.CreateAdmin))">New user</MudButton></Authorized></AuthorizeView>
+            </MudStack>
+
+            <MudTable Items="@_users" Hover="true" Dense="true">
+                <HeaderContent>
+                    <MudTh>Name</MudTh><MudTh>Email</MudTh><MudTh>Role</MudTh><MudTh>Status</MudTh><MudTh>Password setup</MudTh><MudTh>Created</MudTh><MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Name">@($"{context.FirstName} {context.LastName}")</MudTd>
+                    <MudTd DataLabel="Email">@context.Email</MudTd>
+                    <MudTd DataLabel="Role"><MudChip T="string" Value="@context.Role.ToString()" Size="Size.Small" Variant="Variant.Text" Color="@(context.Role == JobWize.Modules.Identity.Contracts.Public.Authentication.UserRole.SuperAdmin ? Color.Primary : context.Role == JobWize.Modules.Identity.Contracts.Public.Authentication.UserRole.Admin ? Color.Info : Color.Default)">@context.Role</MudChip></MudTd>
+                    <MudTd DataLabel="Status"><MudChip T="string" Value="@context.Status.ToString()" Size="Size.Small" Variant="Variant.Text" Color="@(context.Status == UserStatus.Active ? Color.Success : Color.Warning)">@context.Status</MudChip></MudTd>
+                    <MudTd DataLabel="Password setup"><MudChip T="string" Value="@(context.MustChangePassword ? "Change required" : "Complete")" Size="Size.Small" Variant="Variant.Text" Color="@(context.MustChangePassword ? Color.Warning : Color.Success)">@(context.MustChangePassword ? "Change required" : "Complete")</MudChip></MudTd>
+                    <MudTd DataLabel="Created">@context.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudTd>
+                    <MudTd>
+                        @if (context.Role != JobWize.Modules.Identity.Contracts.Public.Authentication.UserRole.SuperAdmin)
+                        {
+                            <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true">
+                                @if (context.Status == UserStatus.Active) { <MudMenuItem OnClick="@(() => SuspendAsync(context))">Suspend</MudMenuItem> }
+                                else { <MudMenuItem OnClick="@(() => ReactivateAsync(context))">Reactivate</MudMenuItem> }
+                            </MudMenu>
+                        }
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent><MudText Class="pa-4">No users are available.</MudText></NoRecordsContent>
+            </MudTable>
+        </MudStack>
+    }
+</LoadingIndicator>
+
+@code {
+    private IReadOnlyList<GetUsers.UserDto> _users = [];
+    private Error? _error;
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Result<GetUsers.Response> result = await UserManagementService.GetUsersAsync();
+        if (result.IsSuccess) _users = result.Value?.Users ?? [];
+        else _error = result.Error;
+        _isLoading = false;
+    }
+
+    private async Task SuspendAsync(GetUsers.UserDto user)
+    {
+        Result<bool> result = await UserManagementService.SuspendAsync(new(user.UserId, []));
+        if (result.Error?.NeedsConfirmation == true)
+        {
+            Confirmation confirmation = result.Error.Confirmations![0];
+            var parameters = new DialogParameters
+            {
+                [nameof(JobWize.Frontend.Shared.Components.ConfirmationDialog.Title)] = confirmation.Title,
+                [nameof(JobWize.Frontend.Shared.Components.ConfirmationDialog.Message)] = confirmation.Message,
+                [nameof(JobWize.Frontend.Shared.Components.ConfirmationDialog.ConfirmText)] = "Suspend"
+            };
+
+            var dialog = await DialogService.ShowAsync<JobWize.Frontend.Shared.Components.ConfirmationDialog>(confirmation.Title, parameters);
+            var dialogResult = await dialog.Result;
+            if (dialogResult is not null && !dialogResult.Canceled) result = await UserManagementService.SuspendAsync(new(user.UserId, [confirmation.Key]));
+        }
+        if (result.IsSuccess) { Snackbar.Add("User suspended.", Severity.Success); await LoadUsersAsync(); }
+        else if (result.Error?.NeedsConfirmation != true) Snackbar.Add(result.Error?.Message ?? "Unable to suspend user.", Severity.Error);
+    }
+
+    private async Task ReactivateAsync(GetUsers.UserDto user)
+    {
+        Result<bool> result = await UserManagementService.ReactivateAsync(new(user.UserId));
+        if (result.IsSuccess) { Snackbar.Add("User reactivated.", Severity.Success); await LoadUsersAsync(); }
+        else Snackbar.Add(result.Error?.Message ?? "Unable to reactivate user.", Severity.Error);
+    }
+
+    private async Task LoadUsersAsync()
+    {
+        Result<GetUsers.Response> result = await UserManagementService.GetUsersAsync();
+        if (result.IsSuccess) _users = result.Value?.Users ?? [];
+        else _error = result.Error;
+    }
+}

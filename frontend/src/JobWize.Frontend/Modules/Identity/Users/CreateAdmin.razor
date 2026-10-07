@@ -1,0 +1,28 @@
+@attribute [Route(IdentityRoutes.CreateAdmin)]
+@attribute [Authorize(Roles = "SuperAdmin")]
+@using System.ComponentModel.DataAnnotations
+@using JobWize.Frontend.Shared.Forms
+@using JobWize.Modules.Identity.Contracts.Public.Users
+@using CreateAdminContract = JobWize.Modules.Identity.Contracts.Public.Users.CreateAdmin
+@inherits ResultFormComponentBase<CreateAdminContract.Response>
+@inject UserManagementService UserManagementService
+@inject NavigationManager Navigation
+
+<PageTitle>New Admin</PageTitle>
+<MudPaper MaxWidth="MaxWidth.Small" Class="pa-6 mx-auto mt-8">
+    <MudText Typo="Typo.h4" Class="mb-4">Create Admin</MudText>
+    @if (SubmissionResult?.IsFailure == true && SubmissionResult.Error?.ValidationErrors is null) { <MudAlert Severity="Severity.Error">@SubmissionResult.Error!.Message</MudAlert> }
+    <MudForm @ref="_form">
+        <MudTextField @bind-Value="_model.FirstName" Label="First name" Required="true" />
+        <MudTextField @bind-Value="_model.LastName" Label="Last name" Required="true" />
+        <MudTextField @bind-Value="_model.Email" Label="Email" InputType="InputType.Email" Required="true" />
+        <MudTextField @bind-Value="_model.TemporaryPassword" Label="Temporary password" InputType="InputType.Password" Required="true" />
+        <MudTextField @bind-Value="_model.ConfirmPassword" Label="Confirm temporary password" InputType="InputType.Password" Required="true" />
+    </MudForm>
+    <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4"><MudButton OnClick="@(() => Navigation.NavigateTo(IdentityRoutes.Users))">Cancel</MudButton><MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="_submitting" OnClick="CreateAsync">Create Admin</MudButton></MudStack>
+</MudPaper>
+@code {
+    private MudForm? _form; private bool _submitting; private readonly Model _model = new();
+    private async Task CreateAsync() { await _form!.ValidateAsync(); if (!_form.IsValid || _model.TemporaryPassword != _model.ConfirmPassword) return; _submitting = true; try { var result = await UserManagementService.CreateAdminAsync(new(_model.Email, _model.TemporaryPassword, _model.FirstName, _model.LastName)); SetSubmissionResult(result); if (result.IsSuccess) Navigation.NavigateTo(IdentityRoutes.Users, replace: true); } finally { _submitting = false; } }
+    private sealed class Model { public string FirstName { get; set; } = ""; public string LastName { get; set; } = ""; public string Email { get; set; } = ""; public string TemporaryPassword { get; set; } = ""; public string ConfirmPassword { get; set; } = ""; }
+}

@@ -1,4 +1,4 @@
-﻿using JobWize.Shared.Application.Results;
+using JobWize.Shared.Application.Results;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -16,7 +16,7 @@ namespace JobWize.Shared.Endpoints
                 return Results.NoContent();
             }
 
-            return ToFailureResult(result.Error);
+            return ToFailureResult(result.Error, result.Confirmations);
         }
 
         public static IResult ToApiResult<T>(this Result<T> result)
@@ -26,10 +26,10 @@ namespace JobWize.Shared.Endpoints
                 return Results.Ok(result.Value);
             }
 
-            return ToFailureResult(result.Error);
+            return ToFailureResult(result.Error, result.Confirmations);
         }
 
-        private static IResult ToFailureResult(Error error)
+        private static IResult ToFailureResult(Error error, IReadOnlyList<Confirmation> confirmations)
         {
             int statusCode = error.Type switch
             {
@@ -38,21 +38,22 @@ namespace JobWize.Shared.Endpoints
                 ErrorType.NotFound => StatusCodes.Status404NotFound,
                 ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
                 ErrorType.Forbidden => StatusCodes.Status403Forbidden,
+                ErrorType.ConfirmationRequired => StatusCodes.Status409Conflict,
                 _ => StatusCodes.Status500InternalServerError
             };
 
-            return Problem(error, statusCode);
+            return Problem(error, statusCode, confirmations);
         }
 
-        private static IResult Problem(Error error, int statusCode)
+        private static IResult Problem(Error error, int statusCode, IReadOnlyList<Confirmation> confirmations)
         {
             return Results.Json(
-                CreateProblem(error, statusCode),
+                CreateProblem(error, statusCode, confirmations),
                 contentType: "application/problem+json",
                 statusCode: statusCode);
         }
 
-        private static ProblemDetails CreateProblem(Error error, int statusCode)
+        private static ProblemDetails CreateProblem(Error error, int statusCode, IReadOnlyList<Confirmation> confirmations)
         {
             ProblemDetails problem = new()
             {
@@ -62,6 +63,7 @@ namespace JobWize.Shared.Endpoints
             };
 
             problem.Extensions["code"] = error.Code;
+            if (confirmations.Count > 0) problem.Extensions["confirmations"] = confirmations;
 
             if (error.Details is not null && error.Details.Count > 0)
             {
@@ -83,6 +85,7 @@ namespace JobWize.Shared.Endpoints
                 ErrorType.NotFound => "Resource not found",
                 ErrorType.Unauthorized => "Unauthorized",
                 ErrorType.Forbidden => "Forbidden",
+                ErrorType.ConfirmationRequired => "Confirmation required",
                 _ => "Unexpected error"
             };
     }

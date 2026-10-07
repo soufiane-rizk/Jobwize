@@ -394,17 +394,23 @@ namespace JobWize.Frontend.Shared.Api
             }
 
             Dictionary<string, string[]>? validationErrors = null;
+            IReadOnlyList<Confirmation>? confirmations = null;
 
             if (problem?.Extensions?.TryGetValue("errors", out JsonElement errorsElement) == true)
             {
                 validationErrors = errorsElement.Deserialize<Dictionary<string, string[]>>();
+            }
+            if (problem?.Extensions?.TryGetValue("confirmations", out JsonElement confirmationsElement) == true)
+            {
+                confirmations = confirmationsElement.Deserialize<List<Confirmation>>(JsonOptions);
             }
 
             return new Error(
                 code,
                 problem?.Detail ?? problem?.Title ?? "An unknown error occurred.",
                 type,
-                validationErrors);
+                validationErrors,
+                confirmations);
         }
 
         protected virtual async Task OnResultReceivedAsync(Result result)

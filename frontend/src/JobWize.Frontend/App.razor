@@ -1,4 +1,4 @@
-﻿@using JobWize.Frontend.Shared.Authentication
+@using JobWize.Frontend.Shared.Authentication
 
 @using JobWize.Frontend.Shared.Theme
 
@@ -11,38 +11,48 @@
 
 <ApplicationErrorBoundary>
     <CascadingAuthenticationState>
-        <Router AppAssembly="@typeof(App).Assembly">
-            <Found Context="routeData">
-                <AuthorizeRouteView
-                    RouteData="@routeData"
-                    DefaultLayout="@typeof(Shared.Layout.MainLayout)">
+        @if (_isCheckingPasswordChange)
+        {
+            <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Style="min-height: 100vh;">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </MudStack>
+        }
+        else
+        {
+            <Router AppAssembly="@typeof(App).Assembly">
+                <Found Context="routeData">
+                    <AuthorizeRouteView
+                        RouteData="@routeData"
+                        DefaultLayout="@typeof(Shared.Layout.MainLayout)">
 
-                    <NotAuthorized>
-                        <RedirectToLogin />
-                    </NotAuthorized>
+                        <NotAuthorized>
+                            <RedirectToLogin />
+                        </NotAuthorized>
 
-                </AuthorizeRouteView>
+                    </AuthorizeRouteView>
 
-                <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-            </Found>
+                    <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+                </Found>
 
-            <NotFound>
-                <LayoutView Layout="@typeof(Shared.Layout.MainLayout)">
-                    <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
-                        <MudAlert Severity="Severity.Error">
-                            The requested page could not be found.
-                        </MudAlert>
-                    </MudContainer>
-                </LayoutView>
-            </NotFound>
+                <NotFound>
+                    <LayoutView Layout="@typeof(Shared.Layout.MainLayout)">
+                        <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+                            <MudAlert Severity="Severity.Error">
+                                The requested page could not be found.
+                            </MudAlert>
+                        </MudContainer>
+                    </LayoutView>
+                </NotFound>
 
-        </Router>
+            </Router>
+        }
     </CascadingAuthenticationState>
 </ApplicationErrorBoundary>
 
 @code {
     [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
     [Inject] private NavigationManager Navigation { get; set; } = default!;
+    private bool _isCheckingPasswordChange = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -52,23 +62,37 @@
     }
 
     private void OnAuthenticationStateChanged(Task<AuthenticationState> authenticationStateTask) =>
-        _ = InvokeAsync(RedirectToPasswordChangeIfRequiredAsync);
+        StartPasswordChangeCheck();
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e) =>
+        StartPasswordChangeCheck();
+
+    private void StartPasswordChangeCheck()
+    {
+        _isCheckingPasswordChange = true;
         _ = InvokeAsync(RedirectToPasswordChangeIfRequiredAsync);
+    }
 
     private async Task RedirectToPasswordChangeIfRequiredAsync()
     {
-        AuthenticationState state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        bool mustChangePassword = state.User.FindFirst(global::JobWize.Modules.Identity.Contracts.Public.Authentication.AuthenticationClaimTypes.MustChangePassword)?.Value == "true";
-
-        string currentPath = Navigation.ToBaseRelativePath(Navigation.Uri)
-            .Split('?', '#')[0]
-            .TrimEnd('/');
-
-        if (mustChangePassword && !string.Equals(currentPath, "change-password", StringComparison.OrdinalIgnoreCase))
+        try
         {
-            Navigation.NavigateTo("/change-password", replace: true);
+            AuthenticationState state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            bool mustChangePassword = state.User.FindFirst(global::JobWize.Modules.Identity.Contracts.Public.Authentication.AuthenticationClaimTypes.MustChangePassword)?.Value == "true";
+
+            string currentPath = Navigation.ToBaseRelativePath(Navigation.Uri)
+                .Split('?', '#')[0]
+                .TrimEnd('/');
+
+            if (mustChangePassword && !string.Equals(currentPath, "change-password", StringComparison.OrdinalIgnoreCase))
+            {
+                Navigation.NavigateTo("/change-password", replace: true);
+            }
+        }
+        finally
+        {
+            _isCheckingPasswordChange = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 
