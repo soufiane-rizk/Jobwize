@@ -10,9 +10,29 @@ using UpdateInterviewContract = JobWize.Modules.Applications.Contracts.Public.In
 using RecordInterviewResultContract = JobWize.Modules.Applications.Contracts.Public.Interviews.RecordInterviewResult;
 using GetSelectableCompaniesContract = JobWize.Modules.Applications.Contracts.Public.Companies.GetSelectableCompanies;
 namespace JobWize.Frontend.Modules.Applications;
-public sealed class JobApplicationService(IHttpClientFactory httpClientFactory, JobWizeAuthenticationStateProvider authenticationStateProvider) : ApiService(httpClientFactory, authenticationStateProvider)
+public sealed class JobApplicationService(
+    IHttpClientFactory httpClientFactory,
+    JobWizeAuthenticationStateProvider authenticationStateProvider)
+    : ApiService(httpClientFactory, authenticationStateProvider)
 {
-    public Task<Result<GetJobApplications.Response>> GetAsync(CancellationToken cancellationToken = default) => GetAsync<GetJobApplications.Request, GetJobApplications.Response>(GetJobApplications.Route, new(), cancellationToken);
+    public Task<Result<GetJobApplications.Response>> GetAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return GetAsync<GetJobApplications.Request, GetJobApplications.Response>(
+            GetJobApplications.Route,
+            new GetJobApplications.Request(null),
+            cancellationToken);
+    }
+
+    public Task<Result<GetJobApplications.Response>> GetByCompanyAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default)
+    {
+        return GetAsync<GetJobApplications.Request, GetJobApplications.Response>(
+            GetJobApplications.Route,
+            new GetJobApplications.Request(companyId),
+            cancellationToken);
+    }
     public Task<Result<CreateJobApplicationContract.Response>> CreateAsync(
         CreateJobApplicationContract.Request request,
         CancellationToken cancellationToken = default)

@@ -46,6 +46,8 @@ New applications store only `CompanyId` and an optional `CompanyLocationId`; the
 
 The Companies module publishes company-created and company-promoted events. Applications handles these events by synchronizing its local projection through an internal module query. A SuperAdmin-only recovery endpoint, `POST /api/admin/applications/company-projections/rebuild`, performs a full idempotent rebuild. It marks projections absent from the Companies source inactive instead of deleting them, so historical application links remain intact.
 
+`GET /api/applications?companyId={companyId}` returns only the current candidate's applications for the selected company. The candidate-facing company details page composes this endpoint with `GET /api/companies/{id}` from the Companies module.
+
 ## Statuses
 
 | Status | Meaning |
@@ -76,7 +78,7 @@ The Applications unit tests cover company availability and company-location owne
 The initial tracker intentionally does not yet include:
 
 - Company rename/update and removal events beyond the current created/promoted synchronization
-- A candidate-facing company details page and company-location management
+- Company-location management
 - Completed-interview outcomes such as awaiting feedback, next round, offer expected, or rejected
 - Assessments and offer details
 - Follow-up and interview reminders

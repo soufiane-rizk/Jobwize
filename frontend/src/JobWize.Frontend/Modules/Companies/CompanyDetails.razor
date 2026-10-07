@@ -1,0 +1,177 @@
+@attribute [Route(CompaniesRoutes.Detail)]
+@attribute [Authorize]
+
+@using JobWize.Frontend.Modules.Applications
+@using JobWize.Modules.Applications.Contracts.Public.JobApplications
+@using JobWize.Modules.Companies.Contracts.Public.Companies
+@using GetCompanyContract = JobWize.Modules.Companies.Contracts.Public.Companies.GetCompany
+
+@inject CandidateCompanyService CandidateCompanyService
+@inject JobApplicationService JobApplicationService
+@inject NavigationManager Navigation
+
+<PageTitle>Company details</PageTitle>
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error">@_error.Message</MudAlert>
+}
+else if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_company is not null)
+{
+    <MudStack Spacing="3">
+        <MudButton
+            Variant="Variant.Text"
+            StartIcon="@Icons.Material.Filled.ArrowBack"
+            OnClick="@(() => Navigation.NavigateTo(ApplicationsRoutes.List))">
+            Applications
+        </MudButton>
+
+        <MudPaper Class="pa-6">
+            <MudStack Row="true" AlignItems="AlignItems.Center">
+                <div>
+                    <MudText Typo="Typo.h4">@_company.Name</MudText>
+
+                    @if (!string.IsNullOrWhiteSpace(_company.Industry))
+                    {
+                        <MudText Typo="Typo.subtitle1">@_company.Industry</MudText>
+                    }
+                </div>
+
+                <MudSpacer />
+
+                @if (_company.Visibility != CompanyVisibility.Shared)
+                {
+                    <MudChip
+                        T="string"
+                        Value="@_company.Visibility.ToString()"
+                        Size="Size.Small"
+                        Variant="Variant.Text">
+                        @_company.Visibility
+                    </MudChip>
+                }
+            </MudStack>
+
+            @if (!string.IsNullOrWhiteSpace(_company.Website))
+            {
+                <MudLink Href="@_company.Website" Target="_blank" Class="d-block mt-3">
+                    @_company.Website
+                </MudLink>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(_company.Description))
+            {
+                <MudText Class="mt-3">@_company.Description</MudText>
+            }
+        </MudPaper>
+
+        <MudPaper Class="pa-6">
+            <MudText Typo="Typo.h6" Class="mb-3">Locations</MudText>
+
+            @if (_company.Locations.Count == 0)
+            {
+                <MudText>No locations have been added.</MudText>
+            }
+            else
+            {
+                <MudGrid>
+                    @foreach (GetCompanies.Location location in _company.Locations)
+                    {
+                        <MudItem xs="12" md="6">
+                            <MudPaper Outlined="true" Class="pa-4 h-100">
+                                <MudText Typo="Typo.subtitle1">@location.Label</MudText>
+                                <MudText>@location.City, @location.Country</MudText>
+
+                                @if (!string.IsNullOrWhiteSpace(location.Address))
+                                {
+                                    <MudText Typo="Typo.body2">@location.Address</MudText>
+                                }
+                            </MudPaper>
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+        </MudPaper>
+
+        <MudPaper Class="pa-6">
+            <MudText Typo="Typo.h6" Class="mb-3">Your applications</MudText>
+
+            @if (_applications.Count == 0)
+            {
+                <MudText>You have not tracked an application for this company yet.</MudText>
+            }
+            else
+            {
+                <MudTable Items="@_applications" Hover="true" Dense="true">
+                    <HeaderContent>
+                        <MudTh>Role</MudTh>
+                        <MudTh>Location</MudTh>
+                        <MudTh>Status</MudTh>
+                        <MudTh>Last activity</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Role">
+                            <MudLink Href="@($"/applications/{context.Id}")">
+                                @(context.RoleTitle ?? "Spontaneous application")
+                            </MudLink>
+                        </MudTd>
+                        <MudTd DataLabel="Location">@(context.CompanyLocationLabel ?? "—")</MudTd>
+                        <MudTd DataLabel="Status">
+                            <ApplicationStatusChip Status="context.Status" />
+                        </MudTd>
+                        <MudTd DataLabel="Last activity">
+                            @context.LastActivityAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudPaper>
+    </MudStack>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private GetCompanyContract.Response? _company;
+    private IReadOnlyList<GetJobApplications.Item> _applications = [];
+    private Error? _error;
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        Task<Result<GetCompanyContract.Response>> companyTask =
+            CandidateCompanyService.GetByIdAsync(Id);
+        Task<Result<GetJobApplications.Response>> applicationsTask =
+            JobApplicationService.GetByCompanyAsync(Id);
+
+        await Task.WhenAll(companyTask, applicationsTask);
+
+        Result<GetCompanyContract.Response> companyResult = await companyTask;
+        Result<GetJobApplications.Response> applicationsResult = await applicationsTask;
+
+        if (!companyResult.IsSuccess)
+        {
+            _error = companyResult.Error;
+            _loading = false;
+            return;
+        }
+
+        if (!applicationsResult.IsSuccess)
+        {
+            _error = applicationsResult.Error;
+            _loading = false;
+            return;
+        }
+
+        _company = companyResult.Value;
+        _applications = applicationsResult.Value?.Applications ?? [];
+        _loading = false;
+    }
+
+}
