@@ -1,6 +1,7 @@
 using JobWize.Modules.Identity.Infrastructure.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using System.Text;
 
 namespace JobWize.Api
@@ -20,6 +21,31 @@ namespace JobWize.Api
                     }
 
                     return $"{type.DeclaringType!.Name}.{type.Name}";
+                });
+
+                var bearerSecurityScheme = new OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.Http,
+                    Scheme = JwtBearerDefaults.AuthenticationScheme,
+                    BearerFormat = "JWT",
+                    Description = "Enter a valid JWT access token."
+                };
+
+                options.AddSecurityDefinition(
+                    JwtBearerDefaults.AuthenticationScheme,
+                    bearerSecurityScheme);
+
+                options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecuritySchemeReference(
+                            JwtBearerDefaults.AuthenticationScheme,
+                            document,
+                            null),
+                        []
+                    }
                 });
             });
 
