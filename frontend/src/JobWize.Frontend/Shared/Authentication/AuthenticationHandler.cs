@@ -48,7 +48,7 @@ namespace JobWize.Frontend.Shared.Authentication
         {
             string? path = request.RequestUri?.AbsolutePath;
 
-            return path is Login.Route or Logout.Route or Refresh.Route or RegisterCandidate.Route;
+            return path is Login.Route or Refresh.Route or RegisterCandidate.Route;
         }
 
         private static async Task<HttpRequestMessage> CloneAsync(HttpRequestMessage request, CancellationToken cancellationToken)
