@@ -3,6 +3,7 @@ using JobWize.Frontend.Shared.Results;
 using JobWize.Shared.Contracts.Http.Attributes;
 using System.Net;
 using System.Net.Http.Json;
+using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -284,7 +285,7 @@ namespace JobWize.Frontend.Shared.Api
 
                     queryParameters.Add(new(
                         property.Name,
-                        value.ToString()));
+                        FormatQueryValue(value)));
 
                     continue;
                 }
@@ -321,6 +322,20 @@ namespace JobWize.Frontend.Shared.Api
                 Body = body.Count == 0
                     ? null
                     : body
+            };
+        }
+
+        private static string FormatQueryValue(object value)
+        {
+            return value switch
+            {
+                DateTime dateTime => dateTime.ToString("O", CultureInfo.InvariantCulture),
+                DateTimeOffset dateTimeOffset => dateTimeOffset.ToString("O", CultureInfo.InvariantCulture),
+                DateOnly dateOnly => dateOnly.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                TimeOnly timeOnly => timeOnly.ToString("O", CultureInfo.InvariantCulture),
+                IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture)
+                    ?? string.Empty,
+                _ => value.ToString() ?? string.Empty
             };
         }
 

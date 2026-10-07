@@ -1,5 +1,6 @@
-using JobWize.Shared.Contracts.Http.Attributes;
 using JobWize.Modules.Applications.Contracts.Public.Interviews;
+using JobWize.Modules.Applications.Contracts.Public.Reminders;
+using JobWize.Shared.Contracts.Http.Attributes;
 
 namespace JobWize.Modules.Applications.Contracts.Public.JobApplications;
 
@@ -18,8 +19,13 @@ public static class GetJobApplication
 
     public sealed record InterviewParticipantItem(
         Guid Id,
+        Guid? CompanyContactId,
+        Guid? CompanyLocationId,
+        string? CompanyLocationLabel,
         string Name,
-        string? RoleTitle);
+        string? RoleTitle,
+        string? Email,
+        string? PhoneNumber);
 
     public sealed record InterviewItem(
         Guid Id,
@@ -32,9 +38,39 @@ public static class GetJobApplication
         string? PreparationNotes,
         IReadOnlyList<InterviewParticipantItem> Participants);
 
+    public sealed record CvSubmissionDocumentItem(
+        Guid FileId,
+        string FileName,
+        string ContentType,
+        long SizeBytes);
+
+    public sealed record CvSubmissionItem(
+        Guid Id,
+        DateTime SentAt,
+        CvSubmissionMethod Method,
+        string? Notes,
+        Guid? CompanyContactId,
+        Guid? CompanyLocationId,
+        string? ContactName,
+        string? ContactRoleTitle,
+        string? ContactEmail,
+        string? ContactPhoneNumber,
+        IReadOnlyList<CvSubmissionDocumentItem> Documents);
+
+    public sealed record ReminderItem(
+        Guid Id,
+        ReminderKind Kind,
+        ReminderState State,
+        Guid? CvSubmissionId,
+        Guid? InterviewId,
+        string Title,
+        DateTime DueAt,
+        string? Note);
+
     public sealed record Response(
         Guid Id,
         Guid? CompanyId,
+        Guid? CompanyLocationId,
         string CompanyName,
         string? CompanyLocationLabel,
         string? RoleTitle,
@@ -45,5 +81,7 @@ public static class GetJobApplication
         string? Notes,
         IReadOnlyList<ActivityItem> Activities,
         IReadOnlyList<InterviewItem> Interviews,
+        IReadOnlyList<CvSubmissionItem> CvSubmissions,
+        IReadOnlyList<ReminderItem> Reminders,
         IReadOnlyList<ApplicationStatus> AllowedNextStatuses);
 }

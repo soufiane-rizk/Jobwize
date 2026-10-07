@@ -2,6 +2,7 @@ using FluentAssertions;
 using JobWize.Modules.Companies.Contracts.Public.Companies;
 using JobWize.Modules.Companies.Contracts.Public.CompanyContacts;
 using JobWize.Modules.Companies.Domain;
+using JobWize.Shared.Errors;
 
 namespace JobWize.Modules.Companies.UnitTests.Companies;
 
@@ -45,7 +46,8 @@ public sealed class CompanyTests
 
         Action action = () => company.AddSharedLocation(null, "", "Morocco", null);
 
-        action.Should().Throw<ArgumentException>();
+        action.Should().Throw<BusinessRuleException>()
+            .Which.Error.Should().Be(DomainErrors.LocationCityRequired);
     }
 
     [Fact]
@@ -140,7 +142,8 @@ public sealed class CompanyTests
 
         Action action = () => company.Reject(Guid.NewGuid(), DateTime.UtcNow, "");
 
-        action.Should().Throw<ArgumentException>();
+        action.Should().Throw<BusinessRuleException>()
+            .Which.Error.Should().Be(DomainErrors.ReviewReasonRequired);
 
         company.Reject(Guid.NewGuid(), DateTime.UtcNow, "Insufficient information.");
         company.Visibility.Should().Be(CompanyVisibility.Private);

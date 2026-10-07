@@ -1,4 +1,5 @@
 using JobWize.Shared.Application.Results;
+using JobWize.Shared.Errors;
 using JobWize.Shared.Endpoints;
 using Microsoft.AspNetCore.Diagnostics;
 

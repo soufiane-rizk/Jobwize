@@ -167,11 +167,6 @@ public static class ReviewCompany
                         ? null
                         : resolvedLocations[contact.LocationIndex.Value].Id;
 
-                    if (contact.Approved && !company.IsSharedActiveLocation(locationId))
-                    {
-                        return Result<bool>.Failure(CompaniesErrors.SharedContactRequiresSharedActiveLocation);
-                    }
-
                     if (contact.Id is null)
                     {
                         company.AddSharedContact(

@@ -14,6 +14,7 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\Applications\JobWize.Modules.Applications.Contracts\JobWize.Modules.Applications.Contracts.csproj" />
     <ProjectReference Include="..\..\..\Shared\JobWize.Shared\JobWize.Shared.csproj" />
     <ProjectReference Include="..\JobWize.Modules.Files.Contracts\JobWize.Modules.Files.Contracts.csproj" />
   </ItemGroup>

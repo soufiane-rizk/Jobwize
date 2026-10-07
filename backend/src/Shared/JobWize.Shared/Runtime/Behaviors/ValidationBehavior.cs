@@ -3,6 +3,7 @@ using FluentValidation.Results;
 using JobWize.Runtime.Contracts.Pipelines;
 using JobWize.Runtime.Pipelines;
 using JobWize.Shared.Application.Results;
+using JobWize.Shared.Errors;
 using JobWize.Shared.Runtime.Contracts;
 
 namespace JobWize.Shared.Runtime.Behaviors

@@ -84,21 +84,11 @@ public static class RecordInterviewResult
                 return Result<bool>.Failure(ApplicationsErrors.JobApplicationNotFound);
             }
 
-            if (command.State == InterviewState.Scheduled)
-            {
-                return Result<bool>.Failure(ApplicationsErrors.InterviewResultMustBeFinal);
-            }
-
-            JobInterview? recordedInterview = application.RecordInterviewResult(
+            application.RecordInterviewResult(
                 command.InterviewId,
                 command.State,
                 command.RescheduledAt,
                 command.Note);
-
-            if (recordedInterview is null)
-            {
-                return Result<bool>.Failure(ApplicationsErrors.InterviewNotFound);
-            }
 
             await applications.SaveAsync(application, cancellationToken);
 

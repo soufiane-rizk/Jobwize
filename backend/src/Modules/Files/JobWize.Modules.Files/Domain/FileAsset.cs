@@ -1,4 +1,5 @@
 using JobWize.Shared.Domain;
+using JobWize.Shared.Errors;
 
 namespace JobWize.Modules.Files.Domain;
 
@@ -30,13 +31,24 @@ public sealed class FileAsset : DomainModel
         long sizeBytes,
         string storageKey)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(contentType);
-        ArgumentException.ThrowIfNullOrWhiteSpace(storageKey);
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            throw new BusinessRuleException(DomainErrors.FileNameRequired);
+        }
+
+        if (string.IsNullOrWhiteSpace(contentType))
+        {
+            throw new BusinessRuleException(DomainErrors.ContentTypeRequired);
+        }
+
+        if (string.IsNullOrWhiteSpace(storageKey))
+        {
+            throw new BusinessRuleException(DomainErrors.StorageKeyRequired);
+        }
 
         if (sizeBytes <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(sizeBytes));
+            throw new BusinessRuleException(DomainErrors.FileSizeMustBePositive);
         }
 
         return new FileAsset
@@ -56,7 +68,7 @@ public sealed class FileAsset : DomainModel
     {
         if (IsArchived)
         {
-            throw new InvalidOperationException("The document is already archived.");
+            throw new BusinessRuleException(DomainErrors.FileAlreadyArchived);
         }
 
         ArchivedAt = archivedAt;
@@ -70,7 +82,7 @@ public sealed class FileAsset : DomainModel
     {
         if (IsArchived)
         {
-            throw new InvalidOperationException("An archived file cannot be bound to a resource.");
+            throw new BusinessRuleException(DomainErrors.ArchivedFileCannotBeBound);
         }
 
         if (_bindings.Any(binding => binding.IsActive && binding.ResourceType == resourceType && binding.ResourceId == resourceId && binding.Usage == usage))

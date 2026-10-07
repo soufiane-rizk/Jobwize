@@ -22,10 +22,58 @@ namespace JobWize.Modules.Applications.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("JobWize.Modules.Applications.Domain.CompanyContactProjection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CompanyLocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CreatedByCandidateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRejected")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("RoleTitle")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "CompanyLocationId", "IsActive", "IsRejected", "Visibility", "CreatedByCandidateId")
+                        .HasDatabaseName("IX_CompanyContactProjections_Selectability");
+
+                    b.ToTable("CompanyContactProjections", "applications");
+                });
+
             modelBuilder.Entity("JobWize.Modules.Applications.Domain.CompanyLocationProjection", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("CompanyId")
@@ -176,6 +224,126 @@ namespace JobWize.Modules.Applications.Persistence.Migrations
                     b.ToTable("JobApplicationActivities", "applications");
                 });
 
+            modelBuilder.Entity("JobWize.Modules.Applications.Domain.JobApplicationCvSubmission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CompanyContactId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CompanyLocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContactEmail")
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)");
+
+                    b.Property<string>("ContactName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ContactPhoneNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ContactRoleTitle")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("JobApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Method")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobApplicationId");
+
+                    b.ToTable("JobApplicationCvSubmissions", "applications");
+                });
+
+            modelBuilder.Entity("JobWize.Modules.Applications.Domain.JobApplicationCvSubmissionDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid>("FileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)");
+
+                    b.Property<Guid>("JobApplicationCvSubmissionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobApplicationCvSubmissionId");
+
+                    b.ToTable("JobApplicationCvSubmissionDocuments", "applications");
+                });
+
+            modelBuilder.Entity("JobWize.Modules.Applications.Domain.JobApplicationReminder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CvSubmissionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("DueAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("InterviewId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("JobApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobApplicationId", "DueAt");
+
+                    b.ToTable("JobApplicationReminders", "applications");
+                });
+
             modelBuilder.Entity("JobWize.Modules.Applications.Domain.JobInterview", b =>
                 {
                     b.Property<Guid>("Id")
@@ -231,6 +399,20 @@ namespace JobWize.Modules.Applications.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("CompanyContactId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CompanyLocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CompanyLocationLabel")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)");
+
                     b.Property<Guid>("JobInterviewId")
                         .HasColumnType("uuid");
 
@@ -238,6 +420,10 @@ namespace JobWize.Modules.Applications.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("RoleTitle")
                         .HasMaxLength(200)
@@ -248,6 +434,15 @@ namespace JobWize.Modules.Applications.Persistence.Migrations
                     b.HasIndex("JobInterviewId");
 
                     b.ToTable("JobInterviewParticipants", "applications");
+                });
+
+            modelBuilder.Entity("JobWize.Modules.Applications.Domain.CompanyContactProjection", b =>
+                {
+                    b.HasOne("JobWize.Modules.Applications.Domain.CompanyProjection", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("JobWize.Modules.Applications.Domain.CompanyLocationProjection", b =>
@@ -263,6 +458,33 @@ namespace JobWize.Modules.Applications.Persistence.Migrations
                 {
                     b.HasOne("JobWize.Modules.Applications.Domain.JobApplication", null)
                         .WithMany("Activities")
+                        .HasForeignKey("JobApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("JobWize.Modules.Applications.Domain.JobApplicationCvSubmission", b =>
+                {
+                    b.HasOne("JobWize.Modules.Applications.Domain.JobApplication", null)
+                        .WithMany("CvSubmissions")
+                        .HasForeignKey("JobApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("JobWize.Modules.Applications.Domain.JobApplicationCvSubmissionDocument", b =>
+                {
+                    b.HasOne("JobWize.Modules.Applications.Domain.JobApplicationCvSubmission", null)
+                        .WithMany("Documents")
+                        .HasForeignKey("JobApplicationCvSubmissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("JobWize.Modules.Applications.Domain.JobApplicationReminder", b =>
+                {
+                    b.HasOne("JobWize.Modules.Applications.Domain.JobApplication", null)
+                        .WithMany("Reminders")
                         .HasForeignKey("JobApplicationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -295,7 +517,16 @@ namespace JobWize.Modules.Applications.Persistence.Migrations
                 {
                     b.Navigation("Activities");
 
+                    b.Navigation("CvSubmissions");
+
                     b.Navigation("Interviews");
+
+                    b.Navigation("Reminders");
+                });
+
+            modelBuilder.Entity("JobWize.Modules.Applications.Domain.JobApplicationCvSubmission", b =>
+                {
+                    b.Navigation("Documents");
                 });
 
             modelBuilder.Entity("JobWize.Modules.Applications.Domain.JobInterview", b =>

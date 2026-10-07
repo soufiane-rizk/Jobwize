@@ -12,7 +12,12 @@ internal sealed class JobInterviewParticipantConfiguration : IEntityTypeConfigur
         builder.ToTable("JobInterviewParticipants", Schemas.Applications);
         builder.ConfigureEntityBase();
         builder.Property(participant => participant.Id).ValueGeneratedNever();
+        builder.Property(participant => participant.CompanyContactId);
+        builder.Property(participant => participant.CompanyLocationId);
+        builder.Property(participant => participant.CompanyLocationLabel).HasMaxLength(200);
         builder.Property(participant => participant.Name).HasMaxLength(200).IsRequired();
         builder.Property(participant => participant.RoleTitle).HasMaxLength(200);
+        builder.Property(participant => participant.Email).HasMaxLength(320);
+        builder.Property(participant => participant.PhoneNumber).HasMaxLength(50);
     }
 }

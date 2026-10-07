@@ -1,6 +1,7 @@
 using JobWize.Modules.Companies.Contracts.Public.Companies;
 using JobWize.Modules.Companies.Contracts.Public.CompanyContacts;
 using JobWize.Shared.Domain;
+using JobWize.Shared.Errors;
 
 namespace JobWize.Modules.Companies.Domain;
 
@@ -34,7 +35,10 @@ public sealed class Company : DomainModel
         IEnumerable<(string? Label, string City, string Country, string? Address)> locations,
         IEnumerable<(int? LocationIndex, string Name, string? RoleTitle, string? Email, string? PhoneNumber)>? contacts = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new BusinessRuleException(DomainErrors.CompanyNameRequired);
+        }
 
         var company = new Company
         {
@@ -67,7 +71,10 @@ public sealed class Company : DomainModel
         string? industry,
         string? description)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new BusinessRuleException(DomainErrors.CompanyNameRequired);
+        }
 
         return new Company
         {
@@ -137,9 +144,7 @@ public sealed class Company : DomainModel
     {
         if (!IsSharedActiveLocation(companyLocationId))
         {
-            throw new ArgumentException(
-                "A shared contact requires an active shared location.",
-                nameof(companyLocationId));
+            throw new BusinessRuleException(DomainErrors.SharedContactRequiresActiveSharedLocation);
         }
 
         CompanyContact contact = CompanyContact.CreateShared(
@@ -169,6 +174,17 @@ public sealed class Company : DomainModel
         CompanyContact contact = GetContact(contactId);
 
         ValidateLocation(companyLocationId);
+
+        if (Visibility != CompanyVisibility.Shared)
+        {
+            throw new BusinessRuleException(DomainErrors.CompanyMustBeSharedBeforeContactApproval);
+        }
+
+        if (!IsSharedActiveLocation(companyLocationId))
+        {
+            throw new BusinessRuleException(DomainErrors.SharedContactRequiresActiveSharedLocation);
+        }
+
         contact.UpdateInformation(companyLocationId, name, roleTitle, email, phoneNumber);
         contact.Approve(reviewerId, reviewedAt, reason);
     }
@@ -183,7 +199,7 @@ public sealed class Company : DomainModel
     {
         if (Visibility == CompanyVisibility.Shared)
         {
-            throw new InvalidOperationException("A shared company cannot be reviewed again.");
+            throw new BusinessRuleException(DomainErrors.CompanyCannotBeReviewedAgain);
         }
 
         Visibility = CompanyVisibility.Shared;
@@ -271,6 +287,14 @@ public sealed class Company : DomainModel
             !IsSharedActiveLocation(contact.CompanyLocationId));
     }
 
+    public void EnsureActiveSharedContactsUseActiveLocations()
+    {
+        if (HasInvalidActiveSharedContactLocation())
+        {
+            throw new BusinessRuleException(DomainErrors.SharedContactRequiresActiveSharedLocation);
+        }
+    }
+
     public void UpdateBasicInformation(
         string? name,
         string? website,
@@ -304,7 +328,10 @@ public sealed class Company : DomainModel
         string? industry,
         string? description)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new BusinessRuleException(DomainErrors.CompanyNameRequired);
+        }
 
         Name = name.Trim();
         Website = Normalize(website);
@@ -314,11 +341,14 @@ public sealed class Company : DomainModel
 
     public void Reject(Guid reviewerId, DateTime reviewedAt, string reason)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            throw new BusinessRuleException(DomainErrors.ReviewReasonRequired);
+        }
 
         if (Visibility == CompanyVisibility.Shared)
         {
-            throw new InvalidOperationException("A shared company cannot be reviewed again.");
+            throw new BusinessRuleException(DomainErrors.CompanyCannotBeReviewedAgain);
         }
 
         Visibility = CompanyVisibility.Private;
@@ -336,7 +366,7 @@ public sealed class Company : DomainModel
     {
         if (companyLocationId is not null && _locations.All(location => location.Id != companyLocationId))
         {
-            throw new ArgumentException("The location does not belong to this company.", nameof(companyLocationId));
+            throw new BusinessRuleException(DomainErrors.LocationNotInCompany);
         }
     }
 
@@ -354,21 +384,19 @@ public sealed class Company : DomainModel
             (location.Visibility != CompanyLocationVisibility.Shared &&
              location.CreatedByCandidateId != candidateId))
         {
-            throw new ArgumentException(
-                "The location is not selectable for this candidate.",
-                nameof(companyLocationId));
+            throw new BusinessRuleException(DomainErrors.LocationNotSelectable);
         }
     }
 
     private CompanyContact GetContact(Guid contactId)
     {
         return _contacts.SingleOrDefault(contact => contact.Id == contactId)
-            ?? throw new InvalidOperationException("The company contact was not found.");
+            ?? throw new BusinessRuleException(DomainErrors.CompanyContactNotInCompany);
     }
 
     private CompanyLocation GetLocation(Guid locationId)
     {
         return _locations.SingleOrDefault(location => location.Id == locationId)
-            ?? throw new InvalidOperationException("The company location was not found.");
+            ?? throw new BusinessRuleException(DomainErrors.CompanyLocationNotInCompany);
     }
 }

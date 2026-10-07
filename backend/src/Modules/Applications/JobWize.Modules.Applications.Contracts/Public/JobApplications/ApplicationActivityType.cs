@@ -5,5 +5,6 @@ public enum ApplicationActivityType
     StatusChanged,
     NoteAdded,
     InterviewScheduled,
-    InterviewResultRecorded
+    InterviewResultRecorded,
+    CvSubmitted
 }

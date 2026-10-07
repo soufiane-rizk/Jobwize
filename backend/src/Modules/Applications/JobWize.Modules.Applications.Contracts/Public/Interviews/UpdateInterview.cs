@@ -6,7 +6,7 @@ public static class UpdateInterview
 {
     public const string Route = "/api/applications/{ApplicationId}/interviews/{InterviewId}";
 
-    public sealed record Participant(string Name, string? RoleTitle);
+    public sealed record ManualParticipant(string Name, string? RoleTitle);
 
     public sealed record Request(
         [property: HttpRoute] Guid ApplicationId,
@@ -17,5 +17,6 @@ public static class UpdateInterview
         [property: HttpBody] InterviewFormat Format,
         [property: HttpBody] string? Location,
         [property: HttpBody] string? PreparationNotes,
-        [property: HttpBody] IReadOnlyList<Participant> Participants);
+        [property: HttpBody] IReadOnlyList<Guid> CompanyContactIds,
+        [property: HttpBody] IReadOnlyList<ManualParticipant> ManualParticipants);
 }

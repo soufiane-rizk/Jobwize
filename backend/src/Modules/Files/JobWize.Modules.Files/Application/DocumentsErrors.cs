@@ -1,4 +1,5 @@
 using JobWize.Shared.Application.Results;
+using JobWize.Shared.Errors;
 
 namespace JobWize.Modules.Files.Application;
 

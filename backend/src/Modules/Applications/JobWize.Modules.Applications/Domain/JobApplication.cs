@@ -1,6 +1,8 @@
 using JobWize.Modules.Applications.Contracts.Public.JobApplications;
 using JobWize.Modules.Applications.Contracts.Public.Interviews;
+using JobWize.Modules.Applications.Contracts.Public.Reminders;
 using JobWize.Shared.Domain;
+using JobWize.Shared.Errors;
 
 namespace JobWize.Modules.Applications.Domain;
 
@@ -21,6 +23,10 @@ public sealed class JobApplication : DomainModel
     public IReadOnlyCollection<JobApplicationActivity> Activities => _activities.AsReadOnly();
     private readonly List<JobInterview> _interviews = [];
     public IReadOnlyCollection<JobInterview> Interviews => _interviews.AsReadOnly();
+    private readonly List<JobApplicationCvSubmission> _cvSubmissions = [];
+    public IReadOnlyCollection<JobApplicationCvSubmission> CvSubmissions => _cvSubmissions.AsReadOnly();
+    private readonly List<JobApplicationReminder> _reminders = [];
+    public IReadOnlyCollection<JobApplicationReminder> Reminders => _reminders.AsReadOnly();
     public IReadOnlyList<ApplicationStatus> AllowedNextStatuses => GetAllowedNextStatuses();
 
     private JobApplication()
@@ -40,9 +46,7 @@ public sealed class JobApplication : DomainModel
     {
         if (RequiresAppliedOn(status) && appliedOn is null)
         {
-            throw new ArgumentException(
-                "Applied on is required when the application has been sent.",
-                nameof(appliedOn));
+            throw new BusinessRuleException(DomainErrors.AppliedOnRequired);
         }
 
         var application = new JobApplication
@@ -73,22 +77,19 @@ public sealed class JobApplication : DomainModel
     {
         if (status == Status)
         {
-            throw new ArgumentException("The new status must be different from the current status.", nameof(status));
+            throw new BusinessRuleException(DomainErrors.ApplicationStatusUnchanged);
         }
 
         if (!AllowedNextStatuses.Contains(status))
         {
-            throw new InvalidOperationException(
-                $"Cannot change an application from {Status} to {status}.");
+            throw new BusinessRuleException(DomainErrors.ApplicationStatusTransitionNotAllowed);
         }
 
         DateOnly? effectiveAppliedOn = appliedOn ?? AppliedOn;
 
         if (RequiresAppliedOn(status) && effectiveAppliedOn is null)
         {
-            throw new ArgumentException(
-                "Applied on is required once an application has been sent.",
-                nameof(appliedOn));
+            throw new BusinessRuleException(DomainErrors.AppliedOnRequired);
         }
 
         Status = status;
@@ -99,9 +100,66 @@ public sealed class JobApplication : DomainModel
 
     public void AddNote(string note)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(note);
+        if (string.IsNullOrWhiteSpace(note))
+        {
+            throw new BusinessRuleException(DomainErrors.NoteRequired);
+        }
 
         AddActivity(JobApplicationActivity.CreateNote(Id, note));
+    }
+
+    public JobApplicationCvSubmission RecordCvSubmission(
+        DateTime sentAt,
+        CvSubmissionMethod method,
+        string? notes,
+        (Guid? Id, Guid? LocationId, string? Name, string? RoleTitle, string? Email, string? PhoneNumber) contact,
+        IEnumerable<(Guid FileId, string FileName, string ContentType, long SizeBytes)> documents)
+    {
+        DateTime normalizedSentAt = sentAt.Kind switch
+        {
+            DateTimeKind.Utc => sentAt,
+            DateTimeKind.Local => sentAt.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(sentAt, DateTimeKind.Utc)
+        };
+
+        (Guid FileId, string FileName, string ContentType, long SizeBytes)[] documentSnapshots = documents.ToArray();
+
+        if (documentSnapshots.Length == 0)
+        {
+            throw new BusinessRuleException(DomainErrors.CvSubmissionDocumentRequired);
+        }
+
+        if (documentSnapshots.Select(document => document.FileId).Distinct().Count() != documentSnapshots.Length)
+        {
+            throw new BusinessRuleException(DomainErrors.DuplicateCvSubmissionDocument);
+        }
+
+        JobApplicationCvSubmission submission = JobApplicationCvSubmission.Create(
+            Id,
+            normalizedSentAt,
+            method,
+            notes,
+            contact,
+            documentSnapshots);
+
+        _cvSubmissions.Add(submission);
+
+        if (Status is ApplicationStatus.Draft or ApplicationStatus.Planned)
+        {
+            Status = ApplicationStatus.Applied;
+            AppliedOn = DateOnly.FromDateTime(normalizedSentAt);
+            AddActivity(JobApplicationActivity.CreateStatusChange(
+                Id,
+                ApplicationStatus.Applied,
+                "Automatically marked as applied when the CV submission was recorded."));
+        }
+
+        AddActivity(JobApplicationActivity.CreateCvSubmitted(
+            Id,
+            method,
+            contact.Name));
+
+        return submission;
     }
 
     public JobInterview ScheduleInterview(
@@ -111,8 +169,18 @@ public sealed class JobApplication : DomainModel
         InterviewFormat format,
         string? location,
         string? preparationNotes,
-        IEnumerable<(string Name, string? RoleTitle)> participants)
+        IEnumerable<InterviewParticipantSnapshot> participants)
     {
+        if (Status is ApplicationStatus.Draft or ApplicationStatus.Planned)
+        {
+            throw new BusinessRuleException(DomainErrors.ApplicationMustBeSentBeforeInterview);
+        }
+
+        if (Status is not (ApplicationStatus.Applied or ApplicationStatus.InProcess))
+        {
+            throw new BusinessRuleException(DomainErrors.CannotScheduleInterviewForCurrentStatus);
+        }
+
         JobInterview interview = JobInterview.Schedule(
             Id,
             interviewType,
@@ -133,7 +201,7 @@ public sealed class JobApplication : DomainModel
         return interview;
     }
 
-    public JobInterview? RecordInterviewResult(
+    public JobInterview RecordInterviewResult(
         Guid interviewId,
         InterviewState state,
         DateTime? rescheduledAt,
@@ -143,7 +211,7 @@ public sealed class JobApplication : DomainModel
 
         if (interview is null)
         {
-            return null;
+            throw new BusinessRuleException(DomainErrors.InterviewNotInApplication);
         }
 
         interview.RecordResult(state);
@@ -154,7 +222,7 @@ public sealed class JobApplication : DomainModel
         {
             if (rescheduledAt is null)
             {
-                throw new ArgumentException("A new date is required when postponing an interview.", nameof(rescheduledAt));
+                throw new BusinessRuleException(DomainErrors.InterviewRescheduleDateRequired);
             }
 
             replacementInterview = interview.CreateRescheduledInterview(rescheduledAt.Value);
@@ -166,10 +234,61 @@ public sealed class JobApplication : DomainModel
         return replacementInterview ?? interview;
     }
 
+    public JobApplicationReminder CreateReminder(
+        ReminderKind kind,
+        Guid? cvSubmissionId,
+        Guid? interviewId,
+        string title,
+        DateTime dueAt,
+        string? note)
+    {
+        if (cvSubmissionId is not null &&
+            !_cvSubmissions.Any(item => item.Id == cvSubmissionId))
+        {
+            throw new BusinessRuleException(DomainErrors.CvSubmissionNotInApplication);
+        }
+
+        if (interviewId is not null &&
+            !_interviews.Any(item => item.Id == interviewId))
+        {
+            throw new BusinessRuleException(DomainErrors.InterviewNotInApplication);
+        }
+
+        JobApplicationReminder reminder = JobApplicationReminder.Create(
+            Id,
+            kind,
+            cvSubmissionId,
+            interviewId,
+            title,
+            dueAt,
+            note);
+
+        _reminders.Add(reminder);
+
+        return reminder;
+    }
+
+    public bool ChangeReminderState(Guid reminderId, ReminderState state)
+    {
+        JobApplicationReminder? reminder = _reminders.SingleOrDefault(item => item.Id == reminderId);
+
+        if (reminder is null)
+        {
+            return false;
+        }
+
+        reminder.ChangeState(state);
+
+        return true;
+    }
+
     private void AddActivity(JobApplicationActivity activity)
     {
         _activities.Add(activity);
-        LastActivityAt = activity.OccurredAt;
+        if (activity.OccurredAt > LastActivityAt)
+        {
+            LastActivityAt = activity.OccurredAt;
+        }
     }
 
     private static bool RequiresAppliedOn(ApplicationStatus status)

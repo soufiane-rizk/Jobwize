@@ -1,5 +1,6 @@
 ﻿using FluentAssertions;
 using JobWize.Shared.Application.Results;
+using JobWize.Shared.Errors;
 using Xunit;
 
 namespace JobWize.Shared.UnitTests.Application.Results;

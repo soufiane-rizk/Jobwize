@@ -40,7 +40,8 @@ public static class GetJobApplication
 
     internal sealed class Handler(
         ApplicationsDbContext dbContext,
-        IUserContext userContext) : IQueryHandler<Query, Contracts.Public.JobApplications.GetJobApplication.Response>
+        IUserContext userContext)
+        : IQueryHandler<Query, Contracts.Public.JobApplications.GetJobApplication.Response>
     {
         public async Task<Result<Contracts.Public.JobApplications.GetJobApplication.Response>> HandleAsync(
             Query query,
@@ -51,6 +52,9 @@ public static class GetJobApplication
                 .Include(item => item.Activities)
                 .Include(item => item.Interviews)
                 .ThenInclude(interview => interview.Participants)
+                .Include(item => item.CvSubmissions)
+                .ThenInclude(submission => submission.Documents)
+                .Include(item => item.Reminders)
                 .SingleOrDefaultAsync(
                     item => item.Id == query.Id && item.CandidateId == userContext.UserId,
                     cancellationToken);
@@ -105,14 +109,55 @@ public static class GetJobApplication
                     interview.Participants
                         .Select(participant => new Contracts.Public.JobApplications.GetJobApplication.InterviewParticipantItem(
                             participant.Id,
+                            participant.CompanyContactId,
+                            participant.CompanyLocationId,
+                            participant.CompanyLocationLabel,
                             participant.Name,
-                            participant.RoleTitle))
+                            participant.RoleTitle,
+                            participant.Email,
+                            participant.PhoneNumber))
                         .ToList()))
+                .ToList();
+
+            var submissions = application.CvSubmissions
+                .OrderByDescending(item => item.SentAt)
+                .Select(item => new Contracts.Public.JobApplications.GetJobApplication.CvSubmissionItem(
+                    item.Id,
+                    item.SentAt,
+                    item.Method,
+                    item.Notes,
+                    item.CompanyContactId,
+                    item.CompanyLocationId,
+                    item.ContactName,
+                    item.ContactRoleTitle,
+                    item.ContactEmail,
+                    item.ContactPhoneNumber,
+                    item.Documents
+                        .Select(document => new Contracts.Public.JobApplications.GetJobApplication.CvSubmissionDocumentItem(
+                            document.FileId,
+                            document.FileName,
+                            document.ContentType,
+                            document.SizeBytes))
+                        .ToList()))
+                .ToList();
+
+            var reminders = application.Reminders
+                .OrderBy(item => item.DueAt)
+                .Select(item => new Contracts.Public.JobApplications.GetJobApplication.ReminderItem(
+                    item.Id,
+                    item.Kind,
+                    item.State,
+                    item.CvSubmissionId,
+                    item.InterviewId,
+                    item.Title,
+                    item.DueAt,
+                    item.Note))
                 .ToList();
 
             return Result<Contracts.Public.JobApplications.GetJobApplication.Response>.Success(new(
                 application.Id,
                 application.CompanyId,
+                application.CompanyLocationId,
                 companyName,
                 companyLocationLabel,
                 application.RoleTitle,
@@ -123,6 +168,8 @@ public static class GetJobApplication
                 application.Notes,
                 activities,
                 interviews,
+                submissions,
+                reminders,
                 application.AllowedNextStatuses));
         }
     }

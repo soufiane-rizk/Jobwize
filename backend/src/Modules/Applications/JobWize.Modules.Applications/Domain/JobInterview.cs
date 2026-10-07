@@ -1,5 +1,6 @@
 using JobWize.Modules.Applications.Contracts.Public.Interviews;
 using JobWize.Shared.Domain;
+using JobWize.Shared.Errors;
 
 namespace JobWize.Modules.Applications.Domain;
 
@@ -28,16 +29,16 @@ public sealed class JobInterview : DomainModel
         InterviewFormat format,
         string? location,
         string? preparationNotes,
-        IEnumerable<(string Name, string? RoleTitle)> participants)
+        IEnumerable<InterviewParticipantSnapshot> participants)
     {
         if (scheduledAt == default)
         {
-            throw new ArgumentException("An interview date is required.", nameof(scheduledAt));
+            throw new BusinessRuleException(DomainErrors.InterviewDateRequired);
         }
 
         if (durationMinutes is <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(durationMinutes));
+            throw new BusinessRuleException(DomainErrors.InterviewDurationMustBePositive);
         }
 
         DateTime scheduledAtUtc = ToUtc(scheduledAt);
@@ -55,9 +56,9 @@ public sealed class JobInterview : DomainModel
             PreparationNotes = string.IsNullOrWhiteSpace(preparationNotes) ? null : preparationNotes.Trim()
         };
 
-        foreach ((string name, string? roleTitle) in participants)
+        foreach (InterviewParticipantSnapshot participant in participants)
         {
-            interview._participants.Add(JobInterviewParticipant.Create(interview.Id, name, roleTitle));
+            interview._participants.Add(JobInterviewParticipant.Create(interview.Id, participant));
         }
 
         return interview;
@@ -70,21 +71,21 @@ public sealed class JobInterview : DomainModel
         InterviewFormat format,
         string? location,
         string? preparationNotes,
-        IEnumerable<(string Name, string? RoleTitle)> participants)
+        IEnumerable<InterviewParticipantSnapshot> participants)
     {
         if (State != InterviewState.Scheduled)
         {
-            throw new InvalidOperationException("Only a scheduled interview can be updated.");
+            throw new BusinessRuleException(DomainErrors.InterviewCannotBeUpdated);
         }
 
         if (scheduledAt == default)
         {
-            throw new ArgumentException("An interview date is required.", nameof(scheduledAt));
+            throw new BusinessRuleException(DomainErrors.InterviewDateRequired);
         }
 
         if (durationMinutes is <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(durationMinutes));
+            throw new BusinessRuleException(DomainErrors.InterviewDurationMustBePositive);
         }
 
         Type = type;
@@ -96,9 +97,9 @@ public sealed class JobInterview : DomainModel
 
         _participants.Clear();
 
-        foreach ((string name, string? roleTitle) in participants)
+        foreach (InterviewParticipantSnapshot participant in participants)
         {
-            _participants.Add(JobInterviewParticipant.Create(Id, name, roleTitle));
+            _participants.Add(JobInterviewParticipant.Create(Id, participant));
         }
     }
 
@@ -106,12 +107,12 @@ public sealed class JobInterview : DomainModel
     {
         if (State != InterviewState.Scheduled)
         {
-            throw new InvalidOperationException("Only a scheduled interview can have a result recorded.");
+            throw new BusinessRuleException(DomainErrors.InterviewCannotHaveResult);
         }
 
         if (state == InterviewState.Scheduled)
         {
-            throw new ArgumentException("Select a completed, cancelled, or postponed result.", nameof(state));
+            throw new BusinessRuleException(DomainErrors.InterviewResultMustBeFinal);
         }
 
         State = state;
@@ -127,7 +128,7 @@ public sealed class JobInterview : DomainModel
             Format,
             Location,
             PreparationNotes,
-            Participants.Select(participant => (participant.Name, participant.RoleTitle)));
+            Participants.Select(participant => participant.ToSnapshot()));
     }
 
     private static DateTime ToUtc(DateTime value)

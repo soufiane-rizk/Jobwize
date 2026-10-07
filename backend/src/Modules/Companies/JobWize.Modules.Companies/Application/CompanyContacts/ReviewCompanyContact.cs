@@ -1,4 +1,5 @@
 using FluentValidation;
+using JobWize.Modules.Companies.Contracts.Events.Companies;
 using JobWize.Modules.Companies.Contracts.Public.CompanyContacts;
 using JobWize.Modules.Companies.Contracts.Public.Companies;
 using JobWize.Modules.Companies.Persistence;
@@ -76,7 +77,8 @@ public static class ReviewCompanyContact
     internal sealed class Handler(
         CompaniesDbContext dbContext,
         ICompanyRepository companies,
-        IUserContext userContext) : ICommandHandler<Command, bool>
+        IUserContext userContext,
+        IDispatcher dispatcher) : ICommandHandler<Command, bool>
     {
         public async Task<Result<bool>> HandleAsync(Command command, CancellationToken cancellationToken)
         {
@@ -97,52 +99,34 @@ public static class ReviewCompanyContact
                 return Result<bool>.Failure(CompaniesErrors.CompanyNotFound);
             }
 
-            try
+            if (command.Approved)
             {
-                if (command.Approved)
-                {
-                    if (company.Visibility != CompanyVisibility.Shared)
-                    {
-                        return Result<bool>.Failure(CompaniesErrors.CompanyMustBeSharedBeforeContactApproval);
-                    }
-
-                    if (!company.IsSharedActiveLocation(command.CompanyLocationId))
-                    {
-                        return Result<bool>.Failure(CompaniesErrors.SharedContactRequiresSharedActiveLocation);
-                    }
-
-                    company.ApproveContact(
-                        command.Id,
-                        userContext.UserId,
-                        DateTime.UtcNow,
-                        command.Reason,
-                        command.CompanyLocationId,
-                        command.Name!,
-                        command.RoleTitle,
-                        command.Email,
-                        command.PhoneNumber);
-                }
-                else
-                {
-                    company.RejectContact(
-                        command.Id,
-                        userContext.UserId,
-                        DateTime.UtcNow,
-                        command.Reason!);
-                }
-
-                await companies.SaveAsync(company, cancellationToken);
-
-                return Result<bool>.Success(true);
+                company.ApproveContact(
+                    command.Id,
+                    userContext.UserId,
+                    DateTime.UtcNow,
+                    command.Reason,
+                    command.CompanyLocationId,
+                    command.Name!,
+                    command.RoleTitle,
+                    command.Email,
+                    command.PhoneNumber);
             }
-            catch (ArgumentException)
+            else
             {
-                return Result<bool>.Failure(CompaniesErrors.CompanyLocationNotFound);
+                company.RejectContact(
+                    command.Id,
+                    userContext.UserId,
+                    DateTime.UtcNow,
+                    command.Reason!);
             }
-            catch (InvalidOperationException)
-            {
-                return Result<bool>.Failure(CompaniesErrors.CompanyContactNotFound);
-            }
+
+            await companies.SaveAsync(company, cancellationToken);
+            await dispatcher.PublishAsync(
+                new CompanyContactReviewed(company.Id, command.Id, userContext.UserId),
+                cancellationToken);
+
+            return Result<bool>.Success(true);
         }
     }
 }

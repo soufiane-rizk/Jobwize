@@ -3,6 +3,7 @@ using JobWize.Shared.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace JobWize.Modules.Applications.Persistence;
+
 public sealed class ApplicationsDbContext : ModuleDbContext
 {
     public ApplicationsDbContext(DbContextOptions<ApplicationsDbContext> options)
@@ -14,6 +15,8 @@ public sealed class ApplicationsDbContext : ModuleDbContext
     public DbSet<JobInterview> JobInterviews => Set<JobInterview>();
     public DbSet<CompanyProjection> CompanyProjections => Set<CompanyProjection>();
     public DbSet<CompanyLocationProjection> CompanyLocationProjections => Set<CompanyLocationProjection>();
+    public DbSet<CompanyContactProjection> CompanyContactProjections => Set<CompanyContactProjection>();
+    public DbSet<JobApplicationReminder> JobApplicationReminders => Set<JobApplicationReminder>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

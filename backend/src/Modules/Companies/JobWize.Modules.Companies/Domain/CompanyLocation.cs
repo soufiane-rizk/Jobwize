@@ -1,4 +1,5 @@
 using JobWize.Shared.Domain;
+using JobWize.Shared.Errors;
 using JobWize.Modules.Companies.Contracts.Public.Companies;
 
 namespace JobWize.Modules.Companies.Domain;
@@ -29,8 +30,15 @@ public sealed class CompanyLocation : Entity
         string country,
         string? address)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(city);
-        ArgumentException.ThrowIfNullOrWhiteSpace(country);
+        if (string.IsNullOrWhiteSpace(city))
+        {
+            throw new BusinessRuleException(DomainErrors.LocationCityRequired);
+        }
+
+        if (string.IsNullOrWhiteSpace(country))
+        {
+            throw new BusinessRuleException(DomainErrors.LocationCountryRequired);
+        }
 
         return new CompanyLocation
         {
@@ -76,7 +84,10 @@ public sealed class CompanyLocation : Entity
 
     internal void Reject(Guid reviewerId, DateTime reviewedAt, string reason)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            throw new BusinessRuleException(DomainErrors.ReviewReasonRequired);
+        }
 
         ReviewedByUserId = reviewerId;
         ReviewedAt = reviewedAt;
@@ -90,8 +101,15 @@ public sealed class CompanyLocation : Entity
 
     internal void UpdateInformation(string? label, string city, string country, string? address)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(city);
-        ArgumentException.ThrowIfNullOrWhiteSpace(country);
+        if (string.IsNullOrWhiteSpace(city))
+        {
+            throw new BusinessRuleException(DomainErrors.LocationCityRequired);
+        }
+
+        if (string.IsNullOrWhiteSpace(country))
+        {
+            throw new BusinessRuleException(DomainErrors.LocationCountryRequired);
+        }
 
         Label = Normalize(label);
         City = city.Trim();

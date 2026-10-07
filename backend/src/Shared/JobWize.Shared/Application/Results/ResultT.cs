@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using JobWize.Shared.Errors;
 
 namespace JobWize.Shared.Application.Results
 {
