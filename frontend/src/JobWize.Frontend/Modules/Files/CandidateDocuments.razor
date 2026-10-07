@@ -1,0 +1,136 @@
+@attribute [Route(FilesRoutes.List)]
+@attribute [Authorize]
+
+@using JobWize.Modules.Files.Contracts.Public.FileAssets
+
+@inject CandidateDocumentService CandidateDocumentService
+@inject IJSRuntime JsRuntime
+
+<PageTitle>Documents</PageTitle>
+
+<MudStack Spacing="3">
+    <MudStack Row="true" AlignItems="AlignItems.Center">
+        <MudText Typo="Typo.h4">Documents</MudText>
+        <MudSpacer />
+        <InputFile
+            OnChange="UploadAsync"
+            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+    </MudStack>
+
+    <MudAlert Severity="Severity.Info" Dense="true">
+        Upload CVs and resumes as PDF, DOC, or DOCX files (maximum 10 MB). Removing a document archives it so future submission history can remain safe.
+    </MudAlert>
+
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error">@_error</MudAlert>
+    }
+
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        <MudTable Items="@_files" Hover="true" Dense="true">
+            <HeaderContent>
+                <MudTh>File</MudTh>
+                <MudTh>Uploaded</MudTh>
+                <MudTh>Size</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="File">@context.FileName</MudTd>
+                <MudTd DataLabel="Uploaded">@context.UploadedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudTd>
+                <MudTd DataLabel="Size">@FormatSize(context.SizeBytes)</MudTd>
+                <MudTd>
+                    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Download" OnClick="@(() => DownloadAsync(context))">
+                        Download
+                    </MudButton>
+                    <MudButton Color="Color.Error" Variant="Variant.Text" OnClick="@(() => ArchiveAsync(context.Id))">
+                        Remove
+                    </MudButton>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="pa-4">No files uploaded yet.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    }
+</MudStack>
+
+@code {
+    private IReadOnlyList<GetFileAssets.Item> _files = [];
+    private string? _error;
+    private bool _loading = true;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task UploadAsync(InputFileChangeEventArgs args)
+    {
+        IBrowserFile? file = args.File;
+        if (file is null)
+        {
+            return;
+        }
+
+        _error = null;
+        Result<UploadFileAsset.Response> result = await CandidateDocumentService.UploadAsync(file);
+        if (result.IsFailure)
+        {
+            _error = result.Error?.Message ?? "The document could not be uploaded.";
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task DownloadAsync(GetFileAssets.Item document)
+    {
+        Result<CandidateDocumentService.DownloadedFile> result = await CandidateDocumentService.DownloadAsync(document.Id);
+        if (result.IsFailure || result.Value is null)
+        {
+            _error = result.Error?.Message ?? "The document could not be downloaded.";
+            return;
+        }
+
+        await JsRuntime.InvokeVoidAsync(
+            "jobWize.downloadFile",
+            result.Value.FileName,
+            result.Value.ContentType,
+            Convert.ToBase64String(result.Value.Content));
+    }
+
+    private async Task ArchiveAsync(Guid documentId)
+    {
+        Result result = await CandidateDocumentService.ArchiveAsync(documentId);
+        if (result.IsFailure)
+        {
+            _error = result.Error?.Message ?? "The document could not be removed.";
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        Result<GetFileAssets.Response> result = await CandidateDocumentService.GetAsync();
+        if (result.IsSuccess)
+        {
+            _files = result.Value?.Files ?? [];
+        }
+        else
+        {
+            _error = result.Error?.Message;
+        }
+
+        _loading = false;
+    }
+
+    private static string FormatSize(long bytes) =>
+        bytes < 1024 * 1024
+            ? $"{bytes / 1024d:F1} KB"
+            : $"{bytes / (1024d * 1024d):F1} MB";
+}

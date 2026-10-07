@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -21,6 +21,7 @@
     <ProjectReference Include="..\..\Modules\Identity\JobWize.Modules.Identity\JobWize.Modules.Identity.csproj" />
     <ProjectReference Include="..\..\Modules\Applications\JobWize.Modules.Applications\JobWize.Modules.Applications.csproj" />
     <ProjectReference Include="..\..\Modules\Companies\JobWize.Modules.Companies\JobWize.Modules.Companies.csproj" />
+    <ProjectReference Include="..\..\Modules\Files\JobWize.Modules.Files\JobWize.Modules.Files.csproj" />
     <ProjectReference Include="..\..\Runtime\JobWize.Runtime.Contracts\JobWize.Runtime.Contracts.csproj" />
     <ProjectReference Include="..\..\Runtime\JobWize.Runtime\JobWize.Runtime.csproj" />
     <ProjectReference Include="..\..\Shared\JobWize.Shared\JobWize.Shared.csproj" />

@@ -1,3 +1,3 @@
 using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("JobWize.Applications.UnitTests")]
+[assembly: InternalsVisibleTo("JobWize.Modules.Applications.UnitTests")]

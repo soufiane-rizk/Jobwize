@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\backend\src\Modules\Files\JobWize.Modules.Files.Contracts\JobWize.Modules.Files.Contracts.csproj" />
     <ProjectReference Include="..\..\..\backend\src\Modules\Companies\JobWize.Modules.Companies.Contracts\JobWize.Modules.Companies.Contracts.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.11" />
